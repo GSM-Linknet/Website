@@ -9,7 +9,23 @@ const LoginPage = lazy(() => import("@/features/auth/pages/LoginPage"));
 const DashboardPage = lazy(() => import("@/features/dashboard/pages/DashboardPage"));
 const CustomerListPage = lazy(() => import("@/features/customers/pages/CustomerListPage"));
 const CustomerRegistrationPage = lazy(() => import("@/features/customers/pages/CustomerRegistrationPage"));
+const TechnicianPage = lazy(() => import("@/features/technicians/pages/TechnicianPage"));
+const ServicePricingPage = lazy(() => import("@/features/technicians/pages/ServicePricingPage"));
+const TechnicianToolsPage = lazy(() => import("@/features/technicians/pages/TechnicianToolsPage"));
+const ProspectEntryPage = lazy(() => import("@/features/production/pages/ProspectEntryPage"));
+const SupervisorReportPage = lazy(() => import("@/features/reporting/pages/SupervisorReportPage"));
+const UnitActivityPage = lazy(() => import("@/features/reporting/pages/UnitActivityPage"));
 const SaldoPage = lazy(() => import("@/features/finance/pages/SaldoPage"));
+const PaymentHistoryPage = lazy(() => import("@/features/finance/pages/PaymentHistoryPage"));
+const AgingReportsPage = lazy(() => import("@/features/finance/pages/AgingReportsPage"));
+const WilayahPage = lazy(() => import("@/features/master/pages/WilayahPage"));
+const UnitSupervisorPage = lazy(() => import("@/features/master/pages/UnitSupervisorPage"));
+const PackagePricingPage = lazy(() => import("@/features/master/pages/PackagePricingPage"));
+const DiscountPage = lazy(() => import("@/features/master/pages/DiscountPage"));
+const InstallSchedulePage = lazy(() => import("@/features/master/pages/InstallSchedulePage"));
+const AdminVerificationPage = lazy(() => import("@/features/production/pages/AdminVerificationPage"));
+const WorkOrderPage = lazy(() => import("@/features/production/pages/WorkOrderPage"));
+const PeriodicReportPage = lazy(() => import("@/features/reporting/pages/PeriodicReportPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
 
 /**
@@ -84,6 +100,118 @@ export const routes: RouteObject[] = [
                 ],
             },
             {
+                path: "reporting",
+                children: [
+                    {
+                        path: "sales",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <SupervisorReportPage />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        path: "unit",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <UnitActivityPage />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        path: "berkala",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <PeriodicReportPage />
+                            </Suspense>
+                        )
+                    },
+                ],
+            },
+            {
+                path: "master",
+                children: [
+                    {
+                        path: "wilayah",
+                        element: <Suspense fallback={<PageLoader />}><WilayahPage /></Suspense>
+                    },
+                    {
+                        path: "unit",
+                        element: <Suspense fallback={<PageLoader />}><UnitSupervisorPage /></Suspense>
+                    },
+                    {
+                        path: "paket",
+                        element: <Suspense fallback={<PageLoader />}><PackagePricingPage /></Suspense>
+                    },
+                    {
+                        path: "diskon",
+                        element: <Suspense fallback={<PageLoader />}><DiscountPage /></Suspense>
+                    },
+                    {
+                        path: "schedule",
+                        element: <Suspense fallback={<PageLoader />}><InstallSchedulePage /></Suspense>
+                    },
+                ],
+            },
+            {
+                path: "teknisi",
+                children: [
+                    {
+                        path: "database",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <TechnicianPage />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        path: "harga-jasa",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <ServicePricingPage />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        path: "tools",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <TechnicianToolsPage />
+                            </Suspense>
+                        ),
+                    },
+                ],
+            },
+            {
+                path: "produksi",
+                children: [
+                    {
+                        path: "prospek",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <ProspectEntryPage />
+                            </Suspense>
+                        ),
+                    },
+                    {
+                        path: "verifikasi",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <AdminVerificationPage />
+                            </Suspense>
+                        )
+                    },
+                    {
+                        path: "wo",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <WorkOrderPage />
+                            </Suspense>
+                        )
+                    },
+                ],
+            },
+            {
                 path: "keuangan",
                 children: [
                     {
@@ -93,6 +221,22 @@ export const routes: RouteObject[] = [
                                 <SaldoPage />
                             </Suspense>
                         ),
+                    },
+                    {
+                        path: "history",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <PaymentHistoryPage />
+                            </Suspense>
+                        )
+                    },
+                    {
+                        path: "aging",
+                        element: (
+                            <Suspense fallback={<PageLoader />}>
+                                <AgingReportsPage />
+                            </Suspense>
+                        )
                     },
                     {
                         index: true,

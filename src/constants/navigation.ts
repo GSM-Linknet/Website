@@ -1,11 +1,13 @@
 import { 
   LayoutDashboard, 
   Users, 
-  PieChart, 
-  UserCheck, 
+  Database,
+  Wrench,
+  Factory,
+  BarChart3,
   TrendingUp, 
   Smartphone, 
-  History 
+  History
 } from "lucide-react";
 import type { NavItem } from "@/types";
 
@@ -16,41 +18,59 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     href: "/",
   },
   {
+    title: "Master",
+    icon: Database,
+    items: [
+      { title: "Wilayah", href: "/master/wilayah" },
+      { title: "Unit & Supervisor", href: "/master/unit" },
+      { title: "Paket & Harga", href: "/master/paket" },
+      { title: "Diskon", href: "/master/diskon" },
+      { title: "Schedule Pasang", href: "/master/schedule" },
+    ],
+  },
+  {
     title: "Pelanggan",
     icon: Users,
     items: [
-      { title: "Pendaftaran Pelanggan", href: "/pelanggan/pendaftaran" },
+      { title: "Pendaftaran (Sales)", href: "/pelanggan/pendaftaran" },
       { title: "Kelola Pelanggan", href: "/pelanggan/kelola" },
+      { title: "Layanan Mandiri", href: "/pelanggan/layanan" },
     ],
   },
   {
-    title: "Mitra",
-    icon: PieChart,
+    title: "Teknisi",
+    icon: Wrench,
     items: [
-      { title: "Pendaftaran Mitra", href: "/mitra/pendaftaran" },
+      { title: "Database Teknisi", href: "/teknisi/database" },
+      { title: "Tools & Peralatan", href: "/teknisi/tools" },
+      { title: "Harga Jasa (Labor)", href: "/teknisi/harga-jasa" },
     ],
   },
   {
-    title: "Pengguna",
-    icon: UserCheck,
+    title: "Produksi",
+    icon: Factory,
     items: [
-      { title: "Admin", href: "/pengguna/admin" },
-      { title: "Unit", href: "/pengguna/unit" },
-      { title: "Supervisor", href: "/pengguna/supervisor" },
-      { title: "Sales", href: "/pengguna/sales" },
-      { title: "Mitra A", href: "/pengguna/mitra-a" },
-      { title: "Mitra B", href: "/pengguna/mitra-b" },
+      { title: "Input Prospek", href: "/produksi/prospek" },
+      { title: "Verifikasi Admin", href: "/produksi/verifikasi" },
+      { title: "Work Orders (WO)", href: "/produksi/wo" },
+    ],
+  },
+  {
+    title: "Reporting",
+    icon: BarChart3,
+    items: [
+      { title: "Performance Sales", href: "/reporting/sales" },
+      { title: "KA Unit Activity", href: "/reporting/unit" },
+      { title: "Laporan Berkala", href: "/reporting/berkala" },
     ],
   },
   {
     title: "Keuangan",
     icon: TrendingUp,
     items: [
-      { title: "Monitoring Pembayaran", href: "/keuangan/pembayaran" },
-      { title: "Pengajuan Penarikan", href: "/keuangan/penarikan" },
-      { title: "Saldo Pengguna", href: "/keuangan/saldo" },
-      { title: "Payout", href: "/keuangan/payout" },
-      { title: "Cashflow", href: "/keuangan/cashflow" },
+      { title: "History Pembayaran", href: "/keuangan/history" },
+      { title: "Aging Reports", href: "/keuangan/aging" },
+      { title: "Saldo & Payout", href: "/keuangan/saldo" },
     ],
   },
   {

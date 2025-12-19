@@ -3,6 +3,7 @@ import { DashboardService } from "@/services/dashboard.service";
 import { StatCard } from "../components/StatCard";
 import { CustomerTable } from "../components/CustomerTable";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AreaChart } from "@/components/shared/Charts";
 import type { Customer } from "@/types";
 
 /**
@@ -77,6 +78,27 @@ export default function DashboardPage() {
                         <StatCard key={index} {...stat} />
                     ))
                 }
+            </div>
+
+            {/* Registration Trend Chart */}
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                <div className="mb-6">
+                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">Tren Pendaftaran Pelanggan</h2>
+                    <p className="text-sm text-slate-500">Jumlah pendaftaran baru dalam 7 hari terakhir</p>
+                </div>
+                <AreaChart
+                    data={[
+                        { name: 'Senin', total: 12 },
+                        { name: 'Selasa', total: 18 },
+                        { name: 'Rabu', total: 15 },
+                        { name: 'Kamis', total: 25 },
+                        { name: 'Jumat', total: 32 },
+                        { name: 'Sabtu', total: 28 },
+                        { name: 'Minggu', total: 20 },
+                    ]}
+                    xKey="name"
+                    yKey="total"
+                />
             </div>
 
             {/* Table Section - Clean border-less wrapper (BaseTable has its own border) */}

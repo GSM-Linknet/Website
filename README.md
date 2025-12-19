@@ -1,73 +1,130 @@
-# React + TypeScript + Vite
+# GSM - Indracipta RDN Application (RDN App)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A high-performance enterprise dashboard application for managing network technicians, customer registrations, and subscription lifecycle management.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🏗️ System Overview & Schema
 
-## React Compiler
+Indracipta RDN is a multi-tier management system connecting Sales, Admin, Production, and Technicians.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 📋 Master Module (Core Database)
 
-## Expanding the ESLint configuration
+The heart of the system containing all static and operational data.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+#### 1. Technician Management
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **FreeLance Technician Registration**: Onboarding system for external network specialists.
+- **Kewilayahan Database**: Regional mapping based on the technician's residence for optimized task allocation.
+- **Tool Inventory**: Detailed tracking of physical tools owned by each technician.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+#### 2. Pricing & Labor (Modul Harga Jasa)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Standardized rates for field operations (Manual addition supported):
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- **Survey & Troubleshooting**: Visit from ODP to Customer premises.
+- **Backbone/Distribution**: Labor costs for pulling distribution cables.
+- **Infrastructure**: Post/Pole installation and ODP installation.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+#### 3. Organizational Hierarchy
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Regional Mapping**: Wilayah → Unit → Sub-Unit → Supervisor.
+- **Product & Offerings**: Packet definitions, dynamic Pricing, and Discount schemas.
+- **Operational Scheduling**: Master technician schedule for installations and maintenance.
+
+---
+
+## 🔄 Operational Flows (Standard Operating Procedures)
+
+### 🎫 Interface & Ticket Types
+
+The system handles two primary "Info Ticket" categories:
+
+1. **IKR (Instalasi Kabel Rumah)**: New customer home cable installation.
+2. **Trouble Ticket**: Internet connectivity issues or physical network damage.
+
+### 📊 Reporting & Performance Forms
+
+#### A. Supervisor View (Data Prospek)
+
+- **Performance Prospek**:
+  - **Input Capel**: Name, Address.
+  - **Needs Analysis**: Number of mobile users, number of laptop users, current provider, requested Mbps, and target price.
+- **Work Activity**:
+  - Regional visits (Kunjungan Wilayah).
+  - Sales Prospecting & Sales Funnel management.
+- **Team Performance**: Tracking the activity and conversion of the associated sales team.
+
+#### B. KA Unit View (Managerial Controls)
+
+- **Activity Form**: Daily/Weekly activity tracking.
+- **Analytical Resume**: Conclusions based on field data.
+- **Strategic Input**: New market entry or operational improvement strategies.
+- **Resource Needs**: Manpower, tools, or budget requirements.
+- **Constraint Management**: Identifying field obstacles (Kendala).
+
+---
+
+## 🏭 Production Lifecycle (Step-by-Step)
+
+### Phase 1: Input Data
+
+1. **Sales Channel**: Sales representatives input lead data via the Android Mobile App.
+2. **Visibility**: Data instantly appears on both the Admin Dashboard and the specific Sales Representative's app dashboard.
+
+### Phase 2: Data Processing (Admin Operations)
+
+Admins perform deep-dive verification and technical prep:
+
+- **Verification**: Cross-checking prospective customer data.
+- **Technical Prep**: Inputting/Editing `Home ID`, `Site ID`, and `No Work Order`.
+- **Logistics**: Handling "Ijin Lintas" (Right-of-way permits).
+- **Production Schedule**: Assigning install dates based on the production queue (routing and priority).
+
+### Phase 3: Output & Deployment (Work Order)
+
+Verified data triggers a **Work Order (WO)** notification system:
+
+- **Trigger**: Notifications sent to Unit, Supervisor, Sales, Customer, and the Technical Production Team.
+- **Order Management**: Production team tags or forwards the WO to a specific Technician.
+- **Financial Adjustment**: Admin can Edit/Cancel orders and set the final labor rate for technician payroll (Rekap Akhir Bulan).
+
+---
+
+## � Feature Roadmap: "RDN Extensions"
+
+| Feature                    | Detailed Description                                                            | Status     |
+| :------------------------- | :------------------------------------------------------------------------------ | :--------- |
+| **Input-to-Install Aging** | Analytics on the time elapsed from initial input to active installation.        | ⏳ Planned |
+| **Billing Aging**          | Monitoring the span between payment due date and actual fulfillment.            | ⏳ Planned |
+| **Payment History**        | Comprehensive audits of Cash, Bank Transfer, and Virtual Account (VA) payments. | ⏳ Planned |
+| **Periodic Reports**       | Weekly and Monthly performance reports for Supervisors and General Managers.    | ⏳ Planned |
+
+---
+
+## � Customer Journey & Self-Service
+
+Within the Customer Portal, users can track their progress through a real-time schedule:
+
+1. **Input Data** ✓ (Status: Registered)
+2. **Verifikasi** ✓ (Status: Validated)
+3. **Jadwal Pasang** ✓ (Status: Scheduled)
+4. **No Urut Hari Ini** ✓ (Status: On the Move)
+5. **Done Pemasangan** ✓ (Status: Active)
+6. **Info Pembayaran & Tagihan** (Status: Billing)
+
+### Layanan Pelanggan (Self-Service List)
+
+- **Access**: Change Wi-Fi Password.
+- **Support**: Report No Connection, Request Invoice.
+- **Commercial**: Upgrade Packets, Add-on TV Services.
+- **Ecosystem**: Information on UMKM (SME) Products.
+
+---
+
+## 🛠️ Technology Stack
+
+- **Frontend**: React 18, TypeScript, Vite.
+- **UI Architecture**: Tailwind CSS v4, Lucide Icons, Shadcn UI.
+- **Mobile**: Android (Sales App integration).
+- **Design System**: Premium GSM "Float" aesthetic (border-less, clean typography).
