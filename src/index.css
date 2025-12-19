@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-blue: #101D42;
+  --color-brand-accent: #3b82f6;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+}
+
+@layer base {
+  body {
+    @apply bg-[#F8F9FD] text-slate-800;
+    font-family: 'Inter', sans-serif;
+  }
+}
