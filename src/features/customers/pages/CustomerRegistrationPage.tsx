@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, ChevronDown } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RegistrationTable } from "../components/RegistrationTable";
+import { AddCustomerDialog } from "../components/AddCustomerDialog";
 import { REGISTRATIONS } from "@/constants/registrations";
 
 /**
@@ -43,10 +44,7 @@ export default function CustomerRegistrationPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-6 shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02]">
-            <Plus size={18} className="mr-2" />
-            Tambah Pelanggan
-          </Button>
+          <AddCustomerDialog />
         </div>
       </div>
 
