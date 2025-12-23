@@ -9,10 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LocationPicker } from "@/components/shared/LocationPicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export function AddCustomerDialog() {
+interface AddCustomerDialogProps {
+    initialStatus?: "Menunggu" | "Diproses" | "Selesai" | "Batal";
+}
+
+export function AddCustomerDialog({ initialStatus = "Menunggu" }: AddCustomerDialogProps) {
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("personal");
     const [formData, setFormData] = useState({
+        status: initialStatus,
         fullName: "",
         email: "",
         whatsapp: "",

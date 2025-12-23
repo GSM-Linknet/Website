@@ -11,12 +11,21 @@ import {
 import { RegistrationTable } from "../components/RegistrationTable";
 import { AddCustomerDialog } from "../components/AddCustomerDialog";
 import { REGISTRATIONS } from "@/constants/registrations";
+import { AuthService } from "@/services/auth.service";
 
 /**
  * CustomerRegistrationPage matches the high-fidelity design for registration management.
  */
 export default function CustomerRegistrationPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  // In a real app, this would come from a useAuth hook context
+  // For now we simulate the check.
+  // Default to Super Admin (User 1) for basic view, but we can verify changes by changing this mock or using the PermissionPage triggers
+  const currentUser = AuthService.getMockUsers()[3]; // Simulating "Sub Unit" (User 4) to test Pending flow initially
+  // Ideally, we'd get this from the actual logged-in state.
+
+  const isSubUnit = currentUser.role === "Sub Unit";
+  const defaultRegStatus = isSubUnit ? "Menunggu" : "Diproses";
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
@@ -44,7 +53,7 @@ export default function CustomerRegistrationPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <AddCustomerDialog />
+          <AddCustomerDialog initialStatus={defaultRegStatus} />
         </div>
       </div>
 

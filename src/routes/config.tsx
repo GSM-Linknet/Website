@@ -57,6 +57,9 @@ const AdminVerificationPage = lazy(
 const WorkOrderPage = lazy(
   () => import("@/features/production/pages/WorkOrderPage"),
 );
+const PermissionPage = lazy(
+  () => import("@/features/settings/pages/PermissionPage"),
+);
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
@@ -303,6 +306,19 @@ export const routes: RouteObject[] = [
             element: <Navigate to="saldo" replace />,
           },
         ],
+      },
+      {
+        path: "settings",
+        children: [
+          {
+            path: "permissions",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <PermissionPage />
+              </Suspense>
+            )
+          }
+        ]
       },
     ],
   },

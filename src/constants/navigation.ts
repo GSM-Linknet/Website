@@ -7,7 +7,8 @@ import {
   BarChart3,
   TrendingUp, 
   Smartphone, 
-  History
+  History,
+  Settings
 } from "lucide-react";
 import type { NavItem } from "@/types";
 
@@ -71,6 +72,13 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "History Pembayaran", href: "/keuangan/history" },
       { title: "Aging Reports", href: "/keuangan/aging" },
       { title: "Saldo & Payout", href: "/keuangan/saldo" },
+    ],
+  },
+  {
+    title: "Settings",
+    icon: Settings,
+    items: [
+      { title: "Hak Akses", href: "/settings/permissions" },
     ],
   },
   {

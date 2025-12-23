@@ -1,4 +1,5 @@
-import { MoreHorizontal, ShieldCheck, ShieldAlert } from "lucide-react";
+import { MoreHorizontal, ShieldCheck, ShieldAlert, CheckCircle } from "lucide-react";
+import { AuthService } from "@/services/auth.service";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -116,20 +117,36 @@ export const RegistrationTable = ({ registrations }: RegistrationTableProps) => 
             header: "AKSI",
             accessorKey: "actions",
             className: "w-10 text-center",
-            cell: () => (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100 text-slate-400">
-                            <MoreHorizontal size={18} />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="rounded-xl border-slate-100 bg-white shadow-xl">
-                        <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold">Detail</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold">Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600">Hapus</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ),
+            cell: (row: Registration) => {
+                const currentUser = AuthService.getMockUsers()[2]; // Simulating "Unit Supervisor" (User 3) to see verify button
+                // In real app, useAuth hook.
+                const canVerify = AuthService.hasPermission(currentUser.role, 'pelanggan.pendaftaran', 'verify');
+                const isPending = row.status === "Menunggu";
+
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100 text-slate-400">
+                                <MoreHorizontal size={18} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl border-slate-100 bg-white shadow-xl">
+                            {canVerify && isPending && (
+                                <DropdownMenuItem
+                                    className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
+                                    onClick={() => console.log("Verifying registration:", row.id)}
+                                >
+                                    <CheckCircle size={14} className="mr-2" />
+                                    Verifikasi
+                                </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold">Detail</DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold">Edit</DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600">Hapus</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )
+            },
         },
     ];
 

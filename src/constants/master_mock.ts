@@ -57,12 +57,13 @@ export interface Package {
     speed: string;
     price: number;
     description: string;
+    wilayah: string;
 }
 
 export const PACKAGES: Package[] = [
-    { id: "1", name: "Hemat 10", speed: "10 Mbps", price: 150000, description: "Paket ekonomis untuk kebutuhan dasar" },
-    { id: "2", name: "Standard 20", speed: "20 Mbps", price: 250000, description: "Paket ideal untuk keluarga" },
-    { id: "3", name: "Fast 50", speed: "50 Mbps", price: 450000, description: "Paket cepat untuk bisnis/streaming" },
+    { id: "1", name: "Hemat 10", speed: "10 Mbps", price: 150000, description: "Paket ekonomis untuk kebutuhan dasar", wilayah: "TNJG" },
+    { id: "2", name: "Standard 20", speed: "20 Mbps", price: 250000, description: "Paket ideal untuk keluarga", wilayah: "BMY" },
+    { id: "3", name: "Fast 50", speed: "50 Mbps", price: 450000, description: "Paket cepat untuk bisnis/streaming", wilayah: "PGY" },
 ];
 
 export interface Discount {

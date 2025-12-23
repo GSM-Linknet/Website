@@ -7,6 +7,7 @@ export default function PackagePricingPage() {
     const columns = [
         { header: "NAMA PAKET", accessorKey: "name", className: "font-bold text-[#101D42]" },
         { header: "KECEPATAN", accessorKey: "speed", className: "font-semibold text-blue-600" },
+        { header: "WILAYAH", accessorKey: "wilayah", className: "font-semibold text-blue-600" },
         {
             header: "HARGA / BULAN",
             accessorKey: "price",
