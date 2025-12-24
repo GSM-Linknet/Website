@@ -22,6 +22,7 @@ interface BaseTableProps<T> {
     rowKey: (item: T) => string;
     className?: string;
     onRowClick?: (item: T) => void;
+    loading?: boolean;
 }
 
 /**
@@ -33,6 +34,7 @@ export function BaseTable<T>({
     rowKey,
     className,
     onRowClick,
+    loading,
 }: BaseTableProps<T>) {
     return (
         <div className={cn("rounded-3xl border border-slate-100 bg-white overflow-hidden shadow-sm", className)}>
@@ -48,7 +50,13 @@ export function BaseTable<T>({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {data.length === 0 ? (
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={columns.length} className="h-32 text-center text-slate-400">
+                                    Memuat data...
+                                </TableCell>
+                            </TableRow>
+                        ) : data.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={columns.length} className="h-32 text-center text-slate-400">
                                     Data tidak ditemukan

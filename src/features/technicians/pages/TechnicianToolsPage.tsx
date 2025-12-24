@@ -1,50 +1,64 @@
+import { useState } from "react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useTools } from "../hooks/useTools";
+import type { Tool } from "@/services/technician.service";
 
-const TOOLS_MOCK = [
-    { id: "1", techName: "Ahmad Teknisi", tools: ["Tang", "Obeng", "Splicer"], status: "Complete" },
-    { id: "2", techName: "Budi Jaringan", tools: ["Tang", "Obeng"], status: "Incomplete" },
+// ==================== Column Definitions ====================
+
+const columns = [
+    { header: "KODE", accessorKey: "code", className: "font-mono" },
+    { header: "NAMA ALAT", accessorKey: "name", className: "font-bold" },
+    {
+        header: "KONDISI",
+        accessorKey: "condition",
+        cell: (row: Tool) => (
+            <span
+                className={
+                    row.condition === "good"
+                        ? "text-emerald-600 font-bold"
+                        : "text-amber-600 font-bold"
+                }
+            >
+                {row.condition}
+            </span>
+        ),
+    },
+    { header: "JUMLAH", accessorKey: "quantity", className: "text-center" },
+    { header: "LOKASI", accessorKey: "location", className: "text-slate-500 text-xs" },
 ];
+
+// ==================== Page Component ====================
 
 export default function TechnicianToolsPage() {
     const [searchQuery, setSearchQuery] = useState("");
+    const { data, loading } = useTools();
 
-    const columns = [
-        { header: "NAMA TEKNISI", accessorKey: "techName", className: "font-bold" },
-        {
-            header: "DAFTAR TOOLS", accessorKey: "tools", cell: (row: any) => (
-                <div className="flex gap-2 flex-wrap">
-                    {row.tools.map((tool: string) => (
-                        <span key={tool} className="bg-slate-100 px-2 py-0.5 rounded text-[11px] font-medium text-slate-600">
-                            {tool}
-                        </span>
-                    ))}
-                </div>
-            )
-        },
-        {
-            header: "STATUS", accessorKey: "status", cell: (row: any) => (
-                <span className={row.status === "Complete" ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
-                    {row.status}
-                </span>
-            )
-        },
-    ];
+    const filteredData = data.filter(
+        (item) =>
+            item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.code?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-[#101D42]">Tools & Peralatan</h1>
-                    <p className="text-sm text-slate-500">Logistik dan peralatan kerja teknisi</p>
+                    <p className="text-sm text-slate-500">
+                        Logistik dan peralatan kerja teknisi
+                    </p>
                 </div>
                 <div className="flex gap-3">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            size={18}
+                        />
                         <Input
-                            placeholder="Cari teknisi..."
+                            placeholder="Cari alat..."
                             className="pl-10 w-64 bg-white rounded-xl"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -53,12 +67,14 @@ export default function TechnicianToolsPage() {
                 </div>
             </div>
 
+            {/* Content */}
             <div className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
-                    data={TOOLS_MOCK}
+                    data={filteredData}
                     columns={columns}
-                    rowKey={(row) => row.id}
+                    rowKey={(row: Tool) => row.id}
                     className="border-none shadow-none"
+                    loading={loading}
                 />
             </div>
         </div>

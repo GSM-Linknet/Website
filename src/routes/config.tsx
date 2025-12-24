@@ -41,9 +41,9 @@ const AgingReportsPage = lazy(
   () => import("@/features/finance/pages/AgingReportsPage"),
 );
 const WilayahPage = lazy(() => import("@/features/master/pages/WilayahPage"));
-const UnitSupervisorPage = lazy(
-  () => import("@/features/master/pages/UnitSupervisorPage"),
-);
+const CabangPage = lazy(() => import("@/features/master/pages/CabangPage"));
+const UnitPage = lazy(() => import("@/features/master/pages/UnitPage"));
+const SubUnitPage = lazy(() => import("@/features/master/pages/SubUnitPage"));
 const PackagePricingPage = lazy(
   () => import("@/features/master/pages/PackagePricingPage"),
 );
@@ -63,6 +63,7 @@ const PermissionPage = lazy(
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
+const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
 
 /**
@@ -137,6 +138,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "layanan",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ComingSoonPage />
+              </Suspense>
+            ),
+          },
+          {
             index: true,
             element: <Navigate to="kelola" replace />,
           },
@@ -183,10 +192,26 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "cabang",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CabangPage />
+              </Suspense>
+            ),
+          },
+          {
             path: "unit",
             element: (
               <Suspense fallback={<PageLoader />}>
-                <UnitSupervisorPage />
+                <UnitPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "sub-unit",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <SubUnitPage />
               </Suspense>
             ),
           },
@@ -319,6 +344,22 @@ export const routes: RouteObject[] = [
             )
           }
         ]
+      },
+      {
+        path: "aplikasi",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ComingSoonPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "logs",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ComingSoonPage />
+          </Suspense>
+        ),
       },
     ],
   },

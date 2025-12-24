@@ -9,13 +9,17 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CustomerTable } from "../components/CustomerTable";
-import { CUSTOMERS } from "@/constants/customers_mock";
+import { useCustomers } from "../hooks/useCustomers";
 
-/**
- * CustomerListPage provides the administrative management view for active customers.
- */
+// ==================== Page Component ====================
+
 export default function CustomerListPage() {
     const [searchQuery, setSearchQuery] = useState("");
+    const { data, loading } = useCustomers();
+
+    const filteredData = data.filter((item) =>
+        item.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
@@ -32,7 +36,10 @@ export default function CustomerListPage() {
 
                 <div className="flex items-center space-x-3">
                     <div className="relative group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                        <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
+                            size={18}
+                        />
                         <Input
                             placeholder="Cari"
                             className="pl-10 w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
@@ -56,24 +63,35 @@ export default function CustomerListPage() {
 
             {/* Table Content */}
             <div className="bg-white rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
-                <CustomerTable customers={CUSTOMERS} />
+                <CustomerTable customers={filteredData} loading={loading} />
             </div>
         </div>
     );
 }
 
+// ==================== Helper Components ====================
+
 const FilterDropdown = ({ label }: { label: string }) => (
     <DropdownMenu>
         <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between min-w-[200px] border shadow-sm">
+            <Button
+                variant="outline"
+                className="h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between min-w-[200px] border shadow-sm"
+            >
                 <span>{label}</span>
                 <ChevronDown size={14} className="text-slate-400" />
             </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-[200px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
-            <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">Opsi 1</DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">Opsi 2</DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">Opsi 3</DropdownMenuItem>
+            <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">
+                Opsi 1
+            </DropdownMenuItem>
+            <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">
+                Opsi 2
+            </DropdownMenuItem>
+            <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">
+                Opsi 3
+            </DropdownMenuItem>
         </DropdownMenuContent>
     </DropdownMenu>
 );

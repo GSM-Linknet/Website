@@ -10,22 +10,36 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { RegistrationTable } from "../components/RegistrationTable";
 import { AddCustomerDialog } from "../components/AddCustomerDialog";
-import { REGISTRATIONS } from "@/constants/registrations";
 import { AuthService } from "@/services/auth.service";
+import { useCustomers } from "../hooks/useCustomers";
+import type { Customer } from "@/services/customer.service";
 
-/**
- * CustomerRegistrationPage matches the high-fidelity design for registration management.
- */
+// ==================== Page Component ====================
+
 export default function CustomerRegistrationPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  // In a real app, this would come from a useAuth hook context
-  // For now we simulate the check.
-  // Default to Super Admin (User 1) for basic view, but we can verify changes by changing this mock or using the PermissionPage triggers
-  const currentUser = AuthService.getMockUsers()[3]; // Simulating "Sub Unit" (User 4) to test Pending flow initially
-  // Ideally, we'd get this from the actual logged-in state.
+  const { data, loading, create, creating, refetch } = useCustomers();
 
-  const isSubUnit = currentUser.role === "Sub Unit";
+  // Get current user for role-based status
+  const currentUser = AuthService.getUser() ?? AuthService.getMockUsers()[3];
+  const isSubUnit = currentUser.role === "SALES";
   const defaultRegStatus = isSubUnit ? "Menunggu" : "Diproses";
+
+  // Filter for registrations (non-active customers)
+  const registrations = data.filter((c) => c.statusCust === true);
+
+  // Client-side search filter
+  const filteredData = registrations.filter(
+    (item) =>
+      item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.phone?.includes(searchQuery)
+  );
+
+  // Handle create customer from dialog
+  const handleCreateCustomer = async (customerData: Partial<Customer>) => {
+    await create(customerData);
+    refetch();
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
@@ -53,7 +67,11 @@ export default function CustomerRegistrationPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <AddCustomerDialog initialStatus={defaultRegStatus} />
+          <AddCustomerDialog
+            initialStatus={defaultRegStatus}
+            onCreate={handleCreateCustomer}
+            isCreating={creating}
+          />
         </div>
       </div>
 
@@ -66,11 +84,13 @@ export default function CustomerRegistrationPage() {
 
       {/* Table Content */}
       <div className="bg-white rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
-        <RegistrationTable registrations={REGISTRATIONS} />
+        <RegistrationTable registrations={filteredData} loading={loading} />
       </div>
     </div>
   );
 }
+
+// ==================== Helper Components ====================
 
 const FilterDropdown = ({ label }: { label: string }) => (
   <DropdownMenu>

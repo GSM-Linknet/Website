@@ -1,22 +1,42 @@
+import { useEffect, useState } from "react";
 import { Search, UserCheck, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ProductionService } from "@/services/production.service";
+import type { Prospect } from "@/services/production.service";
 
 export default function AdminVerificationPage() {
-    // Mock data for verification queue
-    const queue = [
-        { id: "1", name: "Slamet Riyadi", phone: "081234567890", address: "Jl. Sudirman No. 5", date: "2025-12-19", status: "Pending" },
-        { id: "2", name: "Indah Permata", phone: "089876543210", address: "Perum Graha Indah", date: "2025-12-18", status: "Verified" },
-    ];
+    const [queue, setQueue] = useState<Prospect[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const response = await ProductionService.getProspects();
+                // Handle wrapped response: { status, message, data: { items, ... } }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const apiResponse = response as any;
+                const paginatedData = apiResponse.data ?? apiResponse;
+                const items: Prospect[] = paginatedData.items ?? [];
+                setQueue(items);
+            } catch (error) {
+                console.error("Failed to fetch verification queue", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     const columns = [
         { header: "NAMA CAPEL", accessorKey: "name", className: "font-bold text-[#101D42]" },
         {
             header: "KONTAK",
             accessorKey: "phone",
-            cell: (row: any) => (
+            cell: (row: Prospect) => (
                 <div className="flex items-center gap-2 text-slate-600">
                     <Phone size={14} className="text-blue-500" />
                     {row.phone}
@@ -26,7 +46,7 @@ export default function AdminVerificationPage() {
         {
             header: "ALAMAT",
             accessorKey: "address",
-            cell: (row: any) => (
+            cell: (row: Prospect) => (
                 <div className="flex items-center gap-2 text-slate-500 max-w-xs truncate">
                     <MapPin size={14} />
                     {row.address}
@@ -36,7 +56,7 @@ export default function AdminVerificationPage() {
         {
             header: "STATUS",
             accessorKey: "status",
-            cell: (row: any) => (
+            cell: (row: Prospect) => (
                 <Badge className={row.status === 'Verified' ? 'bg-emerald-500' : 'bg-amber-500'}>
                     {row.status}
                 </Badge>
@@ -45,8 +65,10 @@ export default function AdminVerificationPage() {
         {
             header: "AKSI",
             accessorKey: "id",
-            cell: () => (
-                <Button size="sm" variant="outline" className="rounded-lg border-blue-100 text-blue-600 font-bold hover:bg-blue-50">
+            cell: (row: Prospect) => (
+                <Button size="sm" variant="outline" className="rounded-lg border-blue-100 text-blue-600 font-bold hover:bg-blue-50"
+                    onClick={() => console.log("Verify prospect", row.id)}
+                >
                     <UserCheck size={14} className="mr-2" />
                     Verifikasi
                 </Button>
@@ -73,6 +95,7 @@ export default function AdminVerificationPage() {
                     columns={columns}
                     rowKey={(row) => row.id}
                     className="border-none shadow-none"
+                    loading={loading}
                 />
             </div>
         </div>

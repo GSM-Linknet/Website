@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, User, Mail, Phone, CreditCard, MapPin, Hash, Package, Upload, Save, ArrowRight, ArrowLeft } from "lucide-react";
+import { Plus, User, Mail, Phone, CreditCard, MapPin, Hash, Package, Upload, Save, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +8,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LocationPicker } from "@/components/shared/LocationPicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Customer } from "@/services/customer.service";
 
 interface AddCustomerDialogProps {
     initialStatus?: "Menunggu" | "Diproses" | "Selesai" | "Batal";
+    onCreate?: (data: Partial<Customer>) => Promise<void>;
+    isCreating?: boolean;
 }
 
-export function AddCustomerDialog({ initialStatus = "Menunggu" }: AddCustomerDialogProps) {
+export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCreating = false }: AddCustomerDialogProps) {
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("personal");
     const [formData, setFormData] = useState({
@@ -26,10 +29,10 @@ export function AddCustomerDialog({ initialStatus = "Menunggu" }: AddCustomerDia
         postalCode: "",
         odpCode: "",
         internetPackage: "",
-        photoHouseFront: null,
-        photoHouseSide: null,
-        photoODP: null,
-        photoCA: null,
+        photoHouseFront: null as string | null,
+        photoHouseSide: null as string | null,
+        photoODP: null as string | null,
+        photoCA: null as string | null,
         customerLocation: null as { lat: number; lng: number } | null,
         odpLocation: null as { lat: number; lng: number } | null,
     });
@@ -38,10 +41,57 @@ export function AddCustomerDialog({ initialStatus = "Menunggu" }: AddCustomerDia
         setFormData(prev => ({ ...prev, [key]: coords }));
     };
 
-    const handleSubmit = () => {
-        console.log("Submitting Customer Data:", formData);
+    const resetForm = () => {
+        setFormData({
+            status: initialStatus,
+            fullName: "",
+            email: "",
+            whatsapp: "",
+            ktp: "",
+            address: "",
+            postalCode: "",
+            odpCode: "",
+            internetPackage: "",
+            photoHouseFront: null,
+            photoHouseSide: null,
+            photoODP: null,
+            photoCA: null,
+            customerLocation: null,
+            odpLocation: null,
+        });
+        setActiveTab("personal");
+    };
+
+    const handleSubmit = async () => {
+        // Map form data to Customer interface
+        const customerData: Partial<Customer> = {
+            name: formData.fullName,
+            email: formData.email,
+            phone: formData.whatsapp,
+            ktpNumber: formData.ktp ? parseInt(formData.ktp, 10) : 0,
+            ktpFile: "dummy.jpg", // File upload not implemented yet
+            address: formData.address,
+            posNumber: formData.postalCode ? parseInt(formData.postalCode, 10) : 0,
+            ODPCode: formData.odpCode,
+            latUser: formData.customerLocation?.lat ?? 0,
+            longUser: formData.customerLocation?.lng ?? 0,
+            latODP: formData.odpLocation?.lat ?? 0,
+            longODP: formData.odpLocation?.lng ?? 0,
+            frontHome: formData.photoHouseFront ?? "dummy.jpg",
+            sideHome: formData.photoHouseSide ?? "dummy.jpg",
+            ODPImage: formData.photoODP ?? "dummy.jpg",
+            CaImage: formData.photoCA ?? undefined,
+            idPackages: formData.internetPackage || undefined,
+            statusCust: false, // New registrations are not active
+            statusNet: false,
+        };
+
+        if (onCreate) {
+            await onCreate(customerData);
+        }
+
+        resetForm();
         setOpen(false);
-        setActiveTab("personal"); // Reset tab
     };
 
     return (
@@ -269,9 +319,22 @@ export function AddCustomerDialog({ initialStatus = "Menunggu" }: AddCustomerDia
                                     <Button variant="outline" onClick={() => setOpen(false)} className="h-11 px-6 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium">
                                         Batal
                                     </Button>
-                                    <Button onClick={handleSubmit} className="h-11 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200 transition-all hover:scale-[1.02]">
-                                        <Save size={18} className="mr-2" />
-                                        Simpan
+                                    <Button
+                                        onClick={handleSubmit}
+                                        disabled={isCreating}
+                                        className="h-11 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] disabled:opacity-50"
+                                    >
+                                        {isCreating ? (
+                                            <>
+                                                <Loader2 size={18} className="mr-2 animate-spin" />
+                                                Menyimpan...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save size={18} className="mr-2" />
+                                                Simpan
+                                            </>
+                                        )}
                                     </Button>
                                 </div>
                             </div>

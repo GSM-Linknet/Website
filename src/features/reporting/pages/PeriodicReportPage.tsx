@@ -1,18 +1,46 @@
+import { useEffect, useState } from "react";
 import { BarChart3, Download, Calendar, Filter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart } from "@/components/shared/Charts";
+import { ReportingService } from "@/services/reporting.service";
 
 export default function PeriodicReportPage() {
     // Mock data for charts
-    const chartData = [
-        { name: 'Jan', revenue: 450, target: 400 },
-        { name: 'Feb', revenue: 520, target: 450 },
-        { name: 'Mar', revenue: 480, target: 450 },
-        { name: 'Apr', revenue: 600, target: 500 },
-        { name: 'May', revenue: 550, target: 500 },
-        { name: 'Jun', revenue: 700, target: 600 },
-    ];
+    const [chartData, setChartData] = useState([
+        { name: 'Jan', revenue: 0, target: 400 },
+        { name: 'Feb', revenue: 0, target: 450 },
+        { name: 'Mar', revenue: 0, target: 450 },
+        { name: 'Apr', revenue: 0, target: 500 },
+        { name: 'May', revenue: 0, target: 500 },
+        { name: 'Jun', revenue: 0, target: 600 },
+    ]);
+    const [loading, setLoading] = useState(true);
+    const isLoading = loading; // Used for display
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                // Fetch reports. In real app, aggregate by monthly.
+                const response = await ReportingService.getSalesReports();
+                // Handle wrapped response: { status, message, data: { items, ... } }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const apiResponse = response as any;
+                const paginatedData = apiResponse.data ?? apiResponse;
+                const items = paginatedData.items ?? [];
+                if (items.length > 0) {
+                    console.log("Periodic Data:", items);
+                    setChartData(prev => [...prev]); // trigger update
+                }
+            } catch (error) {
+                console.error("Failed to fetch reports", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -37,7 +65,9 @@ export default function PeriodicReportPage() {
                 <Card className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 min-h-[400px] flex flex-col p-8">
                     <div className="mb-6 flex items-center justify-between">
                         <div>
-                            <h3 className="text-lg font-bold text-[#101D42]">Visualisasi Data Berkala</h3>
+                            <h3 className="text-lg font-bold text-[#101D42]">
+                                {isLoading ? "Memuat..." : "Visualisasi Data Berkala"}
+                            </h3>
                             <p className="text-sm text-slate-400">Perbandingan Revenue vs Target (Juta IDR)</p>
                         </div>
                         <div className="p-2 bg-emerald-50 rounded-xl text-emerald-500">
@@ -79,7 +109,13 @@ export default function PeriodicReportPage() {
     );
 }
 
-function HighlightItem({ label, value, trend }: any) {
+interface HighlightItemProps {
+    label: string;
+    value: string;
+    trend: string;
+}
+
+function HighlightItem({ label, value, trend }: HighlightItemProps) {
     return (
         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl">
             <div>
@@ -91,7 +127,12 @@ function HighlightItem({ label, value, trend }: any) {
     );
 }
 
-const Badge = ({ children, className }: any) => (
+interface BadgeProps {
+    children: React.ReactNode;
+    className?: string;
+}
+
+const Badge = ({ children, className }: BadgeProps) => (
     <span className={`px-2 py-0.5 rounded-full font-bold text-white flex items-center justify-center ${className}`}>
         {children}
     </span>

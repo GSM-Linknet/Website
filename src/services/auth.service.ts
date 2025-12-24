@@ -1,5 +1,7 @@
+import { apiClient } from "./api-client";
+import Cookies from "js-cookie";
 
-export type UserRole = "Super Admin" | "Pusat" | "Unit" | "Sub Unit";
+export type UserRole = "SUPER_ADMIN" | "ADMIN" | "SUPERVISOR" | "SALES" | "USER";
 
 // Flattened keys for granular permissions
 export type PermissionResource = 
@@ -46,14 +48,9 @@ export interface User {
 interface LoginResponse {
   user: User;
   token: string;
+  accessToken: string;
+  refreshToken: string;
 }
-
-export const MOCK_USERS: User[] = [
-  { id: "1", name: "Muhamad Fathurohman", role: "Super Admin" },
-  { id: "2", name: "Admin Pusat", role: "Pusat" },
-  { id: "3", name: "Supervisor Unit", role: "Unit" },
-  { id: "4", name: "Sales Sub Unit", role: "Sub Unit" },
-];
 
 type PermissionMatrix = {
     [key in UserRole]: {
@@ -61,8 +58,15 @@ type PermissionMatrix = {
     };
 };
 
+export const MOCK_USERS: User[] = [
+  { id: "1", name: "Muhamad Fathurohman", role: "SUPER_ADMIN" },
+  { id: "2", name: "Admin Pusat", role: "ADMIN" },
+  { id: "3", name: "Supervisor Unit", role: "SUPERVISOR" },
+  { id: "4", name: "Sales Sub Unit", role: "SALES" },
+];
+
 export const PERMISSIONS: PermissionMatrix = {
-  "Super Admin": {
+  "SUPER_ADMIN": {
       // Full Access
       "dashboard": ["view", "export"],
       "master.wilayah": ["view", "create", "edit", "delete", "export"],
@@ -87,7 +91,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.saldo": ["view", "export"],
       "settings.permissions": ["view", "create", "edit", "delete"],
   },
-  "Pusat": {
+  "ADMIN": {
       "dashboard": ["view"],
       "master.wilayah": ["view", "create", "edit"],
       "master.unit": ["view", "create", "edit"],
@@ -111,23 +115,23 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.saldo": ["view"],
       "settings.permissions": ["view"],
   },
-  "Unit": {
+  "SUPERVISOR": {
       "dashboard": ["view"],
       "master.wilayah": ["view"],
       "master.unit": ["view"],
       "master.paket": ["view"],
       "master.diskon": ["view"],
       "master.schedule": ["view", "create", "edit"],
-      "pelanggan.pendaftaran": ["view", "create", "verify"], // Can verify local
+      "pelanggan.pendaftaran": ["view", "create", "verify"],
       "pelanggan.kelola": ["view", "edit"],
       "pelanggan.layanan": [],
       "teknisi.database": ["view"],
-      "teknisi.tools": ["view", "create"], // Request tools
+      "teknisi.tools": ["view", "create"],
       "teknisi.harga": ["view"],
       "produksi.prospek": ["view", "create"],
       "produksi.verifikasi": ["view"],
       "produksi.wo": ["view", "create", "edit"],
-      "reporting.sales": ["view", "create", "edit"], // Submit report
+      "reporting.sales": ["view", "create", "edit"],
       "reporting.unit": ["view", "create", "edit"],
       "reporting.berkala": [],
       "keuangan.history": [],
@@ -135,14 +139,14 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.saldo": [],
       "settings.permissions": [],
   },
-  "Sub Unit": {
+  "SALES": {
       "dashboard": ["view"],
       "master.wilayah": [],
       "master.unit": [],
       "master.paket": [],
       "master.diskon": [],
       "master.schedule": ["view"],
-      "pelanggan.pendaftaran": ["view", "create", "edit"], // No verify
+      "pelanggan.pendaftaran": ["view", "create", "edit"],
       "pelanggan.kelola": [],
       "pelanggan.layanan": [],
       "teknisi.database": [],
@@ -159,6 +163,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.saldo": [],
       "settings.permissions": [],
   },
+  "USER": { "dashboard": [], "master.wilayah": [], "master.unit": [], "master.paket": [], "master.diskon": [], "master.schedule": [], "pelanggan.pendaftaran": [], "pelanggan.kelola": [], "pelanggan.layanan": [], "teknisi.database": [], "teknisi.tools": [], "teknisi.harga": [], "produksi.prospek": [], "produksi.verifikasi": [], "produksi.wo": [], "reporting.sales": [], "reporting.unit": [], "reporting.berkala": [], "keuangan.history": [], "keuangan.aging": [], "keuangan.saldo": [], "settings.permissions": [] }
 };
 
 /**
@@ -168,24 +173,32 @@ export const AuthService = {
   /**
    * Simulates a user login.
    */
-  async login(credentials: any): Promise<LoginResponse> {
-    console.log("Attempting login for:", credentials.email);
-    
-    // Simulating network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Simple mock logic to switch users based on email prefix for testing
-    let user = MOCK_USERS[0]; // Default Super Admin
-    
-    if (credentials.email.includes("pusat")) user = MOCK_USERS[1];
-    else if (credentials.email.includes("unit") && !credentials.email.includes("sub")) user = MOCK_USERS[2];
-    else if (credentials.email.includes("sub")) user = MOCK_USERS[3];
+  async login(credentials: { email: string; password: string }): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post<{ data: LoginResponse }>("/auth/login", credentials);
+      const { user, accessToken, refreshToken } = (response as { data: LoginResponse }).data;
+      
+      Cookies.set("auth_token", accessToken, { expires: 1 }); // 1 day
+      Cookies.set("refresh_token", refreshToken, { expires: 7 }); // 7 days
+      
+      // Store user role for permission checks
+      // user.role from backend might be object or string, ensuring compatibility
+      const roleValue = user.role as unknown;
+      const roleName = typeof roleValue === 'string' ? roleValue : (roleValue as { name?: string })?.name;
+      const userProfile = { ...user, role: roleName as UserRole };
 
-    // Mock successful response
-    return {
-      user,
-      token: "mock-jwt-token-gsm"
-    };
+      localStorage.setItem("user_profile", JSON.stringify(userProfile));
+      
+      return {
+        user: userProfile,
+        token: accessToken,
+        accessToken,
+        refreshToken,
+      };
+    } catch (error) {
+      console.error("Login failed", error);
+      throw error;
+    }
   },
 
   /**
@@ -193,7 +206,9 @@ export const AuthService = {
    */
   async logout() {
     await new Promise(resolve => setTimeout(resolve, 500));
-    localStorage.removeItem("auth_token");
+    Cookies.remove("auth_token");
+    Cookies.remove("refresh_token");
+    localStorage.removeItem("user_profile");
     window.location.href = "/login";
   },
 
@@ -215,5 +230,20 @@ export const AuthService = {
    */
   getMockUsers() {
       return MOCK_USERS;
+  },
+
+  /**
+   * Get currently logged in user from local storage
+   */
+  getUser(): User | null {
+      const userStr = localStorage.getItem("user_profile");
+      if (userStr) {
+          try {
+              return JSON.parse(userStr);
+          } catch {
+              return null;
+          }
+      }
+      return null;
   }
 };

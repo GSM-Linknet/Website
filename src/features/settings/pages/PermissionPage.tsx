@@ -1,10 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Shield, Lock, Check, LayoutDashboard, Database, Users, Wrench, Factory, BarChart3, TrendingUp, Settings } from "lucide-react";
 import { MOCK_USERS, PERMISSIONS, type UserRole, type PermissionResource, type AppAction } from "@/services/auth.service";
+import { apiClient } from "@/services/api-client";
+import type { PaginatedResponse } from "@/services/master.service";
+import type { RolePermission } from "@/services/settings.service";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-const ROLES: UserRole[] = ["Super Admin", "Pusat", "Unit", "Sub Unit"];
+const ROLES: UserRole[] = ["SUPER_ADMIN", "ADMIN", "SUPERVISOR", "SALES"];
+const ROLE_LABELS: Record<UserRole, string> = {
+    "SUPER_ADMIN": "Super Admin",
+    "ADMIN": "Admin Pusat",
+    "SUPERVISOR": "Supervisor Unit",
+    "SALES": "Sales / Sub Unit",
+    "USER": "User"
+}
 
 // Mapping of Parent Modules to Sub-Resources
 const MODULE_GROUPS: {
@@ -103,19 +113,41 @@ const ACTIONS: { id: AppAction; label: string; code: string }[] = [
 ];
 
 export default function PermissionPage() {
-    const [permissions, setPermissions] = useState(PERMISSIONS);
-    const [activeRole, setActiveRole] = useState<UserRole>("Super Admin");
+    const [permissions, setPermissions] = useState<typeof PERMISSIONS>(PERMISSIONS);
+    const [activeRole, setActiveRole] = useState<UserRole>("SUPER_ADMIN");
+
+    // Fetch permissions from API on mount
+    useEffect(() => {
+        const fetchPermissions = async () => {
+            try {
+                const response = await apiClient.get<PaginatedResponse<RolePermission>>("/settings/permissions");
+                // Handle wrapped response: { status, message, data: { items, ... } }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const apiResponse = response as any;
+                const paginatedData = apiResponse.data ?? apiResponse;
+                const items = paginatedData.items ?? [];
+                if (items.length > 0) {
+                    // Transform API response to PermissionMatrix
+                    console.log("Permissions:", items);
+                }
+            } catch (e) {
+                console.error("Failed to fetch permissions", e);
+            }
+        };
+        fetchPermissions();
+    }, []);
 
     const togglePermission = (role: UserRole, resource: PermissionResource, action: AppAction) => {
-        if (role === "Super Admin") return; // Immutable
+        if (role === "SUPER_ADMIN") return; // Immutable
 
-        setPermissions(prev => {
+        setPermissions((prev: any) => {
             const rolePerms = prev[role];
+            // Ensure resourcePerms is array
             const resourcePerms = rolePerms[resource] || [];
             const hasPerm = resourcePerms.includes(action);
 
             const newResourcePerms = hasPerm
-                ? resourcePerms.filter(a => a !== action)
+                ? resourcePerms.filter((a: any) => a !== action)
                 : [...resourcePerms, action];
 
             return {
@@ -129,9 +161,9 @@ export default function PermissionPage() {
     };
 
     const toggleAllResource = (role: UserRole, resource: PermissionResource, enable: boolean) => {
-        if (role === "Super Admin") return;
+        if (role === "SUPER_ADMIN") return;
 
-        setPermissions(prev => {
+        setPermissions((prev: any) => {
             return {
                 ...prev,
                 [role]: {
@@ -177,7 +209,7 @@ export default function PermissionPage() {
                                     value={role}
                                     className="w-full justify-start px-4 py-3 h-auto text-sm font-semibold rounded-xl data-[state=active]:bg-[#101D42] data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300"
                                 >
-                                    {role}
+                                    {ROLE_LABELS[role]}
                                 </TabsTrigger>
                             ))}
                         </TabsList>
@@ -202,10 +234,10 @@ export default function PermissionPage() {
                 <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto max-h-[800px]">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h2 className="text-xl font-bold text-[#101D42]">{activeRole} Permissions</h2>
+                            <h2 className="text-xl font-bold text-[#101D42]">{ROLE_LABELS[activeRole]} Permissions</h2>
                             <p className="text-sm text-slate-500">Sesuaikan akses hingga level sub-menu.</p>
                         </div>
-                        {activeRole === "Super Admin" && (
+                        {activeRole === "SUPER_ADMIN" && (
                             <span className="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-100 flex items-center gap-2">
                                 <Lock size={12} /> Immutable
                             </span>
@@ -231,7 +263,7 @@ export default function PermissionPage() {
                                         {group.resources.map(res => {
                                             const resPerms = rolePerms[res.key] || [];
                                             const allSelected = ACTIONS.every(a => resPerms.includes(a.id));
-                                            const isSuper = activeRole === "Super Admin";
+                                            const isSuper = activeRole === "SUPER_ADMIN";
 
                                             return (
                                                 <div key={res.key} className="px-5 py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 hover:bg-slate-50/30 transition-colors">

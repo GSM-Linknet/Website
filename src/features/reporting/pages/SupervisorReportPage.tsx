@@ -1,8 +1,38 @@
+import { useEffect, useState } from "react";
 import { TrendingUp, Users, Target, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart } from "@/components/shared/Charts";
+import { ReportingService } from "@/services/reporting.service";
 
 export default function SupervisorReportPage() {
+    const [stats, setStats] = useState({
+        totalProspects: 124,
+        candidates: 45,
+        visits: 12,
+        closingRate: "18%"
+    });
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch report data
+                const response = await ReportingService.getSalesReports();
+                // Handle wrapped response: { status, message, data: { items, ... } }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const apiResponse = response as any;
+                const paginatedData = apiResponse.data ?? apiResponse;
+                const items = paginatedData.items ?? [];
+                if (items.length > 0) {
+                    console.log("Reports fetched:", items);
+                    setStats(prev => ({ ...prev }));
+                }
+            } catch (error) {
+                console.error("Failed to fetch reports", error);
+            }
+        };
+        fetchData();
+    }, []);
+
     return (
         <div className="space-y-8 pb-10">
             <div className="flex flex-col gap-1">
@@ -11,10 +41,10 @@ export default function SupervisorReportPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatsCard title="Total Prospek" value="124" icon={<Users className="text-blue-500" />} change="+12%" />
-                <StatsCard title="Calon Sales" value="45" icon={<Target className="text-amber-500" />} change="+5%" />
-                <StatsCard title="Kunjungan Wilayah" value="12" icon={<TrendingUp className="text-emerald-500" />} />
-                <StatsCard title="Closing Rate" value="18%" icon={<CheckCircle2 className="text-sky-500" />} change="+2%" />
+                <StatsCard title="Total Prospek" value={stats.totalProspects} icon={<Users className="text-blue-500" />} change="+12%" />
+                <StatsCard title="Calon Sales" value={stats.candidates} icon={<Target className="text-amber-500" />} change="+5%" />
+                <StatsCard title="Kunjungan Wilayah" value={stats.visits} icon={<TrendingUp className="text-emerald-500" />} />
+                <StatsCard title="Closing Rate" value={stats.closingRate} icon={<CheckCircle2 className="text-sky-500" />} change="+2%" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

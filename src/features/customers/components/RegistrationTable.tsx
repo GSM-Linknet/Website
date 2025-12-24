@@ -11,24 +11,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Registration } from "@/constants/registrations";
+// import type { Registration } from "@/constants/registrations";
+import type { Customer } from "@/services/customer.service";
 
 interface RegistrationTableProps {
-    registrations: Registration[];
+    registrations: Customer[];
+    loading?: boolean;
 }
 
-export const RegistrationTable = ({ registrations }: RegistrationTableProps) => {
+export const RegistrationTable = ({ registrations, loading }: RegistrationTableProps) => {
     const columns = [
         {
             header: "NO",
             accessorKey: "no",
             className: "w-12 text-center",
+            // Compute index if possible, or leave as is
         },
         {
             header: "NAMA",
             accessorKey: "name",
             className: "min-w-[200px]",
-            cell: (row: Registration) => (
+            cell: (row: Customer) => (
                 <div className="flex items-center space-x-3">
                     <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
                         <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${row.name}`} />
@@ -44,84 +47,60 @@ export const RegistrationTable = ({ registrations }: RegistrationTableProps) => 
             ),
         },
         {
-            header: "AREA",
-            accessorKey: "area",
-            className: "text-center",
-            cell: (row: Registration) => (
-                <Badge variant="outline" className={cn(
-                    "rounded-md text-[10px] font-bold px-2 py-0.5 border-none",
-                    row.area === "BMY" ? "bg-rose-100 text-rose-600" : "bg-sky-100 text-sky-600"
-                )}>
-                    {row.area}
-                </Badge>
+            header: "ALAMAT",
+            accessorKey: "address",
+            className: "text-center max-w-[150px] truncate",
+            cell: (row: Customer) => (
+                <span title={row.address} className="text-xs text-slate-600 truncate block max-w-[150px]">{row.address || "-"}</span>
             ),
         },
         {
             header: "INTERNET",
-            accessorKey: "internet",
-            cell: (row: Registration) => (
+            accessorKey: "statusNet",
+            cell: (row: Customer) => (
                 <Badge className={cn(
                     "rounded-xl text-[10px] font-bold px-2.5 py-1 space-x-1.5 border-none",
-                    row.internet === "Unsuspend" ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+                    row.statusNet ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
                 )}>
-                    {row.internet === "Unsuspend" ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
-                    <span>{row.internet}</span>
+                    {row.statusNet ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                    <span>{row.statusNet ? "Online" : "Offline"}</span>
                 </Badge>
             ),
         },
         {
             header: "PAKET",
-            accessorKey: "package",
+            accessorKey: "paket",
             className: "text-slate-500 font-bold text-[12px]",
-        },
-        {
-            header: "EMAIL",
-            accessorKey: "email",
-            className: "text-slate-400 font-medium lowercase text-[12px]",
+            cell: (row: Customer) => row.paket?.name || "-"
         },
         {
             header: "STATUS",
-            accessorKey: "status",
-            cell: (row: Registration) => (
+            accessorKey: "statusCust",
+            cell: (row: Customer) => (
                 <Badge className={cn(
                     "rounded-md text-[11px] font-bold px-3 py-1 border-none",
-                    row.status === "Menunggu" ? "bg-amber-100 text-amber-600" : "bg-sky-100 text-sky-600"
+                    row.statusCust ? "bg-sky-100 text-sky-600" : "bg-amber-100 text-amber-600"
                 )}>
-                    {row.status}
+                    {row.statusCust ? "Diproses" : "Menunggu"}
                 </Badge>
             ),
-        },
-        {
-            header: "PEMBAYARAN",
-            accessorKey: "payment",
-            cell: (row: Registration) => (
-                <Badge className={cn(
-                    "rounded-md text-[11px] font-bold px-3 py-1 border-none",
-                    row.payment === "Menunggu" ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"
-                )}>
-                    {row.payment}
-                </Badge>
-            ),
-        },
-        {
-            header: "KOORDINAT",
-            accessorKey: "coordinates",
-            className: "text-slate-500 font-mono text-[11px]",
         },
         {
             header: "TANGGAL DAFTAR",
-            accessorKey: "date",
+            accessorKey: "createdAt",
             className: "min-w-[180px] text-slate-500 font-medium text-[12px]",
+            cell: (row: Customer) => row.createdAt ? new Date(row.createdAt).toLocaleDateString("id-ID") : "-"
         },
+        // ... Actions column ...
         {
             header: "AKSI",
             accessorKey: "actions",
             className: "w-10 text-center",
-            cell: (row: Registration) => {
+            cell: (row: Customer) => {
                 const currentUser = AuthService.getMockUsers()[2]; // Simulating "Unit Supervisor" (User 3) to see verify button
                 // In real app, useAuth hook.
                 const canVerify = AuthService.hasPermission(currentUser.role, 'pelanggan.pendaftaran', 'verify');
-                const isPending = row.status === "Menunggu";
+                const isPending = !row.statusCust;
 
                 return (
                     <DropdownMenu>
@@ -156,6 +135,7 @@ export const RegistrationTable = ({ registrations }: RegistrationTableProps) => 
             columns={columns}
             rowKey={(row) => row.id}
             className="border-none shadow-none"
+            loading={loading}
         />
     );
 };

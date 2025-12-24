@@ -23,7 +23,9 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: Database,
     items: [
       { title: "Wilayah", href: "/master/wilayah" },
-      { title: "Unit & Supervisor", href: "/master/unit" },
+      { title: "Cabang", href: "/master/cabang" },
+      { title: "Unit", href: "/master/unit" },
+      { title: "Sub Unit", href: "/master/sub-unit" },
       { title: "Paket & Harga", href: "/master/paket" },
       { title: "Diskon", href: "/master/diskon" },
       { title: "Schedule Pasang", href: "/master/schedule" },
