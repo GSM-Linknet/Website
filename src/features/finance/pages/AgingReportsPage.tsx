@@ -9,7 +9,14 @@ import type { Invoice } from "@/services/finance.service";
 // ==================== Page Component ====================
 
 export default function AgingReportsPage() {
-    const { data: invoices, loading } = useInvoices();
+    const {
+        data: invoices,
+        loading,
+        page,
+        totalPages,
+        totalItems,
+        setPage
+    } = useInvoices();
 
     // Transform raw invoices into aging report data
     const agingData = useMemo(() => {
@@ -79,11 +86,15 @@ export default function AgingReportsPage() {
             {/* Content */}
             <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
-                    data={agingData}
+                    data={agingData as any[]}
                     columns={columns}
                     rowKey={(row) => row?.id || ""}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

@@ -1,39 +1,36 @@
 import { Plus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
-import { DISCOUNTS } from "@/constants/master_mock";
-import { Badge } from "@/components/ui/badge";
+import { useDiscount } from "../hooks/useDiscount";
+import type { Discount } from "@/services/master.service";
 
 export default function DiscountPage() {
+    const {
+        data: discounts,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage
+    } = useDiscount();
+
     const columns = [
         { header: "NAMA PROMO", accessorKey: "name", className: "font-bold text-[#101D42]" },
+        { header: "KODE", accessorKey: "code", className: "text-slate-500" },
         {
-            header: "TIPE",
-            accessorKey: "type",
-            cell: (row: any) => (
-                <Badge variant="outline" className="bg-slate-50 text-slate-600 border-none font-medium">
-                    {row.type === "Percentage" ? "Persentase (%)" : "Potongan Flat (Rp)"}
-                </Badge>
-            )
-        },
-        {
-            header: "NILAI",
-            accessorKey: "value",
-            cell: (row: any) => (
+            header: "NILAI (%)",
+            accessorKey: "percentage",
+            cell: (row: Discount) => (
                 <span className="font-bold text-emerald-600">
-                    {row.type === "Percentage" ? `${row.value}%` : `Rp ${row.value.toLocaleString("id-ID")}`}
+                    {row.percentage}%
                 </span>
             )
         },
         {
-            header: "STATUS",
-            accessorKey: "status",
-            cell: (row: any) => (
-                <Badge className={row.status === "Active" ? "bg-emerald-500" : "bg-slate-200"}>
-                    {row.status}
-                </Badge>
-            )
-        },
+            header: "DIBUAT PADA",
+            accessorKey: "createdAt",
+            cell: (row: Discount) => row.createdAt ? new Date(row.createdAt).toLocaleDateString("id-ID") : "-"
+        }
     ];
 
     return (
@@ -56,15 +53,22 @@ export default function DiscountPage() {
                     </div>
                     <div>
                         <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Pemasaran</p>
-                        <p className="text-sm text-slate-600 font-medium">Terdapat {DISCOUNTS.filter(d => d.status === "Active").length} promo aktif saat ini.</p>
+                        <p className="text-sm text-slate-600 font-medium">
+                            {loading ? "Memuat data..." : `Terdapat ${totalItems} promo aktif dalam database.`}
+                        </p>
                     </div>
                 </div>
 
                 <BaseTable
-                    data={DISCOUNTS}
+                    data={discounts}
                     columns={columns}
-                    rowKey={(row) => row.id}
+                    rowKey={(row: Discount) => row.id}
                     className="border-none shadow-none"
+                    loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

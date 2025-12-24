@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -33,7 +34,22 @@ const columns = [
 // ==================== Page Component ====================
 
 export default function PaymentHistoryPage() {
-    const { data, loading } = usePayments();
+    const {
+        data,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage,
+        setQuery
+    } = usePayments();
+
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const handleSearch = (val: string) => {
+        setSearchQuery(val);
+        setQuery({ search: val });
+    };
 
     return (
         <div className="space-y-6">
@@ -64,7 +80,12 @@ export default function PaymentHistoryPage() {
                     </div>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <Input placeholder="Cari transaksi..." className="pl-10 w-64 bg-slate-50 border-none rounded-xl" />
+                        <Input
+                            placeholder="Cari transaksi..."
+                            className="pl-10 w-64 bg-slate-50 border-none rounded-xl"
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
+                        />
                     </div>
                 </div>
 
@@ -74,6 +95,10 @@ export default function PaymentHistoryPage() {
                     rowKey={(row: Payment) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductionService } from "@/services/production.service";
-// import { useToast } from "@/components/ui/use-toast"; // Assuming useToast exists or I should use alert for now
+import { useToast } from "@/hooks/useToast";
 
 export default function ProspectEntryPage() {
+    const { toast } = useToast();
     const [formData, setFormData] = useState({
         name: "",
         phone: "",
@@ -38,7 +39,10 @@ export default function ProspectEntryPage() {
                 notes: notes,
                 status: "new"
             });
-            alert("Data prospek berhasil disimpan!");
+            toast({
+                title: "Berhasil",
+                description: "Data prospek berhasil disimpan!",
+            });
             // Reset form
             setFormData({
                 name: "",
@@ -52,7 +56,11 @@ export default function ProspectEntryPage() {
             });
         } catch (error) {
             console.error("Failed to create prospect", error);
-            alert("Gagal menyimpan data prospek.");
+            toast({
+                variant: "destructive",
+                title: "Gagal",
+                description: "Gagal menyimpan data prospek.",
+            });
         } finally {
             setLoading(false);
         }

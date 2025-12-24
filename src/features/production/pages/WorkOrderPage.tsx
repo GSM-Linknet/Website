@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search, FileText, User, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -45,7 +46,22 @@ const columns = [
 // ==================== Page Component ====================
 
 export default function WorkOrderPage() {
-    const { data, loading } = useWorkOrders();
+    const {
+        data,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage,
+        setQuery
+    } = useWorkOrders();
+
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const handleSearch = (val: string) => {
+        setSearchQuery(val);
+        setQuery({ search: val });
+    };
 
     return (
         <div className="space-y-6">
@@ -65,7 +81,7 @@ export default function WorkOrderPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <StatusCard label="Total WO" value={data.length.toString()} color="blue" />
+                <StatusCard label="Total WO" value={totalItems.toString()} color="blue" />
                 <StatusCard label="Open" value={data.filter((wo) => wo.status === "pending").length.toString()} color="sky" />
                 <StatusCard label="In Progress" value={data.filter((wo) => wo.status === "in_progress").length.toString()} color="amber" />
                 <StatusCard label="Completed" value={data.filter((wo) => wo.status === "completed").length.toString()} color="emerald" />
@@ -77,7 +93,12 @@ export default function WorkOrderPage() {
                     <h3 className="font-bold text-slate-800">Daftar WO Aktif</h3>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <Input placeholder="Cari WO..." className="pl-10 w-64 bg-slate-50 border-none rounded-xl" />
+                        <Input
+                            placeholder="Cari WO..."
+                            className="pl-10 w-64 bg-slate-50 border-none rounded-xl"
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
+                        />
                     </div>
                 </div>
 
@@ -87,6 +108,10 @@ export default function WorkOrderPage() {
                     rowKey={(row: WorkOrder) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

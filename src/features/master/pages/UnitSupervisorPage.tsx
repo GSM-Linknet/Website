@@ -1,19 +1,30 @@
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
-import { UNITS } from "@/constants/master_mock";
+import { useUnit } from "../hooks/useUnit";
+import type { Unit } from "@/services/master.service";
 import { Badge } from "@/components/ui/badge";
 
 export default function UnitSupervisorPage() {
+    const {
+        data: units,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage
+    } = useUnit();
+
     const columns = [
+        { header: "KODE", accessorKey: "code", className: "font-mono text-slate-500" },
         { header: "NAMA UNIT", accessorKey: "name", className: "font-bold text-[#101D42]" },
-        { header: "SUPERVISOR", accessorKey: "supervisor", className: "font-semibold text-slate-700" },
+        { header: "CABANG", accessorKey: "cabang.name", cell: (row: Unit) => row.cabang?.name || "-", className: "font-semibold text-slate-700" },
         {
             header: "WILAYAH",
             accessorKey: "region",
-            cell: (row: any) => (
+            cell: (row: Unit) => (
                 <Badge variant="outline" className="bg-blue-50 text-blue-600 border-none font-bold">
-                    {row.region}
+                    {row.cabang?.wilayah?.name || "-"}
                 </Badge>
             )
         },
@@ -39,15 +50,22 @@ export default function UnitSupervisorPage() {
                     </div>
                     <div>
                         <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Struktur Organisasi</p>
-                        <p className="text-sm text-slate-600 font-medium">Terdapat {UNITS.length} unit yang terdaftar lintas wilayah.</p>
+                        <p className="text-sm text-slate-600 font-medium">
+                            {loading ? "Memuat data..." : `Terdapat ${totalItems} unit yang terdaftar lintas wilayah.`}
+                        </p>
                     </div>
                 </div>
 
                 <BaseTable
-                    data={UNITS}
+                    data={units}
                     columns={columns}
-                    rowKey={(row) => row.id}
+                    rowKey={(row: Unit) => row.id}
                     className="border-none shadow-none"
+                    loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

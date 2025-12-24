@@ -16,7 +16,7 @@ export interface Wilayah extends BaseEntity {
 export interface Cabang extends BaseEntity {
   name: string;
   code: string;
-  wilayahId: string;
+  idWilayah: string;
   wilayah?: Wilayah;
 }
 

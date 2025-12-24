@@ -32,14 +32,22 @@ const columns = [
 // ==================== Page Component ====================
 
 export default function TechnicianToolsPage() {
-    const [searchQuery, setSearchQuery] = useState("");
-    const { data, loading } = useTools();
+    const {
+        data: tools,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage,
+        setQuery
+    } = useTools();
 
-    const filteredData = data.filter(
-        (item) =>
-            item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.code?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const handleSearch = (val: string) => {
+        setSearchQuery(val);
+        setQuery({ search: val });
+    };
 
     return (
         <div className="space-y-6">
@@ -61,7 +69,7 @@ export default function TechnicianToolsPage() {
                             placeholder="Cari alat..."
                             className="pl-10 w-64 bg-white rounded-xl"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => handleSearch(e.target.value)}
                         />
                     </div>
                 </div>
@@ -70,11 +78,15 @@ export default function TechnicianToolsPage() {
             {/* Content */}
             <div className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
-                    data={filteredData}
+                    data={tools}
                     columns={columns}
                     rowKey={(row: Tool) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

@@ -15,11 +15,7 @@ import {
 export const Sidebar = () => {
   const { isCollapsed, toggleCollapse } = useSidebar();
   const { isOpen: showSaldo, onToggle: toggleSaldo } = useDisclosure(false);
-  const [expandedItems, setExpandedItems] = useState<string[]>([
-    "Pelanggan",
-    "Pengguna",
-    "Keuangan",
-  ]);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const toggleExpand = (title: string) => {
     if (isCollapsed) {

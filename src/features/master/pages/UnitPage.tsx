@@ -15,7 +15,14 @@ const columns = [
 // ==================== Page Component ====================
 
 export default function UnitPage() {
-    const { data, loading, totalItems } = useUnit();
+    const {
+        data,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage
+    } = useUnit();
 
     return (
         <div className="space-y-6">
@@ -53,6 +60,10 @@ export default function UnitPage() {
                     rowKey={(row: Unit) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

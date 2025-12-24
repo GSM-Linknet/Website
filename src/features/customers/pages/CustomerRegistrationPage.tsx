@@ -18,22 +18,28 @@ import type { Customer } from "@/services/customer.service";
 
 export default function CustomerRegistrationPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data, loading, create, creating, refetch } = useCustomers();
+  const {
+    data: customers,
+    loading,
+    totalItems,
+    page,
+    totalPages,
+    setPage,
+    setQuery,
+    create,
+    creating,
+    refetch
+  } = useCustomers();
+
+  const handleSearch = (val: string) => {
+    setSearchQuery(val);
+    setQuery({ search: val });
+  };
 
   // Get current user for role-based status
   const currentUser = AuthService.getUser() ?? AuthService.getMockUsers()[3];
   const isSubUnit = currentUser.role === "SALES";
   const defaultRegStatus = isSubUnit ? "Menunggu" : "Diproses";
-
-  // Filter for registrations (non-active customers)
-  const registrations = data.filter((c) => c.statusCust === true);
-
-  // Client-side search filter
-  const filteredData = registrations.filter(
-    (item) =>
-      item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.phone?.includes(searchQuery)
-  );
 
   // Handle create customer from dialog
   const handleCreateCustomer = async (customerData: Partial<Customer>) => {
@@ -64,7 +70,7 @@ export default function CustomerRegistrationPage() {
               placeholder="Cari"
               className="pl-10 w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
           <AddCustomerDialog
@@ -84,7 +90,14 @@ export default function CustomerRegistrationPage() {
 
       {/* Table Content */}
       <div className="bg-white rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
-        <RegistrationTable registrations={filteredData} loading={loading} />
+        <RegistrationTable
+          registrations={customers}
+          loading={loading}
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   );

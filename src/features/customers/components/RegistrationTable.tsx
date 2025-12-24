@@ -17,9 +17,20 @@ import type { Customer } from "@/services/customer.service";
 interface RegistrationTableProps {
     registrations: Customer[];
     loading?: boolean;
+    page?: number;
+    totalPages?: number;
+    totalItems?: number;
+    onPageChange?: (page: number) => void;
 }
 
-export const RegistrationTable = ({ registrations, loading }: RegistrationTableProps) => {
+export const RegistrationTable = ({
+    registrations,
+    loading,
+    page,
+    totalPages,
+    totalItems,
+    onPageChange
+}: RegistrationTableProps) => {
     const columns = [
         {
             header: "NO",
@@ -136,6 +147,10 @@ export const RegistrationTable = ({ registrations, loading }: RegistrationTableP
             rowKey={(row) => row.id}
             className="border-none shadow-none"
             loading={loading}
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPageChange={onPageChange}
         />
     );
 };

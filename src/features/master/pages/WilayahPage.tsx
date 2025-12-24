@@ -1,31 +1,131 @@
-import { Plus, MapPin } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, MapPin, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { useWilayah } from "../hooks/useWilayah";
+import { useDisclosure } from "@/hooks/use-disclosure";
+import { WilayahModal } from "../components/WilayahModal";
+import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import type { Wilayah } from "@/services/master.service";
-
-// ==================== Column Definitions ====================
-
-const columns = [
-    {
-        header: "KODE",
-        accessorKey: "code",
-        className: "font-bold text-[#101D42]",
-    },
-    {
-        header: "NAMA WILAYAH",
-        accessorKey: "name",
-        className: "font-semibold text-slate-700",
-    },
-];
 
 // ==================== Page Component ====================
 
 export default function WilayahPage() {
-    const { data, loading, totalItems } = useWilayah();
+    const {
+        data,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage,
+        create,
+        creating,
+        update,
+        updating,
+        remove,
+        deleting
+    } = useWilayah();
+
+    const createDisclosure = useDisclosure();
+    const deleteDisclosure = useDisclosure();
+    const [selectedWilayah, setSelectedWilayah] = useState<Wilayah | null>(null);
+
+    // Handlers
+    const handleEdit = (wilayah: Wilayah) => {
+        setSelectedWilayah(wilayah);
+        createDisclosure.onOpen();
+    };
+
+    const handleDeleteClick = (wilayah: Wilayah) => {
+        setSelectedWilayah(wilayah);
+        deleteDisclosure.onOpen();
+    };
+
+    const handleModalClose = () => {
+        setSelectedWilayah(null);
+        createDisclosure.onClose();
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!selectedWilayah) return;
+        const success = await remove(selectedWilayah.id);
+        if (success) {
+            deleteDisclosure.onClose();
+            setSelectedWilayah(null);
+        }
+    };
+
+    const handleSubmit = async (payload: Partial<Wilayah>) => {
+        if (selectedWilayah) {
+            return await update(selectedWilayah.id, payload);
+        }
+        return await create(payload);
+    };
+
+    // Define columns inside component to access handlers
+    const columns = useMemo(() => [
+        {
+            header: "KODE",
+            accessorKey: "code",
+            className: "font-bold text-[#101D42]",
+        },
+        {
+            header: "NAMA WILAYAH",
+            accessorKey: "name",
+            className: "font-semibold text-slate-700",
+        },
+        {
+            header: "DESKRIPSI",
+            accessorKey: "description",
+            className: "font-semibold text-slate-700",
+        },
+        {
+            header: "Aksi",
+            id: "actions",
+            accessorKey: "id",
+            className: "w-[120px]",
+            cell: (row: Wilayah) => (
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full text-blue-600 hover:bg-blue-50"
+                        onClick={() => handleEdit(row)}
+                    >
+                        <Edit2 size={14} />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteClick(row)}
+                    >
+                        <Trash2 size={14} />
+                    </Button>
+                </div>
+            ),
+        },
+    ], [handleEdit, handleDeleteClick]);
 
     return (
         <div className="space-y-6">
+            {/* Modals */}
+            <WilayahModal
+                isOpen={createDisclosure.isOpen}
+                onClose={handleModalClose}
+                initialData={selectedWilayah}
+                onSubmit={handleSubmit}
+                isLoading={creating || updating}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={deleteDisclosure.isOpen}
+                onClose={deleteDisclosure.onClose}
+                onConfirm={handleConfirmDelete}
+                itemName={selectedWilayah?.name}
+                isLoading={deleting}
+            />
+
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
@@ -34,7 +134,10 @@ export default function WilayahPage() {
                         Manajemen area cakupan operasional RDN
                     </p>
                 </div>
-                <Button className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10">
+                <Button
+                    onClick={createDisclosure.onOpen}
+                    className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
+                >
                     <Plus size={18} className="mr-2" />
                     Tambah Wilayah
                 </Button>
@@ -66,9 +169,12 @@ export default function WilayahPage() {
                     rowKey={(row: Wilayah) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>
     );
 }
-

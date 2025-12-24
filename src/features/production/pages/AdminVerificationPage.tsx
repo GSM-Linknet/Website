@@ -1,35 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Search, UserCheck, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ProductionService } from "@/services/production.service";
+import { useProspects } from "../hooks/useProspects";
 import type { Prospect } from "@/services/production.service";
 
 export default function AdminVerificationPage() {
-    const [queue, setQueue] = useState<Prospect[]>([]);
-    const [loading, setLoading] = useState(true);
+    const {
+        data: queue,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage,
+        setQuery
+    } = useProspects();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const response = await ProductionService.getProspects();
-                // Handle wrapped response: { status, message, data: { items, ... } }
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const apiResponse = response as any;
-                const paginatedData = apiResponse.data ?? apiResponse;
-                const items: Prospect[] = paginatedData.items ?? [];
-                setQueue(items);
-            } catch (error) {
-                console.error("Failed to fetch verification queue", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const handleSearch = (val: string) => {
+        setSearchQuery(val);
+        setQuery({ search: val });
+    };
 
     const columns = [
         { header: "NAMA CAPEL", accessorKey: "name", className: "font-bold text-[#101D42]" },
@@ -85,7 +79,12 @@ export default function AdminVerificationPage() {
                 </div>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <Input placeholder="Cari capel..." className="pl-10 w-64 bg-white rounded-xl" />
+                    <Input
+                        placeholder="Cari capel..."
+                        className="pl-10 w-64 bg-white rounded-xl"
+                        value={searchQuery}
+                        onChange={(e) => handleSearch(e.target.value)}
+                    />
                 </div>
             </div>
 
@@ -93,9 +92,13 @@ export default function AdminVerificationPage() {
                 <BaseTable
                     data={queue}
                     columns={columns}
-                    rowKey={(row) => row.id}
+                    rowKey={(row: Prospect) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

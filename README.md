@@ -91,7 +91,7 @@ Verified data triggers a **Work Order (WO)** notification system:
 
 ---
 
-## � Feature Roadmap: "RDN Extensions"
+## 🚀 Feature Roadmap: "RDN Extensions"
 
 | Feature                    | Detailed Description                                                            | Status     |
 | :------------------------- | :------------------------------------------------------------------------------ | :--------- |
@@ -102,7 +102,7 @@ Verified data triggers a **Work Order (WO)** notification system:
 
 ---
 
-## � Customer Journey & Self-Service
+## 🌐 Customer Journey & Self-Service
 
 Within the Customer Portal, users can track their progress through a real-time schedule:
 
@@ -128,3 +128,13 @@ Within the Customer Portal, users can track their progress through a real-time s
 - **UI Architecture**: Tailwind CSS v4, Lucide Icons, Shadcn UI.
 - **Mobile**: Android (Sales App integration).
 - **Design System**: Premium GSM "Float" aesthetic (border-less, clean typography).
+
+### 📦 Setup & Dependencies
+
+To use the new Toast notification system, ensure `@radix-ui/react-toast` is installed:
+
+```bash
+npm install @radix-ui/react-toast
+```
+
+The system uses `useToast` hook from `@/hooks` and `<Toaster />` from `@/components/ui/toaster`.

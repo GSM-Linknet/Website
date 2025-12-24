@@ -14,12 +14,22 @@ import { useCustomers } from "../hooks/useCustomers";
 // ==================== Page Component ====================
 
 export default function CustomerListPage() {
-    const [searchQuery, setSearchQuery] = useState("");
-    const { data, loading } = useCustomers();
+    const {
+        data: customers,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage,
+        setQuery
+    } = useCustomers();
 
-    const filteredData = data.filter((item) =>
-        item.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const handleSearch = (val: string) => {
+        setSearchQuery(val);
+        setQuery({ search: val });
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
@@ -44,7 +54,7 @@ export default function CustomerListPage() {
                             placeholder="Cari"
                             className="pl-10 w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => handleSearch(e.target.value)}
                         />
                     </div>
                     <Button className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-6 shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02]">
@@ -63,7 +73,14 @@ export default function CustomerListPage() {
 
             {/* Table Content */}
             <div className="bg-white rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
-                <CustomerTable customers={filteredData} loading={loading} />
+                <CustomerTable
+                    customers={customers}
+                    loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
+                />
             </div>
         </div>
     );

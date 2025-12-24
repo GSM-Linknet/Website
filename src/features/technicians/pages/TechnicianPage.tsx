@@ -54,12 +54,22 @@ const columns = [
 // ==================== Page Component ====================
 
 export default function TechnicianPage() {
-    const [searchQuery, setSearchQuery] = useState("");
-    const { data, loading } = useTechnicians();
+    const {
+        data,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage,
+        setQuery
+    } = useTechnicians();
 
-    const filteredData = data.filter((item) =>
-        item.user?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const handleSearch = (val: string) => {
+        setSearchQuery(val);
+        setQuery({ search: val });
+    };
 
     return (
         <div className="space-y-6">
@@ -81,7 +91,7 @@ export default function TechnicianPage() {
                             placeholder="Cari teknisi..."
                             className="pl-10 w-64 bg-white rounded-xl"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => handleSearch(e.target.value)}
                         />
                     </div>
                     <Button className="bg-[#101D42] rounded-xl font-bold text-white">
@@ -94,11 +104,15 @@ export default function TechnicianPage() {
             {/* Content */}
             <div className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
-                    data={filteredData}
+                    data={data}
                     columns={columns}
                     rowKey={(row: Technician) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

@@ -1,17 +1,26 @@
 import { Plus, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
-import { PACKAGES } from "@/constants/master_mock";
+import { usePackage } from "../hooks/usePackage";
+import type { Package } from "@/services/master.service";
 
 export default function PackagePricingPage() {
+    const {
+        data: packages,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage
+    } = usePackage();
+
     const columns = [
         { header: "NAMA PAKET", accessorKey: "name", className: "font-bold text-[#101D42]" },
         { header: "KECEPATAN", accessorKey: "speed", className: "font-semibold text-blue-600" },
-        { header: "WILAYAH", accessorKey: "wilayah", className: "font-semibold text-blue-600" },
         {
             header: "HARGA / BULAN",
             accessorKey: "price",
-            cell: (row: any) => (
+            cell: (row: Package) => (
                 <span className="font-mono font-bold text-slate-700">
                     Rp {row.price.toLocaleString("id-ID")}
                 </span>
@@ -34,13 +43,13 @@ export default function PackagePricingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {PACKAGES.map((pkg) => (
+                {!loading && packages.slice(0, 3).map((pkg) => (
                     <div key={pkg.id} className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:scale-[1.02] transition-all">
                         <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-all text-blue-900">
                             <Wifi size={80} />
                         </div>
                         <h3 className="text-xl font-black text-[#101D42] mb-1">{pkg.name}</h3>
-                        <p className="text-blue-500 font-bold mb-4">{pkg.speed}</p>
+                        <p className="text-blue-500 font-bold mb-4">{pkg.speed} Mbps</p>
                         <p className="text-sm text-slate-500 mb-6 line-clamp-2">{pkg.description}</p>
                         <div className="pt-4 border-t border-slate-50">
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Harga Langganan</p>
@@ -54,10 +63,15 @@ export default function PackagePricingPage() {
 
             <div className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-xl shadow-slate-200/40 mt-8">
                 <BaseTable
-                    data={PACKAGES}
+                    data={packages}
                     columns={columns}
-                    rowKey={(row) => row.id}
+                    rowKey={(row: Package) => row.id}
                     className="border-none shadow-none"
+                    loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

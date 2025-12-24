@@ -15,7 +15,14 @@ const columns = [
 // ==================== Page Component ====================
 
 export default function SubUnitPage() {
-    const { data, loading, totalItems } = useSubUnit();
+    const {
+        data,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage
+    } = useSubUnit();
 
     return (
         <div className="space-y-6">
@@ -53,6 +60,10 @@ export default function SubUnitPage() {
                     rowKey={(row: SubUnit) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

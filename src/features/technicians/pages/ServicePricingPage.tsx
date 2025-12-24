@@ -24,7 +24,14 @@ const columns = [
 // ==================== Page Component ====================
 
 export default function ServicePricingPage() {
-    const { data, loading } = useLaborPrices();
+    const {
+        data,
+        loading,
+        totalItems,
+        page,
+        totalPages,
+        setPage
+    } = useLaborPrices();
 
     return (
         <div className="space-y-6">
@@ -50,6 +57,10 @@ export default function ServicePricingPage() {
                     rowKey={(row: LaborPrice) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
                 />
             </div>
         </div>

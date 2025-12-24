@@ -1,5 +1,6 @@
 import { RouterProvider } from "react-router-dom";
 import { router } from "@/routes";
+import { Toaster } from "@/components/ui/toaster";
 
 /**
  * App is the root entry point of the GSM Dashboard application.
@@ -7,7 +8,12 @@ import { router } from "@/routes";
  * for improved maintainability and cleaner code structure.
  */
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <Toaster />
+    </>
+  );
 }
 
 export default App;

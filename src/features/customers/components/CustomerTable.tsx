@@ -16,9 +16,20 @@ import type { Customer } from "@/services/customer.service";
 interface CustomerTableProps {
     customers: Customer[];
     loading?: boolean;
+    page?: number;
+    totalPages?: number;
+    totalItems?: number;
+    onPageChange?: (page: number) => void;
 }
 
-export const CustomerTable = ({ customers, loading }: CustomerTableProps) => {
+export const CustomerTable = ({
+    customers,
+    loading,
+    page,
+    totalPages,
+    totalItems,
+    onPageChange
+}: CustomerTableProps) => {
     const columns = [
         {
             header: "NO",
@@ -132,6 +143,10 @@ export const CustomerTable = ({ customers, loading }: CustomerTableProps) => {
             rowKey={(row) => row.id}
             className="border-none shadow-none"
             loading={loading}
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPageChange={onPageChange}
         />
     );
 };
