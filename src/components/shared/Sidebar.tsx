@@ -5,6 +5,7 @@ import { NAVIGATION_ITEMS } from "@/constants/navigation";
 import { useSidebar } from "@/providers/sidebar-provider";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { useState } from "react";
+import { AuthService, type PermissionResource } from "@/services/auth.service";
 import {
   Tooltip,
   TooltipContent,
@@ -16,6 +17,7 @@ export const Sidebar = () => {
   const { isCollapsed, toggleCollapse } = useSidebar();
   const { isOpen: showSaldo, onToggle: toggleSaldo } = useDisclosure(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const user = AuthService.getUser();
 
   const toggleExpand = (title: string) => {
     if (isCollapsed) {
@@ -32,11 +34,53 @@ export const Sidebar = () => {
     }
   };
 
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const formatRole = (role: string) => {
+    return role.replace(/_/g, " ");
+  };
+
+  // Filter items based on permissions
+  const filteredItems = NAVIGATION_ITEMS.map(item => {
+    // If it has sub-items, filter them first
+    if (item.items) {
+      const permittedSubItems = item.items.filter(subItem =>
+        !subItem.resource || AuthService.hasPermission(user?.role || "USER", subItem.resource as PermissionResource, "view")
+      );
+
+      return {
+        ...item,
+        items: permittedSubItems
+      };
+    }
+
+    // If it's a direct link, check its permission
+    const isPermitted = !item.resource || AuthService.hasPermission(user?.role || "USER", item.resource as PermissionResource, "view");
+    return isPermitted ? item : null;
+  }).filter((item): item is typeof NAVIGATION_ITEMS[0] => {
+    if (!item) return false;
+
+    // If it has sub-items, only show if at least one sub-item is permitted
+    if (item.items) {
+      return item.items.length > 0;
+    }
+
+    return true;
+  });
+
   return (
     <TooltipProvider delayDuration={0}>
       <div
         className={cn(
-          "bg-[#101D42] h-screen flex flex-col text-slate-300 overflow-y-auto overflow-x-hidden shrink-0 transition-all duration-300 custom-scrollbar",
+          "bg-brand-blue h-screen flex flex-col text-slate-300 overflow-y-auto overflow-x-hidden shrink-0 transition-all duration-300 custom-scrollbar",
           isCollapsed ? "w-20" : "w-64",
         )}
       >
@@ -48,7 +92,7 @@ export const Sidebar = () => {
             isCollapsed ? "justify-center" : "space-x-3",
           )}
         >
-          <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
+          <div className="w-8 h-8 shrink-0 flex items-center justify-center">
             <img
               src="/logo.svg"
               alt="GSM"
@@ -110,7 +154,7 @@ export const Sidebar = () => {
             </p>
           )}
 
-          {NAVIGATION_ITEMS.map((item) => (
+          {filteredItems.map((item) => (
             <div key={item.title}>
               {item.items ? (
                 <Tooltip>
@@ -226,16 +270,16 @@ export const Sidebar = () => {
               isCollapsed ? "p-2 justify-center" : "p-3 space-x-3",
             )}
           >
-            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-blue-500 flex items-center justify-center font-bold text-xs text-white">
-              MF
+            <div className="w-8 h-8 shrink-0 rounded-full bg-blue-500 flex items-center justify-center font-bold text-xs text-white">
+              {user ? getInitials(user.name) : "U"}
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
                 <p className="text-xs font-bold text-white truncate">
-                  Muhamad Fathurohman
+                  {user?.name || "User"}
                 </p>
                 <p className="text-[10px] text-slate-500 truncate uppercase tracking-tighter">
-                  Super Admin
+                  {user ? formatRole(user.role) : "Guest"}
                 </p>
               </div>
             )}

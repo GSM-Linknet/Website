@@ -101,6 +101,19 @@ export function useFetch<T>(
     }
   }, [fetchData, autoFetch]);
 
+  // Update internal query if initialQuery changes from outside
+  useEffect(() => {
+    if (initialQuery && Object.keys(initialQuery).length > 0) {
+      setQueryState(prev => {
+        // Only update if actually different to avoid cycles
+        if (JSON.stringify(prev) !== JSON.stringify(initialQuery)) {
+          return { ...prev, ...initialQuery };
+        }
+        return prev;
+      });
+    }
+  }, [JSON.stringify(initialQuery)]);
+
   return {
     data,
     loading,

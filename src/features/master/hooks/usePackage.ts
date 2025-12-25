@@ -28,6 +28,7 @@ export function usePackage(initialQuery?: BaseQuery) {
   return {
     ...fetchResult,
     ...crudResult,
+    isLoading: fetchResult.loading || crudResult.creating || crudResult.updating || crudResult.deleting,
   };
 }
 

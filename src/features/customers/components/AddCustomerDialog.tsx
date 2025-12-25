@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, User, Mail, Phone, CreditCard, MapPin, Hash, Package, Upload, Save, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, User, Mail, Phone, CreditCard, MapPin, Hash, Package, Upload, Save, ArrowRight, ArrowLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LocationPicker } from "@/components/shared/LocationPicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePackage } from "@/features/master/hooks/usePackage";
+import { AuthService } from "@/services/auth.service";
 import type { Customer } from "@/services/customer.service";
 
 interface AddCustomerDialogProps {
@@ -16,9 +18,16 @@ interface AddCustomerDialogProps {
     isCreating?: boolean;
 }
 
+interface FilePreview {
+    file: File | null;
+    preview: string | null;
+}
+
 export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCreating = false }: AddCustomerDialogProps) {
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("personal");
+    const { data: packages } = usePackage({ paginate: false });
+
     const [formData, setFormData] = useState({
         status: initialStatus,
         fullName: "",
@@ -29,13 +38,31 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
         postalCode: "",
         odpCode: "",
         internetPackage: "",
-        photoHouseFront: null as string | null,
-        photoHouseSide: null as string | null,
-        photoODP: null as string | null,
-        photoCA: null as string | null,
         customerLocation: null as { lat: number; lng: number } | null,
         odpLocation: null as { lat: number; lng: number } | null,
     });
+
+    // File states with previews
+    const [ktpFile, setKtpFile] = useState<FilePreview>({ file: null, preview: null });
+    const [frontHome, setFrontHome] = useState<FilePreview>({ file: null, preview: null });
+    const [sideHome, setSideHome] = useState<FilePreview>({ file: null, preview: null });
+    const [odpImage, setOdpImage] = useState<FilePreview>({ file: null, preview: null });
+    const [caImage, setCaImage] = useState<FilePreview>({ file: null, preview: null });
+
+    const handleFileChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        setter: React.Dispatch<React.SetStateAction<FilePreview>>
+    ) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const preview = URL.createObjectURL(file);
+            setter({ file, preview });
+        }
+    };
+
+    const clearFile = (setter: React.Dispatch<React.SetStateAction<FilePreview>>) => {
+        setter({ file: null, preview: null });
+    };
 
     const handleLocationChange = (key: 'customerLocation' | 'odpLocation', coords: { lat: number; lng: number }) => {
         setFormData(prev => ({ ...prev, [key]: coords }));
@@ -52,37 +79,42 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
             postalCode: "",
             odpCode: "",
             internetPackage: "",
-            photoHouseFront: null,
-            photoHouseSide: null,
-            photoODP: null,
-            photoCA: null,
             customerLocation: null,
             odpLocation: null,
         });
+        setKtpFile({ file: null, preview: null });
+        setFrontHome({ file: null, preview: null });
+        setSideHome({ file: null, preview: null });
+        setOdpImage({ file: null, preview: null });
+        setCaImage({ file: null, preview: null });
         setActiveTab("personal");
     };
 
     const handleSubmit = async () => {
+        // Get current user ID for idUpline
+        const currentUser = AuthService.getUser();
+
         // Map form data to Customer interface
         const customerData: Partial<Customer> = {
             name: formData.fullName,
             email: formData.email,
             phone: formData.whatsapp,
-            ktpNumber: formData.ktp ? parseInt(formData.ktp, 10) : 0,
-            ktpFile: "dummy.jpg", // File upload not implemented yet
+            ktpNumber: formData.ktp, // Keep as string
+            ktpFile: ktpFile.file?.name || "placeholder.jpg",
             address: formData.address,
-            posNumber: formData.postalCode ? parseInt(formData.postalCode, 10) : 0,
+            posNumber: formData.postalCode, // Keep as string
             ODPCode: formData.odpCode,
             latUser: formData.customerLocation?.lat ?? 0,
             longUser: formData.customerLocation?.lng ?? 0,
             latODP: formData.odpLocation?.lat ?? 0,
             longODP: formData.odpLocation?.lng ?? 0,
-            frontHome: formData.photoHouseFront ?? "dummy.jpg",
-            sideHome: formData.photoHouseSide ?? "dummy.jpg",
-            ODPImage: formData.photoODP ?? "dummy.jpg",
-            CaImage: formData.photoCA ?? undefined,
+            frontHome: frontHome.file?.name || "placeholder.jpg",
+            sideHome: sideHome.file?.name || "placeholder.jpg",
+            ODPImage: odpImage.file?.name || "placeholder.jpg",
+            CaImage: caImage.file?.name || undefined,
             idPackages: formData.internetPackage || undefined,
-            statusCust: false, // New registrations are not active
+            idUpline: currentUser?.id || "", // Auto-fill from logged-in user
+            statusCust: false,
             statusNet: false,
         };
 
@@ -92,6 +124,87 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
 
         resetForm();
         setOpen(false);
+    };
+
+    // File Upload Component
+    const FileUploader = ({
+        label,
+        value,
+        onChange,
+        onClear,
+        accept = "image/*"
+    }: {
+        label: string;
+        value: FilePreview;
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+        onClear: () => void;
+        accept?: string;
+    }) => {
+        const inputRef = useRef<HTMLInputElement>(null);
+
+        return (
+            <div className="space-y-2">
+                <Label className="text-slate-600 font-medium flex gap-2 items-center">
+                    <Upload size={14} /> {label}
+                </Label>
+                {value.preview ? (
+                    <div className="relative group">
+                        <div className="w-full h-32 rounded-xl border-2 border-blue-200 bg-blue-50/50 overflow-hidden">
+                            <img
+                                src={value.preview}
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 px-3 bg-white/90 hover:bg-white rounded-lg text-xs font-medium"
+                                onClick={() => inputRef.current?.click()}
+                            >
+                                Ganti
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="h-8 px-3 rounded-lg text-xs font-medium"
+                                onClick={onClear}
+                            >
+                                <X size={14} />
+                            </Button>
+                        </div>
+                        <input
+                            ref={inputRef}
+                            type="file"
+                            accept={accept}
+                            className="hidden"
+                            onChange={onChange}
+                        />
+                    </div>
+                ) : (
+                    <div
+                        className="relative h-32 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 hover:border-blue-300 transition-all cursor-pointer group"
+                        onClick={() => inputRef.current?.click()}
+                    >
+                        <input
+                            ref={inputRef}
+                            type="file"
+                            accept={accept}
+                            className="hidden"
+                            onChange={onChange}
+                        />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 group-hover:text-blue-500 transition-colors">
+                            <ImageIcon size={28} className="mb-2 opacity-50" />
+                            <span className="text-xs font-medium">Klik untuk upload</span>
+                            <span className="text-[10px] opacity-70">JPG, PNG max 5MB</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -162,22 +275,22 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label className="text-slate-600 font-medium flex gap-2 items-center"><CreditCard size={14} /> No. KTP</Label>
-                                    <div className="flex gap-3">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-600 font-medium flex gap-2 items-center"><CreditCard size={14} /> No. KTP</Label>
                                         <Input
-                                            className="h-11 rounded-lg border-slate-200 bg-white flex-1"
+                                            className="h-11 rounded-lg border-slate-200 bg-white"
                                             placeholder="327..."
                                             value={formData.ktp}
                                             onChange={e => setFormData({ ...formData, ktp: e.target.value })}
                                         />
-                                        <div className="relative">
-                                            <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                                            <Button variant="outline" className="h-11 px-4 border-slate-200 bg-white text-slate-600 w-full whitespace-nowrap">
-                                                <Upload size={16} className="mr-2" /> Upload KTP
-                                            </Button>
-                                        </div>
                                     </div>
+                                    <FileUploader
+                                        label="Foto KTP"
+                                        value={ktpFile}
+                                        onChange={(e) => handleFileChange(e, setKtpFile)}
+                                        onClear={() => clearFile(setKtpFile)}
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
@@ -201,24 +314,18 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 pt-2">
-                                    <div className="space-y-2">
-                                        <Label className="text-slate-600 font-medium flex gap-2 items-center"><Upload size={14} /> Foto Rumah (Depan)</Label>
-                                        <div className="relative h-11">
-                                            <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                            <div className="h-full rounded-lg border border-slate-200 bg-white flex items-center px-4 text-slate-400 text-sm hover:bg-slate-50 transition-colors">
-                                                Pilih foto...
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-slate-600 font-medium flex gap-2 items-center"><Upload size={14} /> Foto Rumah (Samping)</Label>
-                                        <div className="relative h-11">
-                                            <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                            <div className="h-full rounded-lg border border-slate-200 bg-white flex items-center px-4 text-slate-400 text-sm hover:bg-slate-50 transition-colors">
-                                                Pilih foto...
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <FileUploader
+                                        label="Foto Rumah (Depan)"
+                                        value={frontHome}
+                                        onChange={(e) => handleFileChange(e, setFrontHome)}
+                                        onClear={() => clearFile(setFrontHome)}
+                                    />
+                                    <FileUploader
+                                        label="Foto Rumah (Samping)"
+                                        value={sideHome}
+                                        onChange={(e) => handleFileChange(e, setSideHome)}
+                                        onClear={() => clearFile(setSideHome)}
+                                    />
                                 </div>
                             </div>
                         </TabsContent>
@@ -227,22 +334,26 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                             <div className="p-5 rounded-xl bg-blue-50/50 border border-blue-100 space-y-4">
                                 <div className="space-y-2">
                                     <Label className="text-blue-900 font-semibold flex gap-2 items-center"><Package size={14} /> Paket Internet</Label>
-                                    <Select onValueChange={(v) => setFormData({ ...formData, internetPackage: v })}>
+                                    <Select
+                                        value={formData.internetPackage}
+                                        onValueChange={(v) => setFormData({ ...formData, internetPackage: v })}
+                                    >
                                         <SelectTrigger className="h-11 bg-white border-blue-200 text-blue-900 font-medium shadow-sm">
                                             <SelectValue placeholder="Pilih Paket Layanan" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="home_10" className="font-medium">Home 10 Mbps</SelectItem>
-                                            <SelectItem value="home_20" className="font-medium">Home 20 Mbps</SelectItem>
-                                            <SelectItem value="home_50" className="font-medium">Home 50 Mbps</SelectItem>
-                                            <SelectItem value="biz_100" className="font-medium">Bisnis 100 Mbps</SelectItem>
+                                            {packages.map((pkg) => (
+                                                <SelectItem key={pkg.id} value={pkg.id} className="font-medium">
+                                                    {pkg.name} - {pkg.speed} Mbps (Rp {pkg.price.toLocaleString("id-ID")})
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2 md:col-span-1 space-y-2">
+                                <div className="space-y-2">
                                     <Label className="text-slate-600 font-medium flex gap-2 items-center"><Hash size={14} /> Kode ODP</Label>
                                     <Input
                                         className="h-11 rounded-lg border-slate-200 bg-white font-mono"
@@ -251,29 +362,20 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                                         onChange={e => setFormData({ ...formData, odpCode: e.target.value })}
                                     />
                                 </div>
-                                <div className="col-span-2 md:col-span-1 space-y-2">
-                                    <Label className="text-slate-600 font-medium flex gap-2 items-center"><Upload size={14} /> Foto ODP</Label>
-                                    <div className="relative h-11">
-                                        <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                        <div className="h-full rounded-lg border border-slate-200 bg-white flex items-center px-4 text-slate-400 text-sm hover:bg-slate-50 transition-colors">
-                                            Upload Foto ODP...
-                                        </div>
-                                    </div>
-                                </div>
+                                <FileUploader
+                                    label="Foto ODP"
+                                    value={odpImage}
+                                    onChange={(e) => handleFileChange(e, setOdpImage)}
+                                    onClear={() => clearFile(setOdpImage)}
+                                />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-slate-600 font-medium flex gap-2 items-center">
-                                    <Upload size={14} />
-                                    <span>Foto CA <span className="text-slate-400 font-normal text-xs ml-1">(Opsional)</span></span>
-                                </Label>
-                                <div className="relative h-11">
-                                    <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                    <div className="h-full rounded-lg border border-slate-200 bg-white flex items-center px-4 text-slate-400 text-sm hover:bg-slate-50 transition-colors">
-                                        Upload Foto CA (Customer Access)
-                                    </div>
-                                </div>
-                            </div>
+                            <FileUploader
+                                label="Foto CA (Opsional)"
+                                value={caImage}
+                                onChange={(e) => handleFileChange(e, setCaImage)}
+                                onClear={() => clearFile(setCaImage)}
+                            />
 
                             <div className="space-y-6">
                                 <LocationPicker

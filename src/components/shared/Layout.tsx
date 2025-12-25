@@ -4,12 +4,24 @@ import { Navbar } from "./Navbar";
 import { SidebarProvider, useSidebar } from "@/providers/sidebar-provider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
+import { AuthService } from "@/services/auth.service";
 
 /**
  * LayoutContent manages the dynamic arrangement of Sidebar, Navbar, and Page Content.
  */
 const LayoutContent = ({ children }: { children: React.ReactNode }) => {
     const { isCollapsed, isMobileOpen, closeMobile } = useSidebar();
+
+    useEffect(() => {
+        const checkPermissions = async () => {
+            const hasPermissions = localStorage.getItem("app_permissions");
+            if (!hasPermissions && AuthService.getUser()) {
+                await AuthService.initPermissions();
+            }
+        };
+        checkPermissions();
+    }, []);
 
     return (
         <div className="flex h-screen bg-[#F8F9FD] overflow-hidden">
@@ -23,7 +35,7 @@ const LayoutContent = ({ children }: { children: React.ReactNode }) => {
 
             {/* Mobile Sidebar (Sheet) */}
             <Sheet open={isMobileOpen} onOpenChange={closeMobile}>
-                <SheetContent side="left" className="p-0 border-none w-72 bg-[#101D42]">
+                <SheetContent side="left" className="p-0 border-none w-72 bg-brand-blue">
                     <SheetHeader className="sr-only">
                         <SheetTitle>Navigation Menu</SheetTitle>
                     </SheetHeader>

@@ -1,28 +1,140 @@
-import { Plus, Building2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Building2, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
+import { UnitModal } from "../components/UnitModal";
+import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { useUnit } from "../hooks/useUnit";
+import { useToast } from "@/hooks/useToast";
 import type { Unit } from "@/services/master.service";
-
-// ==================== Column Definitions ====================
-
-const columns = [
-    { header: "KODE", accessorKey: "code", className: "font-bold text-[#101D42]" },
-    { header: "NAMA UNIT", accessorKey: "name", className: "font-semibold text-slate-700" },
-    { header: "CABANG", accessorKey: "cabangId", cell: (row: Unit) => row.cabang?.name || "-", className: "text-slate-500" },
-];
+import { AuthService } from "@/services/auth.service";
 
 // ==================== Page Component ====================
 
 export default function UnitPage() {
+    const { toast } = useToast();
+    const userProfile = AuthService.getUser();
+    const userRole = userProfile?.role || "USER";
+    const resource = "master.unit";
+
+    const canCreate = AuthService.hasPermission(userRole, resource, "create");
+    const canEdit = AuthService.hasPermission(userRole, resource, "edit");
+    const canDelete = AuthService.hasPermission(userRole, resource, "delete");
+
     const {
         data,
         loading,
         totalItems,
         page,
         totalPages,
-        setPage
+        setPage,
+        create,
+        creating,
+        update,
+        updating,
+        remove: deleteUnit,
+        deleting
     } = useUnit();
+
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+    const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null);
+
+    // Handlers
+    const handleAdd = () => {
+        setSelectedUnit(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (row: Unit) => {
+        setSelectedUnit(row);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = (row: Unit) => {
+        setUnitToDelete(row);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!unitToDelete) return;
+        const success = await deleteUnit(unitToDelete.id);
+        if (success) {
+            toast({
+                title: "Berhasil",
+                description: "Unit berhasil dihapus",
+            });
+            setIsDeleteModalOpen(false);
+            setUnitToDelete(null);
+        }
+    };
+
+    const handleSubmit = async (formData: Partial<Unit>) => {
+        let result = null;
+        if (selectedUnit) {
+            result = await update(selectedUnit.id, formData);
+        } else {
+            result = await create(formData);
+        }
+
+        if (result) {
+            toast({
+                title: "Berhasil",
+                description: `Unit berhasil ${selectedUnit ? "diperbarui" : "ditambahkan"}`,
+            });
+            return true;
+        }
+        return false;
+    };
+
+    // Columns with Action
+    const columns = useMemo(() => [
+        { header: "KODE", accessorKey: "code", className: "font-bold text-[#101D42]" },
+        { header: "NAMA UNIT", accessorKey: "name", className: "font-semibold text-slate-700" },
+        {
+            header: "CABANG",
+            accessorKey: "cabangId",
+            cell: (row: Unit) => row.cabang?.name || "-",
+            className: "text-slate-500"
+        },
+        {
+            header: "AKSI",
+            id: "actions",
+            accessorKey: "id",
+            className: "w-[120px] text-center",
+            cell: (row: Unit) => {
+                if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
+
+                return (
+                    <div className="flex items-center justify-center gap-2">
+                        {canEdit && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full text-blue-600 hover:bg-blue-50"
+                                onClick={() => handleEdit(row)}
+                            >
+                                <Edit2 size={14} />
+                            </Button>
+                        )}
+                        {canDelete && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full text-red-600 hover:bg-red-50"
+                                onClick={() => handleDelete(row)}
+                                disabled={deleting}
+                            >
+                                <Trash2 size={14} />
+                            </Button>
+                        )}
+                    </div>
+                );
+            },
+        },
+    ], [deleting, canEdit, canDelete]);
 
     return (
         <div className="space-y-6">
@@ -32,10 +144,15 @@ export default function UnitPage() {
                     <h1 className="text-2xl font-bold text-[#101D42]">Data Unit</h1>
                     <p className="text-sm text-slate-500">Manajemen unit operasional di bawah cabang</p>
                 </div>
-                <Button className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10">
-                    <Plus size={18} className="mr-2" />
-                    Tambah Unit
-                </Button>
+                {canCreate && (
+                    <Button
+                        onClick={handleAdd}
+                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
+                    >
+                        <Plus size={18} className="mr-2" />
+                        Tambah Unit
+                    </Button>
+                )}
             </div>
 
             {/* Content */}
@@ -66,6 +183,23 @@ export default function UnitPage() {
                     onPageChange={setPage}
                 />
             </div>
+
+            {/* Modals */}
+            <UnitModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleSubmit}
+                isLoading={creating || updating}
+                initialData={selectedUnit}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                itemName={unitToDelete?.name}
+                isLoading={deleting}
+            />
         </div>
     );
 }

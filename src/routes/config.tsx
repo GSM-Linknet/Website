@@ -48,6 +48,7 @@ const PackagePricingPage = lazy(
   () => import("@/features/master/pages/PackagePricingPage"),
 );
 const DiscountPage = lazy(() => import("@/features/master/pages/DiscountPage"));
+const UserPage = lazy(() => import("@/features/master/pages/UserPage"));
 const InstallSchedulePage = lazy(
   () => import("@/features/master/pages/InstallSchedulePage"),
 );
@@ -228,6 +229,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <DiscountPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "users",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <UserPage />
               </Suspense>
             ),
           },

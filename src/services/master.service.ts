@@ -40,6 +40,7 @@ export interface Package extends BaseEntity {
   speed: number;
   price: number;
   description?: string;
+  idWilayah: string;
 }
 
 export interface Discount extends BaseEntity {

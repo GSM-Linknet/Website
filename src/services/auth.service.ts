@@ -1,7 +1,7 @@
 import { apiClient } from "./api-client";
 import Cookies from "js-cookie";
 
-export type UserRole = "SUPER_ADMIN" | "ADMIN" | "SUPERVISOR" | "SALES" | "USER";
+export type UserRole = "SUPER_ADMIN" | "ADMIN_PUSAT" | "ADMIN_CABANG" | "ADMIN_UNIT" | "SUPERVISOR" | "SALES" | "USER";
 
 // Flattened keys for granular permissions
 export type PermissionResource = 
@@ -34,7 +34,9 @@ export type PermissionResource =
     | "keuangan.aging" 
     | "keuangan.saldo"
     // Settings
-    | "settings.permissions";
+    | "settings.permissions"
+    // Other
+    | "customer";
 
 export type AppAction = "view" | "create" | "edit" | "delete" | "verify" | "export";
 
@@ -43,6 +45,10 @@ export interface User {
   name: string;
   role: UserRole;
   avatar?: string;
+  wilayahId?: string;
+  cabangId?: string;
+  unitId?: string;
+  subUnitId?: string;
 }
 
 interface LoginResponse {
@@ -60,9 +66,11 @@ type PermissionMatrix = {
 
 export const MOCK_USERS: User[] = [
   { id: "1", name: "Muhamad Fathurohman", role: "SUPER_ADMIN" },
-  { id: "2", name: "Admin Pusat", role: "ADMIN" },
-  { id: "3", name: "Supervisor Unit", role: "SUPERVISOR" },
-  { id: "4", name: "Sales Sub Unit", role: "SALES" },
+  { id: "2", name: "Admin Pusat", role: "ADMIN_PUSAT" },
+  { id: "3", name: "Admin Cabang", role: "ADMIN_CABANG" },
+  { id: "4", name: "Admin Unit", role: "ADMIN_UNIT" },
+  { id: "5", name: "Supervisor Unit", role: "SUPERVISOR" },
+  { id: "6", name: "Sales Sub Unit", role: "SALES" },
 ];
 
 export const PERMISSIONS: PermissionMatrix = {
@@ -91,7 +99,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.saldo": ["view", "export"],
       "settings.permissions": ["view", "create", "edit", "delete"],
   },
-  "ADMIN": {
+  "ADMIN_PUSAT": {
       "dashboard": ["view"],
       "master.wilayah": ["view", "create", "edit"],
       "master.unit": ["view", "create", "edit"],
@@ -114,6 +122,30 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.aging": ["view"],
       "keuangan.saldo": ["view"],
       "settings.permissions": ["view"],
+  },
+  "ADMIN_CABANG": {
+      "dashboard": ["view"],
+      "master.wilayah": ["view"],
+      "master.unit": ["view", "create", "edit"],
+      "pelanggan.pendaftaran": ["view", "verify"],
+      "pelanggan.kelola": ["view", "edit"],
+      "teknisi.database": ["view"],
+      "teknisi.tools": ["view"],
+      "produksi.prospek": ["view"],
+      "produksi.verifikasi": ["view"],
+      "produksi.wo": ["view", "create", "edit"],
+      "reporting.sales": ["view"],
+      "reporting.unit": ["view"],
+  },
+  "ADMIN_UNIT": {
+      "dashboard": ["view"],
+      "master.unit": ["view"],
+      "pelanggan.pendaftaran": ["view"],
+      "pelanggan.kelola": ["view"],
+      "teknisi.database": ["view"],
+      "teknisi.tools": ["view"],
+      "produksi.prospek": ["view"],
+      "produksi.wo": ["view"],
   },
   "SUPERVISOR": {
       "dashboard": ["view"],
@@ -182,12 +214,14 @@ export const AuthService = {
       Cookies.set("refresh_token", refreshToken, { expires: 7 }); // 7 days
       
       // Store user role for permission checks
-      // user.role from backend might be object or string, ensuring compatibility
       const roleValue = user.role as unknown;
       const roleName = typeof roleValue === 'string' ? roleValue : (roleValue as { name?: string })?.name;
       const userProfile = { ...user, role: roleName as UserRole };
 
       localStorage.setItem("user_profile", JSON.stringify(userProfile));
+      
+      // Fetch and store permissions
+      await this.initPermissions();
       
       return {
         user: userProfile,
@@ -202,6 +236,35 @@ export const AuthService = {
   },
 
   /**
+   * Initializes permissions by fetching from API and storing in localStorage.
+   */
+  async initPermissions() {
+    try {
+      // Use direct apiClient call to avoid circular dependencies
+      const response = await apiClient.get<{ data: { items: any[] } }>("/settings/permissions/find-all", { 
+        params: { paginate: false } 
+      });
+      const items = response.data.items;
+      
+      // Group permissions by role and resource
+      const matrix: any = {};
+      items.forEach((p: any) => {
+        if (!matrix[p.role]) matrix[p.role] = {};
+        if (!matrix[p.role][p.resource]) matrix[p.role][p.resource] = [];
+        if (!matrix[p.role][p.resource].includes(p.action)) {
+          matrix[p.role][p.resource].push(p.action);
+        }
+      });
+
+      localStorage.setItem("app_permissions", JSON.stringify(matrix));
+      return matrix;
+    } catch (error) {
+        console.error("Failed to fetch permissions", error);
+        return null;
+    }
+  },
+
+  /**
    * Simulates a user logout.
    */
   async logout() {
@@ -209,6 +272,7 @@ export const AuthService = {
     Cookies.remove("auth_token");
     Cookies.remove("refresh_token");
     localStorage.removeItem("user_profile");
+    localStorage.removeItem("app_permissions");
     window.location.href = "/login";
   },
 
@@ -216,7 +280,26 @@ export const AuthService = {
    * Check if a role has a specific permission for a resource.
    */
   hasPermission(role: string, resource: PermissionResource, action: AppAction): boolean {
-    const rolePermissions = PERMISSIONS[role as UserRole];
+    // Super Admin has all permissions
+    if (role === "SUPER_ADMIN") return true;
+
+    const permissionsStr = localStorage.getItem("app_permissions");
+    let rolePermissions: any = null;
+
+    if (permissionsStr) {
+        try {
+            const matrix = JSON.parse(permissionsStr);
+            rolePermissions = matrix[role];
+        } catch (e) {
+            console.error("Error parsing permissions", e);
+        }
+    }
+
+    // Fallback to static PERMISSIONS if not loaded yet or error
+    if (!rolePermissions) {
+        rolePermissions = PERMISSIONS[role as UserRole];
+    }
+
     if (!rolePermissions) return false;
     
     const resourcePermissions = rolePermissions[resource];

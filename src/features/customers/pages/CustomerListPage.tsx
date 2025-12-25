@@ -10,10 +10,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CustomerTable } from "../components/CustomerTable";
 import { useCustomers } from "../hooks/useCustomers";
+import { AuthService } from "@/services/auth.service";
 
 // ==================== Page Component ====================
 
 export default function CustomerListPage() {
+    const userProfile = AuthService.getUser();
+    const userRole = userProfile?.role || "USER";
+    const resource = "pelanggan.kelola";
+
+    const canExport = AuthService.hasPermission(userRole, resource, "export");
+
     const {
         data: customers,
         loading,
@@ -57,10 +64,12 @@ export default function CustomerListPage() {
                             onChange={(e) => handleSearch(e.target.value)}
                         />
                     </div>
-                    <Button className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-6 shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02]">
-                        <Download size={18} className="mr-2" />
-                        Unduh VCF
-                    </Button>
+                    {canExport && (
+                        <Button className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-6 shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02]">
+                            <Download size={18} className="mr-2" />
+                            Unduh VCF
+                        </Button>
+                    )}
                 </div>
             </div>
 

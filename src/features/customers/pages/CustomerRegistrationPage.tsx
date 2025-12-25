@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, Eye, CheckCircle, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -8,16 +8,33 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { RegistrationTable } from "../components/RegistrationTable";
+import { BaseTable } from "@/components/shared/BaseTable";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { AddCustomerDialog } from "../components/AddCustomerDialog";
+import { CustomerModal } from "../components/CustomerModal";
+import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { AuthService } from "@/services/auth.service";
 import { useCustomers } from "../hooks/useCustomers";
+import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/utils";
 import type { Customer } from "@/services/customer.service";
 
 // ==================== Page Component ====================
 
 export default function CustomerRegistrationPage() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const userProfile = AuthService.getUser();
+  const userRole = userProfile?.role || "USER";
+  const resource = "pelanggan.pendaftaran";
+
+  const canCreate = AuthService.hasPermission(userRole, resource, "create");
+  const canEdit = AuthService.hasPermission(userRole, resource, "edit");
+  const canDelete = AuthService.hasPermission(userRole, resource, "delete");
+  const canVerify = AuthService.hasPermission(userRole, resource, "verify");
+
   const {
     data: customers,
     loading,
@@ -28,8 +45,17 @@ export default function CustomerRegistrationPage() {
     setQuery,
     create,
     creating,
+    update,
+    updating,
+    remove,
+    deleting,
     refetch
   } = useCustomers();
+
+  // Modal states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const handleSearch = (val: string) => {
     setSearchQuery(val);
@@ -37,15 +63,177 @@ export default function CustomerRegistrationPage() {
   };
 
   // Get current user for role-based status
-  const currentUser = AuthService.getUser() ?? AuthService.getMockUsers()[3];
-  const isSubUnit = currentUser.role === "SALES";
+  const currentUser = AuthService.getUser();
+  const isSubUnit = currentUser?.role === "SALES";
   const defaultRegStatus = isSubUnit ? "Menunggu" : "Diproses";
 
   // Handle create customer from dialog
   const handleCreateCustomer = async (customerData: Partial<Customer>) => {
-    await create(customerData);
-    refetch();
+    const result = await create(customerData);
+    if (result) {
+      toast({
+        title: "Berhasil",
+        description: "Pelanggan baru berhasil didaftarkan",
+      });
+      refetch();
+    }
   };
+
+  // Handle edit
+  const handleEdit = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (data: Partial<Customer>) => {
+    if (!selectedCustomer) return false;
+    const result = await update(selectedCustomer.id, data);
+    if (result) {
+      toast({
+        title: "Berhasil",
+        description: "Data pelanggan berhasil diperbarui",
+      });
+      setIsEditModalOpen(false);
+      setSelectedCustomer(null);
+      return true;
+    }
+    return false;
+  };
+
+  // Handle delete
+  const handleDeleteClick = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedCustomer) return;
+    const success = await remove(selectedCustomer.id);
+    if (success) {
+      toast({
+        title: "Berhasil",
+        description: "Pelanggan berhasil dihapus",
+      });
+      setIsDeleteModalOpen(false);
+      setSelectedCustomer(null);
+    }
+  };
+
+  // Handle verify
+  const handleVerify = async (customer: Customer) => {
+    const result = await update(customer.id, { statusCust: true });
+    if (result) {
+      toast({
+        title: "Berhasil",
+        description: "Pelanggan berhasil diverifikasi",
+      });
+    }
+  };
+
+  // Table columns
+  const columns = [
+    {
+      header: "NAMA",
+      accessorKey: "name",
+      className: "min-w-[200px]",
+      cell: (row: Customer) => (
+        <div className="flex items-center space-x-3">
+          <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
+            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${row.name}`} />
+            <AvatarFallback className="bg-blue-100 text-blue-600 font-bold text-xs">
+              {row.name.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-bold text-slate-800 text-[13px]">{row.name}</span>
+            <span className="text-[11px] text-slate-400 font-medium">{row.phone}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "ALAMAT",
+      accessorKey: "address",
+      className: "text-center max-w-[150px] truncate",
+      cell: (row: Customer) => (
+        <span title={row.address} className="text-xs text-slate-600 truncate block max-w-[150px]">{row.address || "-"}</span>
+      ),
+    },
+    {
+      header: "PAKET",
+      accessorKey: "paket",
+      className: "text-slate-500 font-bold text-[12px]",
+      cell: (row: Customer) => row.paket?.name || "-"
+    },
+    {
+      header: "STATUS",
+      accessorKey: "statusCust",
+      cell: (row: Customer) => (
+        <Badge className={cn(
+          "rounded-md text-[11px] font-bold px-3 py-1 border-none",
+          row.statusCust ? "bg-sky-100 text-sky-600" : "bg-amber-100 text-amber-600"
+        )}>
+          {row.statusCust ? "Diproses" : "Menunggu"}
+        </Badge>
+      ),
+    },
+    {
+      header: "TANGGAL DAFTAR",
+      accessorKey: "createdAt",
+      className: "min-w-[120px] text-slate-500 font-medium text-[12px]",
+      cell: (row: Customer) => row.createdAt ? new Date(row.createdAt).toLocaleDateString("id-ID") : "-"
+    },
+    {
+      header: "AKSI",
+      accessorKey: "actions",
+      className: "w-10 text-center",
+      cell: (row: Customer) => {
+        const isPending = !row.statusCust;
+        const hasActions = canEdit || canDelete || (canVerify && isPending);
+
+        if (!hasActions) return <span className="text-slate-400">-</span>;
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100 text-slate-400">
+                <MoreHorizontal size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl border-slate-100 bg-white shadow-xl">
+              {canVerify && isPending && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
+                  onClick={() => handleVerify(row)}
+                >
+                  <CheckCircle size={14} className="mr-2" />
+                  Verifikasi
+                </DropdownMenuItem>
+              )}
+              {canEdit && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold"
+                  onClick={() => handleEdit(row)}
+                >
+                  <Edit2 size={14} className="mr-2" />
+                  Edit
+                </DropdownMenuItem>
+              )}
+              {canDelete && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
+                  onClick={() => handleDeleteClick(row)}
+                >
+                  <Trash2 size={14} className="mr-2" />
+                  Hapus
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
@@ -73,11 +261,13 @@ export default function CustomerRegistrationPage() {
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
-          <AddCustomerDialog
-            initialStatus={defaultRegStatus}
-            onCreate={handleCreateCustomer}
-            isCreating={creating}
-          />
+          {canCreate && (
+            <AddCustomerDialog
+              initialStatus={defaultRegStatus}
+              onCreate={handleCreateCustomer}
+              isCreating={creating}
+            />
+          )}
         </div>
       </div>
 
@@ -90,8 +280,11 @@ export default function CustomerRegistrationPage() {
 
       {/* Table Content */}
       <div className="bg-white rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
-        <RegistrationTable
-          registrations={customers}
+        <BaseTable
+          data={customers}
+          columns={columns}
+          rowKey={(row) => row.id}
+          className="border-none shadow-none"
           loading={loading}
           page={page}
           totalPages={totalPages}
@@ -99,6 +292,30 @@ export default function CustomerRegistrationPage() {
           onPageChange={setPage}
         />
       </div>
+
+      {/* Edit Modal */}
+      <CustomerModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedCustomer(null);
+        }}
+        onSubmit={handleEditSubmit}
+        isLoading={updating}
+        initialData={selectedCustomer}
+      />
+
+      {/* Delete Confirmation */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedCustomer(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        itemName={selectedCustomer?.name}
+        isLoading={deleting}
+      />
     </div>
   );
 }

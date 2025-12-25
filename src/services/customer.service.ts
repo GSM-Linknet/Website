@@ -9,14 +9,14 @@ export interface Customer {
   email: string;
   phone: string;
   idUpline: string;
-  ktpNumber: number;
+  ktpNumber: string; // String type to match backend
   ktpFile: string;
   address: string;
   // Location
   latUser: number;
   longUser: number;
   // ODP
-  posNumber: number;
+  posNumber: string; // String type to match backend
   ODPCode: string;
   latODP: number;
   longODP: number;

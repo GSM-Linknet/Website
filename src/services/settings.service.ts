@@ -25,5 +25,8 @@ export const SettingsService = {
   },
   deletePermission: async (id: string) => {
     return apiClient.delete(`${ENDPOINTS.PERMISSIONS}/delete/${id}`);
+  },
+  syncPermissions: async (data: { role: string; resource: string; actions: string[] }) => {
+    return apiClient.post(`${ENDPOINTS.PERMISSIONS}/sync`, data);
   }
 };

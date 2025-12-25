@@ -1,21 +1,22 @@
 import { useState, useMemo } from "react";
-import { Plus, Building2, Edit2, Trash2 } from "lucide-react";
+import { Plus, Users, Edit2, Trash2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
-import { SubUnitModal } from "../components/SubUnitModal";
+import { UserModal } from "../components/UserModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
-import { useSubUnit } from "../hooks/useSubUnit";
+import { useUser } from "../hooks/useUser";
 import { useToast } from "@/hooks/useToast";
-import type { SubUnit } from "@/services/master.service";
+import { Badge } from "@/components/ui/badge";
+import type { User } from "@/services/user.service";
 import { AuthService } from "@/services/auth.service";
 
 // ==================== Page Component ====================
 
-export default function SubUnitPage() {
+export default function UserPage() {
     const { toast } = useToast();
     const userProfile = AuthService.getUser();
     const userRole = userProfile?.role || "USER";
-    const resource = "master.unit";
+    const resource = "master.wilayah";
 
     const canCreate = AuthService.hasPermission(userRole, resource, "create");
     const canEdit = AuthService.hasPermission(userRole, resource, "edit");
@@ -32,49 +33,49 @@ export default function SubUnitPage() {
         creating,
         update,
         updating,
-        remove: deleteSubUnit,
+        remove: deleteUser,
         deleting
-    } = useSubUnit();
+    } = useUser();
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedSubUnit, setSelectedSubUnit] = useState<SubUnit | null>(null);
-    const [subUnitToDelete, setSubUnitToDelete] = useState<SubUnit | null>(null);
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
     // Handlers
     const handleAdd = () => {
-        setSelectedSubUnit(null);
+        setSelectedUser(null);
         setIsModalOpen(true);
     };
 
-    const handleEdit = (row: SubUnit) => {
-        setSelectedSubUnit(row);
+    const handleEdit = (row: User) => {
+        setSelectedUser(row);
         setIsModalOpen(true);
     };
 
-    const handleDelete = (row: SubUnit) => {
-        setSubUnitToDelete(row);
+    const handleDelete = (row: User) => {
+        setUserToDelete(row);
         setIsDeleteModalOpen(true);
     };
 
     const handleConfirmDelete = async () => {
-        if (!subUnitToDelete) return;
-        const success = await deleteSubUnit(subUnitToDelete.id);
+        if (!userToDelete) return;
+        const success = await deleteUser(userToDelete.id);
         if (success) {
             toast({
                 title: "Berhasil",
-                description: "Sub Unit berhasil dihapus",
+                description: "User berhasil dihapus",
             });
             setIsDeleteModalOpen(false);
-            setSubUnitToDelete(null);
+            setUserToDelete(null);
         }
     };
 
-    const handleSubmit = async (formData: Partial<SubUnit>) => {
+    const handleSubmit = async (formData: Partial<User>) => {
         let result = null;
-        if (selectedSubUnit) {
-            result = await update(selectedSubUnit.id, formData);
+        if (selectedUser) {
+            result = await update(selectedUser.id, formData);
         } else {
             result = await create(formData);
         }
@@ -82,29 +83,81 @@ export default function SubUnitPage() {
         if (result) {
             toast({
                 title: "Berhasil",
-                description: `Sub Unit berhasil ${selectedSubUnit ? "diperbarui" : "ditambahkan"}`,
+                description: `User berhasil ${selectedUser ? "diperbarui" : "ditambahkan"}`,
             });
             return true;
         }
         return false;
     };
 
-    // Columns with Action
+    const getRoleBadgeColor = (role: string) => {
+        switch (role) {
+            case "SUPER_ADMIN": return "bg-purple-100 text-purple-700 border-purple-200";
+            case "ADMIN_PUSAT": return "bg-indigo-100 text-indigo-700 border-indigo-200";
+            case "ADMIN_CABANG": return "bg-blue-100 text-blue-700 border-blue-200";
+            case "ADMIN_UNIT": return "bg-sky-100 text-sky-700 border-sky-200";
+            case "SUPERVISOR": return "bg-emerald-100 text-emerald-700 border-emerald-200";
+            case "SALES": return "bg-amber-100 text-amber-700 border-amber-200";
+            case "USER": return "bg-slate-100 text-slate-700 border-slate-200";
+            default: return "bg-slate-100 text-slate-700 border-slate-200";
+        }
+    };
+
+    // Columns
     const columns = useMemo(() => [
-        { header: "KODE", accessorKey: "code", className: "font-bold text-[#101D42]" },
-        { header: "NAMA SUB UNIT", accessorKey: "name", className: "font-semibold text-slate-700" },
         {
-            header: "UNIT INDUK",
-            accessorKey: "unitId",
-            cell: (row: SubUnit) => row.unit?.name || "-",
-            className: "text-slate-500"
+            header: "USER",
+            accessorKey: "name",
+            cell: (row: User) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs border border-slate-200">
+                        {row.name.charAt(0)}
+                    </div>
+                    <div>
+                        <p className="font-bold text-[#101D42]">{row.name}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{row.email}</p>
+                    </div>
+                </div>
+            )
+        },
+        {
+            header: "ROLE",
+            accessorKey: "role",
+            cell: (row: User) => {
+                let label = row.role.replace(/_/g, " ");
+                return (
+                    <Badge variant="outline" className={getRoleBadgeColor(row.role)}>
+                        {label}
+                    </Badge>
+                );
+            }
+        },
+        {
+            header: "PENEMPATAN",
+            accessorKey: "wilayahId",
+            cell: (row: User) => {
+                const isCentral = ["SUPER_ADMIN", "ADMIN_PUSAT"].includes(row.role);
+                if (isCentral) {
+                    return <span className="text-slate-400 italic">Global / Pusat</span>;
+                }
+                const placement = row.subUnit?.name || row.unit?.name || row.cabang?.name || row.wilayah?.name || "-";
+                return <span className="text-slate-600 font-medium">{placement}</span>;
+            }
+        },
+        {
+            header: "STATUS",
+            accessorKey: "status",
+            cell: (row: User) => (
+                <Badge className={row.status ? "bg-green-500" : "bg-red-500"}>
+                    {row.status ? "Aktif" : "Non-Aktif"}
+                </Badge>
+            )
         },
         {
             header: "AKSI",
-            id: "actions",
-            accessorKey: "id",
+            accessorKey: "actions",
             className: "w-[120px] text-center",
-            cell: (row: SubUnit) => {
+            cell: (row: User) => {
                 if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
 
                 return (
@@ -138,43 +191,42 @@ export default function SubUnitPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#101D42]">Data Sub Unit</h1>
-                    <p className="text-sm text-slate-500">Manajemen sub unit di bawah unit</p>
+                    <h1 className="text-2xl font-bold text-[#101D42] flex items-center gap-2">
+                        <Users className="text-blue-600" />
+                        Kelola Users
+                    </h1>
+                    <p className="text-sm text-slate-500">Manajemen akun pengguna dan hak akses sistem</p>
                 </div>
                 {canCreate && (
                     <Button
                         onClick={handleAdd}
-                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
+                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg"
                     >
                         <Plus size={18} className="mr-2" />
-                        Tambah Sub Unit
+                        Tambah User
                     </Button>
                 )}
             </div>
 
-            {/* Content */}
             <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
-                {/* Info Banner */}
                 <div className="flex items-center gap-3 mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
                     <div className="p-2 bg-blue-500 rounded-lg text-white">
-                        <Building2 size={20} />
+                        <ShieldCheck size={20} />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Informasi</p>
+                        <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Access Control</p>
                         <p className="text-sm text-slate-600 font-medium">
-                            {loading ? "Memuat data..." : `Terdapat ${totalItems} sub unit aktif dalam database.`}
+                            {loading ? "Memuat data..." : `Terdapat ${totalItems} pengguna terdaftar dalam sistem.`}
                         </p>
                     </div>
                 </div>
 
-                {/* Table */}
                 <BaseTable
                     data={data}
                     columns={columns}
-                    rowKey={(row: SubUnit) => row.id}
+                    rowKey={(row: User) => row.id}
                     className="border-none shadow-none"
                     loading={loading}
                     page={page}
@@ -184,20 +236,19 @@ export default function SubUnitPage() {
                 />
             </div>
 
-            {/* Modals */}
-            <SubUnitModal
+            <UserModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleSubmit}
                 isLoading={creating || updating}
-                initialData={selectedSubUnit}
+                initialData={selectedUser}
             />
 
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={handleConfirmDelete}
-                itemName={subUnitToDelete?.name}
+                itemName={userToDelete?.name}
                 isLoading={deleting}
             />
         </div>

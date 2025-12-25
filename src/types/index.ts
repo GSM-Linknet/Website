@@ -5,11 +5,13 @@ export interface NavItem {
   href?: string;
   icon: LucideIcon;
   items?: NavSubItem[];
+  resource?: string;
 }
 
 export interface NavSubItem {
   title: string;
   href: string;
+  resource?: string;
 }
 
 export interface StatItem {

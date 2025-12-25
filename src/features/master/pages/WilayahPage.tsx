@@ -7,10 +7,19 @@ import { useDisclosure } from "@/hooks/use-disclosure";
 import { WilayahModal } from "../components/WilayahModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import type { Wilayah } from "@/services/master.service";
+import { AuthService } from "@/services/auth.service";
 
 // ==================== Page Component ====================
 
 export default function WilayahPage() {
+    const userProfile = AuthService.getUser();
+    const userRole = userProfile?.role || "USER";
+    const resource = "master.wilayah";
+
+    const canCreate = AuthService.hasPermission(userRole, resource, "create");
+    const canEdit = AuthService.hasPermission(userRole, resource, "edit");
+    const canDelete = AuthService.hasPermission(userRole, resource, "delete");
+
     const {
         data,
         loading,
@@ -84,28 +93,36 @@ export default function WilayahPage() {
             id: "actions",
             accessorKey: "id",
             className: "w-[120px]",
-            cell: (row: Wilayah) => (
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full text-blue-600 hover:bg-blue-50"
-                        onClick={() => handleEdit(row)}
-                    >
-                        <Edit2 size={14} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full text-red-600 hover:bg-red-50"
-                        onClick={() => handleDeleteClick(row)}
-                    >
-                        <Trash2 size={14} />
-                    </Button>
-                </div>
-            ),
+            cell: (row: Wilayah) => {
+                if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
+
+                return (
+                    <div className="flex items-center gap-2">
+                        {canEdit && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full text-blue-600 hover:bg-blue-50"
+                                onClick={() => handleEdit(row)}
+                            >
+                                <Edit2 size={14} />
+                            </Button>
+                        )}
+                        {canDelete && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full text-red-600 hover:bg-red-50"
+                                onClick={() => handleDeleteClick(row)}
+                            >
+                                <Trash2 size={14} />
+                            </Button>
+                        )}
+                    </div>
+                );
+            },
         },
-    ], [handleEdit, handleDeleteClick]);
+    ], [canEdit, canDelete]);
 
     return (
         <div className="space-y-6">
@@ -134,13 +151,15 @@ export default function WilayahPage() {
                         Manajemen area cakupan operasional RDN
                     </p>
                 </div>
-                <Button
-                    onClick={createDisclosure.onOpen}
-                    className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
-                >
-                    <Plus size={18} className="mr-2" />
-                    Tambah Wilayah
-                </Button>
+                {canCreate && (
+                    <Button
+                        onClick={createDisclosure.onOpen}
+                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
+                    >
+                        <Plus size={18} className="mr-2" />
+                        Tambah Wilayah
+                    </Button>
+                )}
             </div>
 
             {/* Content */}

@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
-import { Shield, Lock, Check, LayoutDashboard, Database, Users, Wrench, Factory, BarChart3, TrendingUp, Settings } from "lucide-react";
-import { MOCK_USERS, PERMISSIONS, type UserRole, type PermissionResource, type AppAction } from "@/services/auth.service";
-import { apiClient } from "@/services/api-client";
-import type { PaginatedResponse } from "@/services/master.service";
-import type { RolePermission } from "@/services/settings.service";
+import { Shield, Lock, Check, LayoutDashboard, Database, Users, Wrench, Factory, BarChart3, TrendingUp, Settings, Loader2 } from "lucide-react";
+import { AuthService, type UserRole, type PermissionResource, type AppAction } from "@/services/auth.service";
+import { SettingsService } from "@/services/settings.service";
+import { useToast } from "@/hooks/useToast";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-const ROLES: UserRole[] = ["SUPER_ADMIN", "ADMIN", "SUPERVISOR", "SALES"];
+const ROLES: UserRole[] = ["SUPER_ADMIN", "ADMIN_PUSAT", "ADMIN_CABANG", "ADMIN_UNIT", "SUPERVISOR", "SALES", "USER"];
 const ROLE_LABELS: Record<UserRole, string> = {
     "SUPER_ADMIN": "Super Admin",
-    "ADMIN": "Admin Pusat",
+    "ADMIN_PUSAT": "Admin Pusat",
+    "ADMIN_CABANG": "Admin Cabang",
+    "ADMIN_UNIT": "Admin Unit",
     "SUPERVISOR": "Supervisor Unit",
     "SALES": "Sales / Sub Unit",
     "USER": "User"
@@ -37,7 +38,7 @@ const MODULE_GROUPS: {
             icon: Database,
             resources: [
                 { key: "master.wilayah", label: "Wilayah" },
-                { key: "master.unit", label: "Unit & Supervisor" },
+                { key: "master.unit", label: "Unit" },
                 { key: "master.paket", label: "Paket & Harga" },
                 { key: "master.diskon", label: "Diskon" },
                 { key: "master.schedule", label: "Schedule Pasang" }
@@ -103,94 +104,137 @@ const MODULE_GROUPS: {
         },
     ];
 
-const ACTIONS: { id: AppAction; label: string; code: string }[] = [
-    { id: "view", label: "View", code: "V" },
-    { id: "create", label: "Add", code: "C" },
-    { id: "edit", label: "Edit", code: "E" },
-    { id: "delete", label: "Del", code: "D" },
-    { id: "verify", label: "Ver", code: "VF" },
-    { id: "export", label: "Exp", code: "EX" },
+const ACTIONS: { id: AppAction; label: string }[] = [
+    { id: "view", label: "View" },
+    { id: "create", label: "Add" },
+    { id: "edit", label: "Edit" },
+    { id: "delete", label: "Del" },
+    { id: "verify", label: "Ver" },
+    { id: "export", label: "Exp" },
 ];
 
 export default function PermissionPage() {
-    const [permissions, setPermissions] = useState<typeof PERMISSIONS>(PERMISSIONS);
+    const { toast } = useToast();
+    const [permissions, setPermissions] = useState<Record<string, Record<string, string[]>>>({});
     const [activeRole, setActiveRole] = useState<UserRole>("SUPER_ADMIN");
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState<string | null>(null);
 
     // Fetch permissions from API on mount
+    const fetchPermissions = async () => {
+        setLoading(true);
+        try {
+            const response = await SettingsService.getPermissions({ paginate: false });
+            const items = (response as any).data?.items || (response as any).items || [];
+
+            // Transform array to nested object matrix
+            const matrix: any = {};
+            ROLES.forEach(r => matrix[r] = {});
+
+            items.forEach((p: any) => {
+                if (!matrix[p.role]) matrix[p.role] = {};
+                if (!matrix[p.role][p.resource]) matrix[p.role][p.resource] = [];
+                matrix[p.role][p.resource].push(p.action);
+            });
+
+            setPermissions(matrix);
+        } catch (e) {
+            console.error("Failed to fetch permissions", e);
+            toast({
+                title: "Error",
+                description: "Gagal memuat data hak akses",
+                variant: "destructive"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchPermissions = async () => {
-            try {
-                const response = await apiClient.get<PaginatedResponse<RolePermission>>("/settings/permissions");
-                // Handle wrapped response: { status, message, data: { items, ... } }
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const apiResponse = response as any;
-                const paginatedData = apiResponse.data ?? apiResponse;
-                const items = paginatedData.items ?? [];
-                if (items.length > 0) {
-                    // Transform API response to PermissionMatrix
-                    console.log("Permissions:", items);
-                }
-            } catch (e) {
-                console.error("Failed to fetch permissions", e);
-            }
-        };
         fetchPermissions();
     }, []);
 
-    const togglePermission = (role: UserRole, resource: PermissionResource, action: AppAction) => {
-        if (role === "SUPER_ADMIN") return; // Immutable
+    const handleSync = async (role: UserRole, resource: PermissionResource, actions: AppAction[]) => {
+        const key = `${role}-${resource}`;
+        setSaving(key);
+        try {
+            await SettingsService.syncPermissions({
+                role,
+                resource,
+                actions
+            });
 
-        setPermissions((prev: any) => {
-            const rolePerms = prev[role];
-            // Ensure resourcePerms is array
-            const resourcePerms = rolePerms[resource] || [];
-            const hasPerm = resourcePerms.includes(action);
-
-            const newResourcePerms = hasPerm
-                ? resourcePerms.filter((a: any) => a !== action)
-                : [...resourcePerms, action];
-
-            return {
-                ...prev,
-                [role]: {
-                    ...rolePerms,
-                    [resource]: newResourcePerms
-                }
-            };
-        });
-    };
-
-    const toggleAllResource = (role: UserRole, resource: PermissionResource, enable: boolean) => {
-        if (role === "SUPER_ADMIN") return;
-
-        setPermissions((prev: any) => {
-            return {
+            // Update local state optimistic/confirm
+            setPermissions(prev => ({
                 ...prev,
                 [role]: {
                     ...prev[role],
-                    [resource]: enable ? ACTIONS.map(a => a.id) : []
+                    [resource]: actions
                 }
-            };
-        });
+            }));
+
+            // Refresh local permission cache for current session
+            await AuthService.initPermissions();
+        } catch (e) {
+            console.error("Sync failed", e);
+            toast({
+                title: "Error",
+                description: `Gagal memperbarui hak akses untuk ${resource}`,
+                variant: "destructive"
+            });
+            // Re-fetch to revert to server state
+            fetchPermissions();
+        } finally {
+            setSaving(null);
+        }
     };
+
+    const togglePermission = (role: UserRole, resource: PermissionResource, action: AppAction) => {
+        if (role === "SUPER_ADMIN" || saving) return;
+
+        const currentActions = permissions[role]?.[resource] || [];
+        const newActions = currentActions.includes(action)
+            ? currentActions.filter(a => a !== action)
+            : [...currentActions, action];
+
+        handleSync(role, resource, newActions as AppAction[]);
+    };
+
+    const toggleAllResource = (role: UserRole, resource: PermissionResource, enable: boolean) => {
+        if (role === "SUPER_ADMIN" || saving) return;
+        const newActions = enable ? ACTIONS.map(a => a.id) : [];
+        handleSync(role, resource, newActions);
+    };
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[600px] space-y-4">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+                <p className="text-slate-500 font-medium">Memuat konfigurasi hak akses...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1.5">
-                    <h1 className="text-2xl font-extrabold text-[#101D42] tracking-tight sm:text-3xl flex items-center gap-3">
+                    <h1 className="text-2xl font-extrabold text-brand-blue tracking-tight sm:text-3xl flex items-center gap-3">
                         <Shield className="text-blue-600" />
                         Management Akses & Role
                     </h1>
                     <p className="text-sm font-medium text-slate-500 max-w-2xl leading-relaxed">
-                        Kontrol granular (Sub-Menu) untuk setiap role.
+                        Kontrol granular (Sub-Menu) untuk setiap role dalam sistem.
                     </p>
                 </div>
                 <div className="hidden md:block">
-                    <div className="p-3 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium flex items-center gap-2 border border-blue-100 shadow-sm">
-                        <Lock size={16} />
-                        Perubahan disimpan otomatis
+                    <div className="p-3 bg-blue-50 rounded-xl text-blue-800 text-sm font-medium flex items-center gap-2 border border-blue-100 shadow-sm transition-all">
+                        {saving ? (
+                            <><Loader2 size={16} className="animate-spin" /> Menyimpan perubahan...</>
+                        ) : (
+                            <><Lock size={16} /> Perubahan disimpan otomatis</>
+                        )}
                     </div>
                 </div>
             </div>
@@ -199,7 +243,7 @@ export default function PermissionPage() {
             <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
 
                 {/* Role Sidebar (Tabs) */}
-                <div className="w-full md:w-64 bg-slate-50/50 border-r border-slate-100 p-6 flex-shrink-0">
+                <div className="w-full md:w-64 bg-slate-50/50 border-r border-slate-100 p-6 shrink-0">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Role Groups</h3>
                     <Tabs value={activeRole} onValueChange={(v) => setActiveRole(v as UserRole)} orientation="vertical" className="w-full flex-col">
                         <TabsList className="bg-transparent flex flex-col h-auto p-0 gap-2 w-full">
@@ -207,7 +251,7 @@ export default function PermissionPage() {
                                 <TabsTrigger
                                     key={role}
                                     value={role}
-                                    className="w-full justify-start px-4 py-3 h-auto text-sm font-semibold rounded-xl data-[state=active]:bg-[#101D42] data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300"
+                                    className="w-full justify-start px-4 py-3 h-auto text-sm font-semibold rounded-xl data-[state=active]:bg-brand-blue data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300"
                                 >
                                     {ROLE_LABELS[role]}
                                 </TabsTrigger>
@@ -215,18 +259,13 @@ export default function PermissionPage() {
                         </TabsList>
                     </Tabs>
 
-                    <div className="mt-8 px-4 py-4 bg-blue-50 rounded-xl border border-blue-100">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
-                                {MOCK_USERS.find(u => u.role === activeRole)?.name.charAt(0)}
-                            </div>
-                            <div>
-                                <div className="text-xs font-bold text-blue-900">Preview User</div>
-                                <div className="text-[10px] text-blue-600 font-medium truncate max-w-[120px]">
-                                    {MOCK_USERS.find(u => u.role === activeRole)?.name}
-                                </div>
-                            </div>
-                        </div>
+                    <div className="mt-8 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                        <p className="text-[10px] font-bold text-amber-800 uppercase mb-1 flex items-center gap-1">
+                            <Shield size={10} /> Tips Keamanan
+                        </p>
+                        <p className="text-[10px] text-amber-700 leading-tight">
+                            Berikan akses seminimal mungkin sesuai job desk masing-masing role.
+                        </p>
                     </div>
                 </div>
 
@@ -234,7 +273,7 @@ export default function PermissionPage() {
                 <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto max-h-[800px]">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h2 className="text-xl font-bold text-[#101D42]">{ROLE_LABELS[activeRole]} Permissions</h2>
+                            <h2 className="text-xl font-bold text-brand-blue">{ROLE_LABELS[activeRole]} Permissions</h2>
                             <p className="text-sm text-slate-500">Sesuaikan akses hingga level sub-menu.</p>
                         </div>
                         {activeRole === "SUPER_ADMIN" && (
@@ -247,8 +286,7 @@ export default function PermissionPage() {
                     <div className="space-y-6">
                         {MODULE_GROUPS.map((group) => {
                             const Icon = group.icon;
-                            // Check if any resource in this group has permissions
-                            const rolePerms = permissions[activeRole];
+                            const rolePerms = permissions[activeRole] || {};
 
                             return (
                                 <div key={group.id} className="border border-slate-150 rounded-2xl overflow-hidden hover:border-blue-200 transition-colors duration-300">
@@ -264,12 +302,16 @@ export default function PermissionPage() {
                                             const resPerms = rolePerms[res.key] || [];
                                             const allSelected = ACTIONS.every(a => resPerms.includes(a.id));
                                             const isSuper = activeRole === "SUPER_ADMIN";
+                                            const isCurrentSaving = saving === `${activeRole}-${res.key}`;
 
                                             return (
                                                 <div key={res.key} className="px-5 py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 hover:bg-slate-50/30 transition-colors">
-                                                    <div className="min-w-[200px]">
-                                                        <div className="text-sm font-bold text-[#101D42]">{res.label}</div>
-                                                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">{res.key}</div>
+                                                    <div className="min-w-[200px] flex items-center gap-2">
+                                                        <div>
+                                                            <div className="text-sm font-bold text-brand-blue">{res.label}</div>
+                                                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">{res.key}</div>
+                                                        </div>
+                                                        {isCurrentSaving && <Loader2 size={12} className="animate-spin text-blue-500" />}
                                                     </div>
 
                                                     <div className="flex flex-wrap items-center gap-2">
@@ -278,13 +320,14 @@ export default function PermissionPage() {
                                                             return (
                                                                 <button
                                                                     key={action.id}
-                                                                    onClick={() => !isSuper && togglePermission(activeRole, res.key, action.id)}
+                                                                    disabled={isSuper || !!saving}
+                                                                    onClick={() => togglePermission(activeRole, res.key, action.id)}
                                                                     className={cn(
                                                                         "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all duration-200",
                                                                         isEnabled
                                                                             ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm"
                                                                             : "bg-white border-slate-100 text-slate-400 hover:border-slate-200",
-                                                                        isSuper && "cursor-default"
+                                                                        (isSuper || !!saving) && "opacity-60 cursor-not-allowed"
                                                                     )}
                                                                 >
                                                                     {isEnabled ? <Check size={12} strokeWidth={3} /> : null}
@@ -299,8 +342,9 @@ export default function PermissionPage() {
 
                                                         {!isSuper && (
                                                             <button
+                                                                disabled={!!saving}
                                                                 onClick={() => toggleAllResource(activeRole, res.key, !allSelected)}
-                                                                className="text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase tracking-wider px-2"
+                                                                className="text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase tracking-wider px-2 disabled:opacity-50"
                                                             >
                                                                 {allSelected ? "None" : "All"}
                                                             </button>
