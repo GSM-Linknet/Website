@@ -5,6 +5,9 @@ import type { BaseQuery, PaginatedResponse } from "./master.service";
 export interface Invoice {
   id: string;
   customerId: string;
+  customer?: any;
+  type: 'REGISTRATION' | 'MONTHLY';
+  period?: string;
   invoiceNumber: string;
   amount: number;
   dueDate: string;
@@ -42,6 +45,18 @@ export const FinanceService = {
   },
   deleteInvoice: async (id: string) => {
     return apiClient.delete(`${ENDPOINTS.INVOICE}/delete/${id}`);
+  },
+
+  createRegistrationBill: async (customerId: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/create/registration`, { customerId });
+  },
+
+  createMonthlyBill: async (customerId: string, period: Date) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/create/monthly`, { customerId, period });
+  },
+
+  generateBulk: async (period: Date, unitId?: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/generate-bulk`, { period, unitId });
   },
 
   // Payments

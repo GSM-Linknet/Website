@@ -41,7 +41,8 @@ const MODULE_GROUPS: {
                 { key: "master.unit", label: "Unit" },
                 { key: "master.paket", label: "Paket & Harga" },
                 { key: "master.diskon", label: "Diskon" },
-                { key: "master.schedule", label: "Schedule Pasang" }
+                { key: "master.schedule", label: "Schedule Pasang" },
+                { key: "master.users", label: "User Management" }
             ]
         },
         {
@@ -91,7 +92,8 @@ const MODULE_GROUPS: {
             resources: [
                 { key: "keuangan.history", label: "History Pembayaran" },
                 { key: "keuangan.aging", label: "Aging Reports" },
-                { key: "keuangan.saldo", label: "Saldo & Payout" }
+                { key: "keuangan.saldo", label: "Saldo & Payout" },
+                { key: "keuangan.invoice", label: "Tagihan Pelanggan" }
             ]
         },
         {

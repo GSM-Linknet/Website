@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { AuthService } from "@/services/auth.service";
+import { ImpersonateBanner } from "./ImpersonateBanner";
 
 /**
  * LayoutContent manages the dynamic arrangement of Sidebar, Navbar, and Page Content.
@@ -45,6 +46,7 @@ const LayoutContent = ({ children }: { children: React.ReactNode }) => {
 
             {/* Main Application Area */}
             <div className="flex-1 flex flex-col min-w-0 h-full relative overflow-hidden transition-all duration-300">
+                <ImpersonateBanner />
                 <Navbar />
 
                 <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 custom-scrollbar scroll-smooth">

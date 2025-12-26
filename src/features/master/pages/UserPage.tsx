@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { Plus, Users, Edit2, Trash2, ShieldCheck } from "lucide-react";
+import { Plus, Users, Edit2, Trash2, ShieldCheck, LogIn, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
+import { ImpersonateConfirmDialog } from "../components/ImpersonateConfirmDialog";
 import { UserModal } from "../components/UserModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { useUser } from "../hooks/useUser";
@@ -16,11 +17,14 @@ export default function UserPage() {
     const { toast } = useToast();
     const userProfile = AuthService.getUser();
     const userRole = userProfile?.role || "USER";
-    const resource = "master.wilayah";
+    const resource = "master.wilayah"; // Keep as is for now for page access
+    const impersonateResource = "master.users";
 
     const canCreate = AuthService.hasPermission(userRole, resource, "create");
     const canEdit = AuthService.hasPermission(userRole, resource, "edit");
     const canDelete = AuthService.hasPermission(userRole, resource, "delete");
+    // Special permission for impersonating users
+    const canImpersonate = AuthService.hasPermission(userRole, impersonateResource, "impersonate");
 
     const {
         data,
@@ -40,8 +44,11 @@ export default function UserPage() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isImpersonateModalOpen, setIsImpersonateModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [userToImpersonate, setUserToImpersonate] = useState<User | null>(null);
+    const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
 
     // Handlers
     const handleAdd = () => {
@@ -57,6 +64,34 @@ export default function UserPage() {
     const handleDelete = (row: User) => {
         setUserToDelete(row);
         setIsDeleteModalOpen(true);
+    };
+
+    const handleImpersonateClick = (row: User) => {
+        setUserToImpersonate(row);
+        setIsImpersonateModalOpen(true);
+    };
+
+    const handleConfirmImpersonate = async () => {
+        if (!userToImpersonate) return;
+
+        setImpersonatingId(userToImpersonate.id);
+        try {
+            await AuthService.impersonate(userToImpersonate.id);
+            toast({
+                title: "Login Berhasil",
+                description: `Sedang mengalihkan ke sesi ${userToImpersonate.name}...`,
+            });
+            // Reload page to apply new session
+            window.location.href = "/dashboard";
+        } catch (error) {
+            toast({
+                title: "Gagal Impersonate",
+                description: error instanceof Error ? error.message : "Terjadi kesalahan",
+                variant: "destructive",
+            });
+            setImpersonatingId(null);
+            setIsImpersonateModalOpen(false);
+        }
     };
 
     const handleConfirmDelete = async () => {
@@ -158,10 +193,26 @@ export default function UserPage() {
             accessorKey: "actions",
             className: "w-[120px] text-center",
             cell: (row: User) => {
-                if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
+                if (!canEdit && !canDelete && !canImpersonate) return <span className="text-slate-400">-</span>;
 
                 return (
                     <div className="flex items-center justify-center gap-2">
+                        {canImpersonate && row.id !== userProfile?.id && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full text-indigo-600 hover:bg-indigo-50"
+                                onClick={() => handleImpersonateClick(row)}
+                                disabled={!!impersonatingId}
+                                title="Login sebagai user ini"
+                            >
+                                {impersonatingId === row.id ? (
+                                    <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                    <LogIn size={14} />
+                                )}
+                            </Button>
+                        )}
                         {canEdit && (
                             <Button
                                 variant="ghost"
@@ -187,7 +238,7 @@ export default function UserPage() {
                 );
             },
         },
-    ], [deleting, canEdit, canDelete]);
+    ], [deleting, canEdit, canDelete, canImpersonate, impersonatingId, userProfile]);
 
     return (
         <div className="space-y-6">
@@ -244,6 +295,16 @@ export default function UserPage() {
                 initialData={selectedUser}
             />
 
+            {/* Impersonate Confirmation Modal */}
+            <ImpersonateConfirmDialog
+                isOpen={isImpersonateModalOpen}
+                onClose={() => setIsImpersonateModalOpen(false)}
+                onConfirm={handleConfirmImpersonate}
+                user={userToImpersonate}
+                loading={!!impersonatingId}
+            />
+
+            {/* Delete Confirmation Modal */}
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}

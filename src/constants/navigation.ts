@@ -16,7 +16,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
   {
     title: "Dashboard",
     icon: LayoutDashboard,
-    href: "/",
+    href: "/dashboard",
     resource: "dashboard",
   },
   {
@@ -79,6 +79,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: TrendingUp,
     resource: "keuangan",
     items: [
+      { title: "Tagihan", href: "/keuangan/invoice", resource: "keuangan.invoice" },
       { title: "History Pembayaran", href: "/keuangan/history", resource: "keuangan.history" },
       { title: "Aging Reports", href: "/keuangan/aging", resource: "keuangan.aging" },
       { title: "Saldo & Payout", href: "/keuangan/saldo", resource: "keuangan.saldo" },

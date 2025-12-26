@@ -29,6 +29,7 @@ export interface Customer {
   idPackages: string;
   statusCust: boolean;
   statusNet: boolean;
+  siteId?: string;
   
   createdAt?: string;
   updatedAt?: string;
@@ -47,13 +48,26 @@ export const CustomerService = {
   getCustomer: async (id: string) => {
     return apiClient.get<Customer>(`${ENDPOINT}/find-one/${id}`);
   },
-  createCustomer: async (data: Partial<Customer>) => {
-    return apiClient.post<Customer>(`${ENDPOINT}/create`, data);
+  createCustomer: async (data: Partial<Customer> | FormData) => {
+    const isFormData = data instanceof FormData;
+    return apiClient.post<Customer>(
+      `${ENDPOINT}/create`, 
+      data,
+      isFormData ? {
+        headers: { "Content-Type": "multipart/form-data" }
+      } : undefined
+    );
   },
   updateCustomer: async (id: string, data: Partial<Customer>) => {
     return apiClient.patch<Customer>(`${ENDPOINT}/update/${id}`, data);
   },
   deleteCustomer: async (id: string) => {
     return apiClient.delete(`${ENDPOINT}/delete/${id}`);
+  },
+  verifyCustomer: async (id: string, siteId?: string) => {
+    return apiClient.post<Customer>(`${ENDPOINT}/verify/${id}`, { siteId });
+  },
+  rejectCustomer: async (id: string, reason?: string) => {
+    return apiClient.post(`${ENDPOINT}/reject/${id}`, { reason });
   }
 };

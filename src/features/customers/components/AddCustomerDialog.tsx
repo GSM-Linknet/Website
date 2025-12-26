@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Plus, User, Mail, Phone, CreditCard, MapPin, Hash, Package, Upload, Save, ArrowRight, ArrowLeft, Loader2, X, Image as ImageIcon } from "lucide-react";
+import { Plus, User, Mail, Phone, CreditCard, MapPin, Hash, Package, Upload, Save, ArrowRight, ArrowLeft, Loader2, X, Image as ImageIcon, AlertCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LocationPicker } from "@/components/shared/LocationPicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePackage } from "@/features/master/hooks/usePackage";
+import { useToast } from "@/hooks/useToast";
 import { AuthService } from "@/services/auth.service";
+import { ApiError } from "@/services/api-client";
 import type { Customer } from "@/services/customer.service";
 
 interface AddCustomerDialogProps {
     initialStatus?: "Menunggu" | "Diproses" | "Selesai" | "Batal";
-    onCreate?: (data: Partial<Customer>) => Promise<void>;
+    onCreate?: (data: Partial<Customer> | FormData) => Promise<void>;
     isCreating?: boolean;
 }
 
@@ -24,8 +26,10 @@ interface FilePreview {
 }
 
 export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCreating = false }: AddCustomerDialogProps) {
+    const { toast } = useToast();
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("personal");
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const { data: packages } = usePackage({ paginate: false });
 
     const [formData, setFormData] = useState({
@@ -91,39 +95,66 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
     };
 
     const handleSubmit = async () => {
+        setValidationErrors([]);
+
         // Get current user ID for idUpline
         const currentUser = AuthService.getUser();
 
         // Map form data to Customer interface
-        const customerData: Partial<Customer> = {
-            name: formData.fullName,
-            email: formData.email,
-            phone: formData.whatsapp,
-            ktpNumber: formData.ktp, // Keep as string
-            ktpFile: ktpFile.file?.name || "placeholder.jpg",
-            address: formData.address,
-            posNumber: formData.postalCode, // Keep as string
-            ODPCode: formData.odpCode,
-            latUser: formData.customerLocation?.lat ?? 0,
-            longUser: formData.customerLocation?.lng ?? 0,
-            latODP: formData.odpLocation?.lat ?? 0,
-            longODP: formData.odpLocation?.lng ?? 0,
-            frontHome: frontHome.file?.name || "placeholder.jpg",
-            sideHome: sideHome.file?.name || "placeholder.jpg",
-            ODPImage: odpImage.file?.name || "placeholder.jpg",
-            CaImage: caImage.file?.name || undefined,
-            idPackages: formData.internetPackage || undefined,
-            idUpline: currentUser?.id || "", // Auto-fill from logged-in user
-            statusCust: false,
-            statusNet: false,
-        };
+        // Create FormData for file upload
+        const formDataPayload = new FormData();
 
-        if (onCreate) {
-            await onCreate(customerData);
+        // Append text fields
+        formDataPayload.append('name', formData.fullName);
+        formDataPayload.append('email', formData.email);
+        formDataPayload.append('phone', formData.whatsapp);
+        formDataPayload.append('ktpNumber', formData.ktp);
+        formDataPayload.append('address', formData.address);
+        formDataPayload.append('posNumber', formData.postalCode);
+        formDataPayload.append('ODPCode', formData.odpCode);
+        formDataPayload.append('latUser', String(formData.customerLocation?.lat ?? 0));
+        formDataPayload.append('longUser', String(formData.customerLocation?.lng ?? 0));
+        formDataPayload.append('latODP', String(formData.odpLocation?.lat ?? 0));
+        formDataPayload.append('longODP', String(formData.odpLocation?.lng ?? 0));
+        if (formData.internetPackage) formDataPayload.append('idPackages', formData.internetPackage);
+        if (currentUser?.id) formDataPayload.append('idUpline', currentUser.id);
+        formDataPayload.append('statusCust', 'false');
+        formDataPayload.append('statusNet', 'false');
+
+        // Append files if they exist
+        if (ktpFile.file) formDataPayload.append('ktpFile', ktpFile.file);
+        if (frontHome.file) formDataPayload.append('frontHome', frontHome.file);
+        if (sideHome.file) formDataPayload.append('sideHome', sideHome.file);
+        if (odpImage.file) formDataPayload.append('ODPImage', odpImage.file);
+        if (caImage.file) formDataPayload.append('CaImage', caImage.file);
+
+        try {
+            if (onCreate) {
+                await onCreate(formDataPayload);
+            }
+            // Success is handled by parent - reset form and close
+            resetForm();
+            setOpen(false);
+        } catch (error) {
+            if (error instanceof ApiError && error.data?.data) {
+                // Extract validation errors from API response
+                const errors = Array.isArray(error.data.data)
+                    ? error.data.data
+                    : [error.data.message || 'Terjadi kesalahan'];
+                setValidationErrors(errors);
+                toast({
+                    title: "Validasi Gagal",
+                    description: errors[0] || "Form tidak valid",
+                    variant: "destructive",
+                });
+            } else {
+                toast({
+                    title: "Error",
+                    description: error instanceof Error ? error.message : "Terjadi kesalahan",
+                    variant: "destructive",
+                });
+            }
         }
-
-        resetForm();
-        setOpen(false);
     };
 
     // File Upload Component
@@ -210,7 +241,7 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-[#101D42] hover:bg-[#1e3a8a] gap-2 shadow-lg shadow-blue-900/20 rounded-xl px-5 h-11 transition-all hover:scale-[1.02]">
+                <Button className="bg-[#101D42] hover:bg-[#1e3a8a] gap-2 shadow-lg shadow-blue-900/20 rounded-xl px-5 h-11 transition-all hover:scale-[1.02] text-white">
                     <Plus size={18} />
                     <span className="font-semibold">Tambah Pelanggan</span>
                 </Button>
@@ -241,6 +272,23 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-6 py-6 bg-slate-50/30">
+                        {/* Validation Errors Alert */}
+                        {validationErrors.length > 0 && (
+                            <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-semibold text-red-700">Form tidak valid</p>
+                                        <ul className="text-xs text-red-600 space-y-1 list-disc list-inside">
+                                            {validationErrors.map((error, index) => (
+                                                <li key={index}>{error}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <TabsContent value="personal" className="mt-0 space-y-6 animate-in hover:none fade-in slide-in-from-left-4 duration-300 outline-none">
                             <div className="space-y-4">
                                 <div className="space-y-2">

@@ -13,6 +13,7 @@ export type PermissionResource =
     | "master.paket" 
     | "master.diskon" 
     | "master.schedule"
+    | "master.users"
     // Pelanggan
     | "pelanggan.pendaftaran" 
     | "pelanggan.kelola" 
@@ -33,12 +34,13 @@ export type PermissionResource =
     | "keuangan.history" 
     | "keuangan.aging" 
     | "keuangan.saldo"
+    | "keuangan.invoice"
     // Settings
     | "settings.permissions"
     // Other
     | "customer";
 
-export type AppAction = "view" | "create" | "edit" | "delete" | "verify" | "export";
+export type AppAction = "view" | "create" | "edit" | "delete" | "verify" | "export" | "impersonate";
 
 export interface User {
   id: string;
@@ -97,7 +99,9 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.history": ["view", "export"],
       "keuangan.aging": ["view", "export"],
       "keuangan.saldo": ["view", "export"],
+      "keuangan.invoice": ["view", "create", "edit", "delete", "export"],
       "settings.permissions": ["view", "create", "edit", "delete"],
+      "master.users": ["impersonate"],
   },
   "ADMIN_PUSAT": {
       "dashboard": ["view"],
@@ -273,7 +277,7 @@ export const AuthService = {
     Cookies.remove("refresh_token");
     localStorage.removeItem("user_profile");
     localStorage.removeItem("app_permissions");
-    window.location.href = "/login";
+    window.location.href = "/";
   },
 
   /**
@@ -328,5 +332,88 @@ export const AuthService = {
           }
       }
       return null;
+  },
+
+  /**
+   * Impersonate another user (switch session without password)
+   */
+  async impersonate(targetUserId: string): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post<{ data: LoginResponse }>(`/auth/impersonate/${targetUserId}`);
+      const { user, accessToken, refreshToken } = (response as { data: LoginResponse }).data;
+      
+      // Backup current session if not already impersonating
+      if (!Cookies.get("original_auth_token")) {
+        const currentToken = Cookies.get("auth_token");
+        const currentRefreshToken = Cookies.get("refresh_token");
+        const currentUserProfile = localStorage.getItem("user_profile");
+        const currentPermissions = localStorage.getItem("app_permissions");
+        
+        if (currentToken) Cookies.set("original_auth_token", currentToken, { expires: 1 });
+        if (currentRefreshToken) Cookies.set("original_refresh_token", currentRefreshToken, { expires: 7 });
+        if (currentUserProfile) localStorage.setItem("original_user_profile", currentUserProfile);
+        if (currentPermissions) localStorage.setItem("original_app_permissions", currentPermissions);
+      }
+
+      // Clear current session
+      Cookies.remove("auth_token");
+      Cookies.remove("refresh_token");
+      localStorage.removeItem("user_profile");
+      localStorage.removeItem("app_permissions");
+      
+      // Set new session
+      Cookies.set("auth_token", accessToken, { expires: 1 });
+      Cookies.set("refresh_token", refreshToken, { expires: 7 });
+      
+      const roleValue = user.role as unknown;
+      const roleName = typeof roleValue === 'string' ? roleValue : (roleValue as { name?: string })?.name;
+      const userProfile = { ...user, role: roleName as UserRole };
+      localStorage.setItem("user_profile", JSON.stringify(userProfile));
+      
+      // Fetch permissions for new user
+      await this.initPermissions();
+      
+      return {
+        user: userProfile,
+        token: accessToken,
+        accessToken,
+        refreshToken,
+      };
+    } catch (error) {
+      console.error("Impersonate failed", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Stop impersonation and restore original session
+   */
+  async stopImpersonation(): Promise<boolean> {
+    const originalToken = Cookies.get("original_auth_token");
+    const originalRefreshToken = Cookies.get("original_refresh_token");
+    const originalProfile = localStorage.getItem("original_user_profile");
+    const originalPermissions = localStorage.getItem("original_app_permissions");
+
+    if (!originalToken) return false;
+
+    // Remove current impersonation session
+    Cookies.remove("auth_token");
+    Cookies.remove("refresh_token");
+    localStorage.removeItem("user_profile");
+    localStorage.removeItem("app_permissions");
+
+    // Restore original session
+    Cookies.set("auth_token", originalToken, { expires: 1 });
+    if (originalRefreshToken) Cookies.set("refresh_token", originalRefreshToken, { expires: 7 });
+    if (originalProfile) localStorage.setItem("user_profile", originalProfile);
+    if (originalPermissions) localStorage.setItem("app_permissions", originalPermissions);
+
+    // Clear backup
+    Cookies.remove("original_auth_token");
+    Cookies.remove("original_refresh_token");
+    localStorage.removeItem("original_user_profile");
+    localStorage.removeItem("original_app_permissions");
+
+    return true;
   }
 };

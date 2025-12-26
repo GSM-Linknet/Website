@@ -34,6 +34,7 @@ const UnitActivityPage = lazy(
   () => import("@/features/reporting/pages/UnitActivityPage"),
 );
 const SaldoPage = lazy(() => import("@/features/finance/pages/SaldoPage"));
+const InvoicePage = lazy(() => import("@/features/finance/pages/InvoicePage"));
 const PaymentHistoryPage = lazy(
   () => import("@/features/finance/pages/PaymentHistoryPage"),
 );
@@ -88,7 +89,7 @@ const PageLoader = () => (
 export const routes: RouteObject[] = [
   // 1. Auth Routes (No Sidebar/Navbar)
   {
-    path: "/login",
+    index: true,
     element: (
       <Suspense
         fallback={
@@ -104,7 +105,6 @@ export const routes: RouteObject[] = [
 
   // 2. Protected Routes (With Main Layout)
   {
-    path: "/",
     element: (
       <Layout>
         <Outlet />
@@ -112,7 +112,7 @@ export const routes: RouteObject[] = [
     ),
     children: [
       {
-        index: true,
+        path: "/dashboard",
         element: (
           <Suspense fallback={<PageLoader />}>
             <DashboardPage />
@@ -311,6 +311,14 @@ export const routes: RouteObject[] = [
       {
         path: "keuangan",
         children: [
+          {
+            path: "invoice",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <InvoicePage />
+              </Suspense>
+            ),
+          },
           {
             path: "saldo",
             element: (

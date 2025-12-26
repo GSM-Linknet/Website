@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Search, ChevronDown, Edit2, Trash2, Eye, CheckCircle, MoreHorizontal } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,8 +14,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { AddCustomerDialog } from "../components/AddCustomerDialog";
 import { CustomerModal } from "../components/CustomerModal";
+import { CustomerDetailModal } from "../components/CustomerDetailModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { AuthService } from "@/services/auth.service";
+import { CustomerService } from "@/services/customer.service";
 import { useCustomers } from "../hooks/useCustomers";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
@@ -38,24 +41,25 @@ export default function CustomerRegistrationPage() {
   const {
     data: customers,
     loading,
-    totalItems,
     page,
     totalPages,
     setPage,
     setQuery,
-    create,
     creating,
     update,
     updating,
     remove,
     deleting,
-    refetch
+    refetch: refresh
   } = useCustomers();
 
   // Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerToView, setCustomerToView] = useState<Customer | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const handleSearch = (val: string) => {
     setSearchQuery(val);
@@ -67,16 +71,16 @@ export default function CustomerRegistrationPage() {
   const isSubUnit = currentUser?.role === "SALES";
   const defaultRegStatus = isSubUnit ? "Menunggu" : "Diproses";
 
-  // Handle create customer from dialog
-  const handleCreateCustomer = async (customerData: Partial<Customer>) => {
-    const result = await create(customerData);
-    if (result) {
-      toast({
-        title: "Berhasil",
-        description: "Pelanggan baru berhasil didaftarkan",
-      });
-      refetch();
-    }
+  // Handle create customer from dialog - throws on error for dialog to catch
+  const handleCreateCustomer = async (customerData: Partial<Customer> | FormData) => {
+    // Call service directly to allow error propagation to the dialog
+    await CustomerService.createCustomer(customerData);
+    // Only reaches here on success
+    toast({
+      title: "Berhasil",
+      description: "Pelanggan baru berhasil didaftarkan",
+    });
+    refresh();
   };
 
   // Handle edit
@@ -120,13 +124,46 @@ export default function CustomerRegistrationPage() {
   };
 
   // Handle verify
-  const handleVerify = async (customer: Customer) => {
-    const result = await update(customer.id, { statusCust: true });
-    if (result) {
+  const handleViewDetail = (row: Customer) => {
+    setCustomerToView(row);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleVerifyAction = async (id: string, isVerify: boolean, siteId?: string) => {
+    await handleVerify(id, isVerify, siteId);
+    setIsDetailModalOpen(false);
+  };
+
+  const handleVerify = async (idOrCustomer: string | Customer, isVerify: boolean = true, siteId?: string) => {
+    const id = typeof idOrCustomer === 'string' ? idOrCustomer : idOrCustomer.id;
+
+    if (!confirm(`Apakah anda yakin ingin ${isVerify ? 'memverifikasi' : 'menolak'} pelanggan ini ? `)) return;
+
+    setVerifyingId(id);
+    try {
+      if (isVerify) {
+        await CustomerService.verifyCustomer(id, siteId);
+        toast({
+          title: "Verifikasi Berhasil",
+          description: "Pelanggan telah diverifikasi.",
+        });
+      } else {
+        await CustomerService.rejectCustomer(id);
+        toast({
+          title: "Pelanggan Ditolak",
+          description: "Status pelanggan ditolak.",
+          variant: "destructive",
+        });
+      }
+      refresh();
+    } catch (error) {
       toast({
-        title: "Berhasil",
-        description: "Pelanggan berhasil diverifikasi",
+        title: "Gagal Memproses",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
       });
+    } finally {
+      setVerifyingId(null);
     }
   };
 
@@ -143,12 +180,12 @@ export default function CustomerRegistrationPage() {
             <AvatarFallback className="bg-blue-100 text-blue-600 font-bold text-xs">
               {row.name.substring(0, 2).toUpperCase()}
             </AvatarFallback>
-          </Avatar>
+          </Avatar >
           <div className="flex flex-col">
             <span className="font-bold text-slate-800 text-[13px]">{row.name}</span>
             <span className="text-[11px] text-slate-400 font-medium">{row.phone}</span>
           </div>
-        </div>
+        </div >
       ),
     },
     {
@@ -173,7 +210,7 @@ export default function CustomerRegistrationPage() {
           "rounded-md text-[11px] font-bold px-3 py-1 border-none",
           row.statusCust ? "bg-sky-100 text-sky-600" : "bg-amber-100 text-amber-600"
         )}>
-          {row.statusCust ? "Diproses" : "Menunggu"}
+          {row.statusCust ? "Terverifikasi" : "Pending"}
         </Badge>
       ),
     },
@@ -201,14 +238,30 @@ export default function CustomerRegistrationPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl border-slate-100 bg-white shadow-xl">
+              <DropdownMenuItem
+                className="cursor-pointer rounded-lg text-xs font-semibold"
+                onClick={() => handleViewDetail(row)}
+              >
+                <Eye size={14} className="mr-2" />
+                Lihat Detail
+              </DropdownMenuItem>
               {canVerify && isPending && (
-                <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
-                  onClick={() => handleVerify(row)}
-                >
-                  <CheckCircle size={14} className="mr-2" />
-                  Verifikasi
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
+                    onClick={() => handleVerifyAction(row.id, true)}
+                  >
+                    <CheckCircle size={14} className="mr-2" />
+                    Verifikasi
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600 focus:text-rose-700 bg-rose-50/50 mb-1"
+                    onClick={() => handleVerifyAction(row.id, false)}
+                  >
+                    <XCircle size={14} className="mr-2" />
+                    Tolak
+                  </DropdownMenuItem>
+                </>
               )}
               {canEdit && (
                 <DropdownMenuItem
@@ -288,7 +341,6 @@ export default function CustomerRegistrationPage() {
           loading={loading}
           page={page}
           totalPages={totalPages}
-          totalItems={totalItems}
           onPageChange={setPage}
         />
       </div>
@@ -303,6 +355,16 @@ export default function CustomerRegistrationPage() {
         onSubmit={handleEditSubmit}
         isLoading={updating}
         initialData={selectedCustomer}
+      />
+
+      {/* Customer Detail Modal */}
+      <CustomerDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        customer={customerToView}
+        onVerify={handleVerifyAction}
+        canVerify={canVerify}
+        verifying={!!verifyingId}
       />
 
       {/* Delete Confirmation */}
