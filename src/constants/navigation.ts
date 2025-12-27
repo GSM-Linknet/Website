@@ -91,6 +91,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     resource: "settings",
     items: [
       { title: "Hak Akses", href: "/settings/permissions", resource: "settings.permissions" },
+      { title: "WhatsApp Gateway", href: "/settings/whatsapp", resource: "settings.whatsapp" },
     ],
   },
   {

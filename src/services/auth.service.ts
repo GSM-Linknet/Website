@@ -37,6 +37,7 @@ export type PermissionResource =
     | "keuangan.invoice"
     // Settings
     | "settings.permissions"
+    | "settings.whatsapp"
     // Other
     | "customer";
 
@@ -101,6 +102,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.saldo": ["view", "export"],
       "keuangan.invoice": ["view", "create", "edit", "delete", "export"],
       "settings.permissions": ["view", "create", "edit", "delete"],
+      "settings.whatsapp": ["view", "edit"],
       "master.users": ["impersonate"],
   },
   "ADMIN_PUSAT": {

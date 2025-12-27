@@ -62,6 +62,9 @@ const WorkOrderPage = lazy(
 const PermissionPage = lazy(
   () => import("@/features/settings/pages/PermissionPage"),
 );
+const WhatsAppSettingsPage = lazy(
+  () => import("@/features/settings/pages/WhatsAppSettingsPage"),
+);
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
@@ -357,6 +360,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <PermissionPage />
+              </Suspense>
+            )
+          },
+          {
+            path: "whatsapp",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <WhatsAppSettingsPage />
               </Suspense>
             )
           }
