@@ -61,9 +61,36 @@ export default function CustomerRegistrationPage() {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
+  // Initial state for filters
+  const [filters, setFilters] = useState({
+    status: "all",
+    internet: "all",
+    wilayah: "all",
+  });
+
+
+  const handleFilterChange = (key: string, value: string) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+
+    // Build the query
+    const searchParts: string[] = [];
+    if (searchQuery) searchParts.push(`name:${searchQuery}`);
+    if (newFilters.status !== "all") searchParts.push(`statusCust:${newFilters.status === "verified"}`);
+    if (newFilters.internet !== "all") searchParts.push(`statusNet:${newFilters.internet === "online"}`);
+
+    setQuery({ search: searchParts.join("+") });
+  };
+
   const handleSearch = (val: string) => {
     setSearchQuery(val);
-    setQuery({ search: val });
+    const searchParts: string[] = [];
+    if (val) searchParts.push(`name:${val}`);
+    if (filters.status !== "all") searchParts.push(`statusCust:${filters.status === "verified"}`);
+    if (filters.internet !== "all") searchParts.push(`statusNet:${filters.internet === "online"}`);
+    if (filters.wilayah !== "all") searchParts.push(`idWilayah:${filters.wilayah}`);
+
+    setQuery({ search: searchParts.join("+") });
   };
 
   // Get current user for role-based status
@@ -326,9 +353,27 @@ export default function CustomerRegistrationPage() {
 
       {/* Filters Section */}
       <div className="flex flex-wrap items-center gap-3">
-        <FilterDropdown label="Semua Status" />
-        <FilterDropdown label="Semua Pembayaran" />
-        <FilterDropdown label="Semua Internet" />
+        <FilterDropdown
+          label="Semua Status"
+          activeValue={filters.status}
+          options={[
+            { label: "Semua Status", value: "all" },
+            { label: "Terverifikasi", value: "verified" },
+            { label: "Pending", value: "pending" },
+          ]}
+          onSelect={(val) => handleFilterChange("status", val)}
+        />
+        <FilterDropdown
+          label="Semua Internet"
+          activeValue={filters.internet}
+          options={[
+            { label: "Semua Internet", value: "all" },
+            { label: "Online", value: "online" },
+            { label: "Offline", value: "offline" },
+          ]}
+          onSelect={(val) => handleFilterChange("internet", val)}
+        />
+      
       </div>
 
       {/* Table Content */}
@@ -345,7 +390,7 @@ export default function CustomerRegistrationPage() {
         />
       </div>
 
-      {/* Edit Modal */}
+      {/* Modals ... */}
       <CustomerModal
         isOpen={isEditModalOpen}
         onClose={() => {
@@ -357,7 +402,6 @@ export default function CustomerRegistrationPage() {
         initialData={selectedCustomer}
       />
 
-      {/* Customer Detail Modal */}
       <CustomerDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
@@ -367,7 +411,6 @@ export default function CustomerRegistrationPage() {
         verifying={!!verifyingId}
       />
 
-      {/* Delete Confirmation */}
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => {
@@ -384,27 +427,49 @@ export default function CustomerRegistrationPage() {
 
 // ==================== Helper Components ====================
 
-const FilterDropdown = ({ label }: { label: string }) => (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <Button
-        variant="outline"
-        className="h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between min-w-[200px] border shadow-sm"
-      >
-        <span>{label}</span>
-        <ChevronDown size={14} className="text-slate-400" />
-      </Button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent className="w-[200px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
-      <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">
-        Opsi 1
-      </DropdownMenuItem>
-      <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">
-        Opsi 2
-      </DropdownMenuItem>
-      <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">
-        Opsi 3
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
-);
+interface FilterOption {
+  label: string;
+  value: string;
+}
+
+interface FilterDropdownProps {
+  label: string;
+  options: FilterOption[];
+  activeValue: string;
+  onSelect: (value: string) => void;
+}
+
+const FilterDropdown = ({ label, options, activeValue, onSelect }: FilterDropdownProps) => {
+  const activeLabel = options.find(opt => opt.value === activeValue)?.label || label;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between min-w-[180px] border shadow-sm",
+            activeValue !== "all" && "border-blue-500 text-blue-600 bg-blue-50/50"
+          )}
+        >
+          <span>{activeLabel}</span>
+          <ChevronDown size={14} className={cn("text-slate-400", activeValue !== "all" && "text-blue-500")} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-[180px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+        {options.map((option) => (
+          <DropdownMenuItem
+            key={option.value}
+            className={cn(
+              "rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700",
+              activeValue === option.value && "bg-blue-50 text-blue-600"
+            )}
+            onClick={() => onSelect(option.value)}
+          >
+            {option.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};

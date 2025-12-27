@@ -30,6 +30,8 @@ export interface Customer {
   statusCust: boolean;
   statusNet: boolean;
   siteId?: string;
+  isFreeAccount: boolean;
+  billingDate: number;
   
   createdAt?: string;
   updatedAt?: string;

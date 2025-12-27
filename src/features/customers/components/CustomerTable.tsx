@@ -20,6 +20,9 @@ interface CustomerTableProps {
     totalPages?: number;
     totalItems?: number;
     onPageChange?: (page: number) => void;
+    onDetail?: (customer: Customer) => void;
+    onEdit?: (customer: Customer) => void;
+    onDelete?: (id: string) => void;
 }
 
 export const CustomerTable = ({
@@ -28,7 +31,10 @@ export const CustomerTable = ({
     page,
     totalPages,
     totalItems,
-    onPageChange
+    onPageChange,
+    onDetail,
+    onEdit,
+    onDelete
 }: CustomerTableProps) => {
     const columns = [
         {
@@ -49,7 +55,14 @@ export const CustomerTable = ({
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                        <span className="font-bold text-slate-800 text-[13px]">{row.name}</span>
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-800 text-[13px]">{row.name}</span>
+                            {row.isFreeAccount && (
+                                <Badge className="bg-blue-100 text-blue-600 border-none text-[9px] px-1.5 h-4 font-bold rounded-full">
+                                    FREE
+                                </Badge>
+                            )}
+                        </div>
                         <span className="text-[11px] text-slate-400 font-medium">{row.phone}</span>
                     </div>
                 </div>
@@ -76,11 +89,6 @@ export const CustomerTable = ({
                 </Badge>
             ),
         },
-        // {
-        //     header: "ID PELANGGAN",
-        //     accessorKey: "id",
-        //     className: "text-slate-600 font-bold text-[12px] max-w-[80px] truncate",
-        // },
         {
             header: "ODP",
             accessorKey: "ODPCode",
@@ -119,7 +127,7 @@ export const CustomerTable = ({
             header: "AKSI",
             accessorKey: "actions",
             className: "w-10 text-center",
-            cell: () => (
+            cell: (row: Customer) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100 text-slate-400">
@@ -127,9 +135,24 @@ export const CustomerTable = ({
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="rounded-xl border-slate-100 bg-white shadow-xl">
-                        <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold">Detail</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold">Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600">Hapus</DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="cursor-pointer rounded-lg text-xs font-semibold"
+                            onClick={() => onDetail?.(row)}
+                        >
+                            Detail
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="cursor-pointer rounded-lg text-xs font-semibold"
+                            onClick={() => onEdit?.(row)}
+                        >
+                            Kelola
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
+                            onClick={() => onDelete?.(row.id)}
+                        >
+                            Hapus
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),

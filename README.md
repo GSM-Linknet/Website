@@ -113,6 +113,17 @@ Within the Customer Portal, users can track their progress through a real-time s
 5. **Done Pemasangan** ✓ (Status: Active)
 6. **Info Pembayaran & Tagihan** (Status: Billing)
 
+### 🛠️ Subscription Management Features
+
+Administrators can manage active customers with the following features:
+
+- **Internet Suspension**: Toggle internet connection status (`statusNet`).
+- **Account Activation**: Activate or deactivate customer accounts (`statusCust`).
+- **Free Account Designation**: Mark customers as free accounts to exempt them from monthly billing.
+- **Custom Billing Dates**: Set specific days of the month for invoice generation (Default: 10th).
+- **Package Upgrades**: Change internet packages for active customers.
+- **Data Editing**: Update customer personal and contact information.
+
 ### Layanan Pelanggan (Self-Service List)
 
 - **Access**: Change Wi-Fi Password.

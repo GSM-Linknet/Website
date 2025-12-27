@@ -15,4 +15,12 @@ export default defineConfig({
       '@mui/x-date-pickers/DateTimePicker/index.js': path.resolve(__dirname, 'node_modules/@mui/x-date-pickers/DateTimePicker/DateTimePicker.js'),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8031',
+        changeOrigin: true,
+      }
+    }
+  }
 })

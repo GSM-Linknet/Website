@@ -13,6 +13,7 @@ export interface Invoice {
   dueDate: string;
   paidDate?: string;
   status: string; // pending, paid, overdue, cancelled
+  daysPastDue?: number;
   notes?: string;
   payments?: Payment[];
 }
@@ -20,6 +21,13 @@ export interface Invoice {
 export interface Payment {
   id: string;
   invoiceId: string;
+  invoice?: {
+    id: string;
+    invoiceNumber: string;
+    customerId: string;
+    amount: number;
+    status: string;
+  };
   amount: number;
   method: string;
   reference?: string;
