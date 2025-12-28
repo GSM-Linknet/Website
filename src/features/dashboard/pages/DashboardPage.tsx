@@ -1,16 +1,35 @@
 import { useState, useEffect } from "react";
 import { DashboardService } from "@/services/dashboard.service";
+import { AuthService } from "@/services/auth.service";
 import { StatCard } from "../components/StatCard";
 import { CustomerTable } from "../components/CustomerTable";
+import UnitDashboard from "../components/UnitDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AreaChart } from "@/components/shared/Charts";
 import type { Customer } from "@/types";
 
 /**
  * DashboardPage is the entry point for the Dashboard feature.
- * Optimized for high-density information display and expert-level aesthetics.
+ * Renders role-specific dashboards based on user role.
  */
 export default function DashboardPage() {
+    const user = AuthService.getUser();
+    const userRole = user?.role || "USER";
+
+    // Check if user should see the Unit/SubUnit dashboard
+    const unitRoles = ["ADMIN_UNIT", "ADMIN_SUB_UNIT", "SUPERVISOR"];
+    const showUnitDashboard = unitRoles.includes(userRole);
+
+    if (showUnitDashboard) {
+        return <UnitDashboard userName={user?.name} unitId={user?.unitId} subUnitId={user?.subUnitId} />;
+    }
+
+    // Default dashboard for other roles
+    return <DefaultDashboard />;
+}
+
+// ==================== Default Dashboard Component ====================
+function DefaultDashboard() {
     const [metrics, setMetrics] = useState<any[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +54,8 @@ export default function DashboardPage() {
         fetchData();
     }, []);
 
+    const user = AuthService.getUser();
+
     return (
         <div className="space-y-6 md:space-y-10 animate-in fade-in duration-700">
             {/* Header Section */}
@@ -45,7 +66,7 @@ export default function DashboardPage() {
                         <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em]">Dashboard Overview</p>
                     </div>
                     <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-                        Halo, Muhamad!
+                        Halo, {user?.name || "Admin"}!
                     </h1>
                     <p className="text-sm font-medium text-slate-500 max-w-2xl leading-relaxed">
                         Pantau performa infrastruktur dan manajemen pelanggan Anda secara real-time.

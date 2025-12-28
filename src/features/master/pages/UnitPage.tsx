@@ -99,7 +99,7 @@ export default function UnitPage() {
             cell: (row: Unit) => row.cabang?.name || "-",
             className: "text-slate-500"
         },
-        {
+          {
             header: "KUOTA",
             accessorKey: "quota",
             className: "w-[150px]",
