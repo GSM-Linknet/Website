@@ -32,10 +32,11 @@ export function UnitModal({
         name: "",
         code: "",
         cabangId: "",
+        quota: 0,
     });
 
     const { data: cabangs, loading: loadingCabang } = useCabang({
-        paginate:false
+        paginate: false
     });
     const isEdit = !!initialData;
 
@@ -46,12 +47,14 @@ export function UnitModal({
                     name: initialData.name || "",
                     code: initialData.code || "",
                     cabangId: initialData.cabangId || "",
+                    quota: initialData.quota || 0,
                 });
             } else {
                 setFormData({
                     name: "",
                     code: "",
                     cabangId: "",
+                    quota: 0,
                 });
             }
         }
@@ -154,6 +157,27 @@ export function UnitModal({
                             ))}
                         </SelectContent>
                     </Select>
+                </div>
+                {/* Quota Field */}
+                <div className="space-y-2">
+                    <Label
+                        htmlFor="quota"
+                        className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"
+                    >
+                        <Hash size={14} className="text-blue-500" />
+                        Jatah Kuota Pelanggan
+                    </Label>
+                    <Input
+                        id="quota"
+                        type="number"
+                        placeholder="Masukkan jumlah jatah kuota"
+                        value={formData.quota}
+                        onChange={(e) => setFormData({ ...formData, quota: parseInt(e.target.value) || 0 })}
+                        className="rounded-xl border-slate-200 focus:ring-blue-500/20 focus:border-blue-500 h-11"
+                        required
+                        disabled={isLoading}
+                        min={0}
+                    />
                 </div>
             </div>
         </BaseModal>

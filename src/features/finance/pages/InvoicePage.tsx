@@ -93,6 +93,21 @@ export default function InvoicePage() {
                 );
             },
         },
+        {
+            header: "Link Bayar",
+            cell: (invoice: any) =>
+                invoice.paymentUrl ? (
+                    <Button
+                        variant="link"
+                        className="text-blue-600 p-0 h-auto font-medium"
+                        onClick={() => window.open(invoice.paymentUrl, "_blank")}
+                    >
+                        Buka Link
+                    </Button>
+                ) : (
+                    "-"
+                ),
+        },
     ];
 
     return (

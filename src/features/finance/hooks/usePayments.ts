@@ -13,6 +13,7 @@ export function usePayments(initialQuery?: BaseQuery) {
     { query: initialQuery, autoFetch: true }
   );
 
+  
   const crudResult = useCrud<Payment>(
     {
       create: FinanceService.createPayment,

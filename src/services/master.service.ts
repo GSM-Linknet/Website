@@ -25,6 +25,8 @@ export interface Unit extends BaseEntity {
   code: string;
   cabangId: string;
   cabang?: Cabang;
+  quota: number;
+  quotaUsed: number;
 }
 
 export interface SubUnit extends BaseEntity {
@@ -32,6 +34,8 @@ export interface SubUnit extends BaseEntity {
   code: string;
   unitId: string;
   unit?: Unit;
+  quota: number;
+  quotaUsed: number;
 }
 
 export interface Package extends BaseEntity {

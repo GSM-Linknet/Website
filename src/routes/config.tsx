@@ -41,6 +41,7 @@ const PaymentHistoryPage = lazy(
 const AgingReportsPage = lazy(
   () => import("@/features/finance/pages/AgingReportsPage"),
 );
+const PayoutPage = lazy(() => import("@/features/finance/pages/PayoutPage"));
 const WilayahPage = lazy(() => import("@/features/master/pages/WilayahPage"));
 const CabangPage = lazy(() => import("@/features/master/pages/CabangPage"));
 const UnitPage = lazy(() => import("@/features/master/pages/UnitPage"));
@@ -343,6 +344,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <AgingReportsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "payout",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <PayoutPage />
               </Suspense>
             ),
           },

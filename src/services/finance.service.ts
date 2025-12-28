@@ -51,8 +51,8 @@ export const FinanceService = {
   updateInvoice: async (id: string, data: Partial<Invoice>) => {
     return apiClient.patch<Invoice>(`${ENDPOINTS.INVOICE}/update/${id}`, data);
   },
-  deleteInvoice: async (id: string) => {
-    return apiClient.delete(`${ENDPOINTS.INVOICE}/delete/${id}`);
+  deleteInvoice: async (id: string): Promise<void> => {
+    await apiClient.delete(`${ENDPOINTS.INVOICE}/delete/${id}`);
   },
 
   createRegistrationBill: async (customerId: string) => {
@@ -74,7 +74,7 @@ export const FinanceService = {
   createPayment: async (data: Partial<Payment>) => {
     return apiClient.post<Payment>(`${ENDPOINTS.PAYMENT}/create`, data);
   },
-  deletePayment: async (id: string) => {
-    return apiClient.delete(`${ENDPOINTS.PAYMENT}/delete/${id}`);
+  deletePayment: async (id: string): Promise<void> => {
+    await apiClient.delete(`${ENDPOINTS.PAYMENT}/delete/${id}`);
   }
 };

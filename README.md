@@ -65,6 +65,17 @@ The system handles two primary "Info Ticket" categories:
 
 ---
 
+## 🏢 Unit & Sub-Unit Quota System
+
+To manage network resources and registration volume, the system implements a Quota System:
+
+- **Visibility**: Quota status is displayed in Unit and Sub-Unit management tables with visual progress indicators.
+- **Enforcement**: New customer verification is restricted by the available quota of the associated Unit or Sub-Unit.
+- **Alerts**: Real-time warnings are displayed in the Customer Detail/Verification modal if the quota is low (<20% remaining) or exhausted.
+- **Management**: Authorized administrators can increment or adjust quotas through the Unit/Sub-Unit edit modals.
+
+---
+
 ## 🏭 Production Lifecycle (Step-by-Step)
 
 ### Phase 1: Input Data

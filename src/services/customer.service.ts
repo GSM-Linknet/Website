@@ -1,6 +1,6 @@
 
 import { apiClient } from "./api-client";
-import type { BaseQuery, PaginatedResponse } from "./master.service";
+import type { BaseQuery, PaginatedResponse, Unit, SubUnit } from "./master.service";
 
 // Interfaces based on Prisma Schema
 export interface Customer {
@@ -39,6 +39,8 @@ export interface Customer {
   // Relations (optional/partial)
   upline?: { name?: string };
   paket?: { name?: string };
+  unit?: Unit;
+  subUnit?: SubUnit;
 }
 
 const ENDPOINT = "/pelanggan/customer";

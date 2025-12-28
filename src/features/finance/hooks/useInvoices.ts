@@ -13,6 +13,7 @@ export function useInvoices(initialQuery?: BaseQuery) {
     { query: initialQuery, autoFetch: true }
   );
 
+  
   const crudResult = useCrud<Invoice>(
     {
       create: FinanceService.createInvoice,

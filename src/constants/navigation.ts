@@ -83,6 +83,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "History Pembayaran", href: "/keuangan/history", resource: "keuangan.history" },
       { title: "Aging Reports", href: "/keuangan/aging", resource: "keuangan.aging" },
       { title: "Saldo & Payout", href: "/keuangan/saldo", resource: "keuangan.saldo" },
+      { title: "Disbursement", href: "/keuangan/payout", resource: "keuangan.payout" },
     ],
   },
   {

@@ -39,7 +39,8 @@ export type PermissionResource =
     | "settings.permissions"
     | "settings.whatsapp"
     // Other
-    | "customer";
+    | "customer"
+    | "payout";
 
 export type AppAction = "view" | "create" | "edit" | "delete" | "verify" | "export" | "impersonate";
 

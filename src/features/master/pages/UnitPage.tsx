@@ -100,6 +100,34 @@ export default function UnitPage() {
             className: "text-slate-500"
         },
         {
+            header: "KUOTA",
+            accessorKey: "quota",
+            className: "w-[150px]",
+            cell: (row: any) => {
+                const percentage = row.quota > 0 ? (row.quotaUsed / row.quota) * 100 : 0;
+                let colorClass = "bg-emerald-500";
+                if (percentage > 90) colorClass = "bg-red-500";
+                else if (percentage > 70) colorClass = "bg-amber-500";
+
+                return (
+                    <div className="flex flex-col gap-1.5 min-w-[120px]">
+                        <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+                            <span className="text-slate-500">{row.quotaUsed} / {row.quota}</span>
+                            <span className={percentage > 90 ? "text-red-600" : "text-slate-400"}>
+                                {Math.round(percentage)}%
+                            </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                                className={`h-full transition-all duration-500 ${colorClass}`}
+                                style={{ width: `${Math.min(percentage, 100)}%` }}
+                            />
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
             header: "AKSI",
             id: "actions",
             accessorKey: "id",

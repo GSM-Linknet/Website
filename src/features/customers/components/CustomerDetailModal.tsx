@@ -26,6 +26,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import type { Customer } from "@/services/customer.service";
+import { cn } from "@/lib/utils";
 import { usePackage } from "@/features/master/hooks/usePackage";
 
 interface CustomerDetailModalProps {
@@ -232,6 +233,45 @@ export function CustomerDetailModal({
         <DialogFooter className="p-6 border-t border-slate-100 bg-white gap-2">
           {canVerify && !customer.statusCust && onVerify && (
             <div className="flex flex-col w-full gap-4">
+              {/* Quota Warning Section */}
+              {(customer.unit || customer.subUnit) && (
+                <div className={cn(
+                  "p-3 rounded-xl border flex items-start gap-3 mb-2",
+                  (customer.subUnit?.quotaUsed ?? 0) >= (customer.subUnit?.quota ?? 0) || (customer.unit?.quotaUsed ?? 0) >= (customer.unit?.quota ?? 0)
+                    ? "bg-red-50 border-red-100 text-red-800"
+                    : (customer.subUnit?.quotaUsed ?? 0) / (customer.subUnit?.quota ?? 1) > 0.8 || (customer.unit?.quotaUsed ?? 0) / (customer.unit?.quota ?? 1) > 0.8
+                      ? "bg-amber-50 border-amber-100 text-amber-800"
+                      : "bg-emerald-50 border-emerald-100 text-emerald-800"
+                )}>
+                  <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                    <Hash size={16} className={cn(
+                      (customer.subUnit?.quotaUsed ?? 0) >= (customer.subUnit?.quota ?? 0) || (customer.unit?.quotaUsed ?? 0) >= (customer.unit?.quota ?? 0)
+                        ? "text-red-600"
+                        : "text-emerald-600"
+                    )} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold uppercase tracking-wider mb-0.5">
+                      Status Kuota {customer.subUnit ? "Sub-Unit" : "Unit"}
+                    </p>
+                    <p className="text-[13px] font-medium leading-tight">
+                      {customer.subUnit
+                        ? `${customer.subUnit.name}: ${customer.subUnit.quotaUsed} / ${customer.subUnit.quota}`
+                        : `${customer.unit?.name}: ${customer.unit?.quotaUsed} / ${customer.unit?.quota}`}
+                    </p>
+                    {(customer.subUnit?.quotaUsed ?? 0) >= (customer.subUnit?.quota ?? 0) || (customer.unit?.quotaUsed ?? 0) >= (customer.unit?.quota ?? 0) ? (
+                      <p className="text-[11px] mt-1 font-bold text-red-600 animate-pulse">
+                        ⚠️ KUOTA HABIS! Verifikasi akan gagal.
+                      </p>
+                    ) : (customer.subUnit?.quotaUsed ?? 0) / (customer.subUnit?.quota ?? 1) > 0.8 || (customer.unit?.quotaUsed ?? 0) / (customer.unit?.quota ?? 1) > 0.8 ? (
+                      <p className="text-[11px] mt-1 font-semibold text-amber-700">
+                        Sisa kuota menipis. Segera hubungi Admin.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col gap-2 w-full bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                 <Label
                   htmlFor="siteId"
