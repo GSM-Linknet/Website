@@ -137,15 +137,15 @@ export default function CustomerListPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center space-x-3">
-                    <div className="relative group">
+                <div className="flex flex-col md:flex-row items-stretch md:items-center space-y-3 md:space-y-0 md:space-x-3">
+                    <div className="relative group w-full md:w-auto">
                         <Search
                             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
                             size={18}
                         />
                         <Input
                             placeholder="Cari"
-                            className="pl-10 w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+                            className="pl-10 w-full md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
                             value={searchQuery}
                             onChange={(e) => handleSearch(e.target.value)}
                         />

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     Users,
     UserPlus,
@@ -9,12 +9,10 @@ import {
     FileText,
     CheckCircle2,
     XCircle,
-    Search,
     ChevronDown,
     Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -26,7 +24,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AuthService } from "@/services/auth.service";
-import { useCustomers } from "@/features/customers/hooks/useCustomers";
+import { DashboardService } from "@/services/dashboard.service";
 import type { Customer } from "@/services/customer.service";
 import { cn } from "@/lib/utils";
 
@@ -113,37 +111,38 @@ interface UnitDashboardProps {
 }
 
 export default function UnitDashboard({ userName }: UnitDashboardProps) {
-    const [searchQuery, setSearchQuery] = useState("");
+    const [filterQuery, setFilterQuery] = useState("");
+    const [stats, setStats] = useState<{
+        customers: { total: number; newThisMonth: number; active: number; suspended: number };
+        quota: { quota: number; quotaUsed: number };
+        invoices: { totalAmount: number; paidAmount: number; unpaidAmount: number; month: string };
+        expenses: { subUnit: number };
+    } | null>(null);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [loading, setLoading] = useState(true);
 
     const user = AuthService.getUser();
     const displayName = userName || user?.name || "User";
 
-    const { data: customers, loading } = useCustomers({ limit: 100 });
-
-    // Calculate stats from customers
-    const stats = useMemo(() => {
-        const total = customers.length;
-        const thisMonth = customers.filter(c => {
-            if (!c.createdAt) return false;
-            const created = new Date(c.createdAt);
-            const now = new Date();
-            return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-        }).length;
-
-        // Mock quota data - in real app, get from unit/subunit data
-        const quota = 50;
-        const quotaUsed = total;
-
-        return { total, thisMonth, quota, quotaUsed };
-    }, [customers]);
-
-    // Mock financial data
-    const financials = {
-        totalInvoice: 38060000,
-        totalPaid: 15374000,
-        totalUnpaid: 22686000,
-        subUnitExpenses: 5250000,
-    };
+    // Fetch dashboard stats from API
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [statsData, customersData] = await Promise.all([
+                    DashboardService.getUnitStats(),
+                    DashboardService.getUnitCustomers(filterQuery || undefined)
+                ]);
+                setStats(statsData);
+                setCustomers((customersData as Customer[]) || []);
+            } catch (error) {
+                console.error("Failed to fetch dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [filterQuery]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("id-ID", {
@@ -241,22 +240,22 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm hover:bg-slate-50">
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                FILTER : {searchQuery === "suspend" ? "PELANGGAN SUSPEND" : searchQuery === "active" ? "PELANGGAN AKTIF" : searchQuery === "stopped" ? "PELANGGAN BERHENTI" : "SEMUA PELANGGAN"}
+                                FILTER : {filterQuery === "suspend" ? "PELANGGAN SUSPEND" : filterQuery === "active" ? "PELANGGAN AKTIF" : filterQuery === "stopped" ? "PELANGGAN BERHENTI" : "SEMUA PELANGGAN"}
                             </span>
                             <ChevronDown size={14} className="ml-2 text-slate-400" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem onClick={() => setSearchQuery("")} className="font-medium">
+                        <DropdownMenuItem onClick={() => setFilterQuery("")} className="font-medium">
                             Semua Pelanggan
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setSearchQuery("suspend")} className="font-medium text-amber-600">
+                        <DropdownMenuItem onClick={() => setFilterQuery("suspend")} className="font-medium text-amber-600">
                             Pelanggan Suspend
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setSearchQuery("active")} className="font-medium text-emerald-600">
+                        <DropdownMenuItem onClick={() => setFilterQuery("active")} className="font-medium text-emerald-600">
                             Pelanggan Aktif
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setSearchQuery("stopped")} className="font-medium text-red-600">
+                        <DropdownMenuItem onClick={() => setFilterQuery("stopped")} className="font-medium text-red-600">
                             Pelanggan Berhenti Layanan
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -268,19 +267,19 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
                 <StatCard
                     icon={<Users size={24} />}
                     label="Total Pelanggan"
-                    value={loading ? "..." : stats.total}
+                    value={loading ? "..." : stats?.customers.total ?? 0}
                     variant="default"
                 />
                 <StatCard
                     icon={<UserPlus size={24} />}
                     label="Pelanggan Baru Bulan Ini"
-                    value={loading ? "..." : stats.thisMonth}
+                    value={loading ? "..." : stats?.customers.newThisMonth ?? 0}
                     variant="default"
                 />
                 <StatCard
                     icon={<Target size={24} />}
                     label="Total Kuota"
-                    value={loading ? "..." : stats.quotaUsed}
+                    value={loading ? "..." : `${stats?.quota.quotaUsed ?? 0} / ${stats?.quota.quota ?? 0}`}
                     variant="default"
                 />
             </div>
@@ -313,31 +312,31 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
                 <FinancialCard
                     icon={<FileText size={18} className="text-blue-500" />}
                     label="Total Seluruh Invoice"
-                    value={formatCurrency(financials.totalInvoice)}
-                    sublabel="Desember 2025"
+                    value={formatCurrency(stats?.invoices.totalAmount ?? 0)}
+                    sublabel={stats?.invoices.month ?? ""}
                     bordered={false}
                 />
                 <FinancialCard
                     icon={<CheckCircle2 size={18} className="text-emerald-500" />}
                     label="Total Invoice Lunas"
-                    value={formatCurrency(financials.totalPaid)}
-                    sublabel="Desember 2025"
+                    value={formatCurrency(stats?.invoices.paidAmount ?? 0)}
+                    sublabel={stats?.invoices.month ?? ""}
                     variant="success"
                     bordered={false}
                 />
                 <FinancialCard
                     icon={<XCircle size={18} className="text-red-500" />}
                     label="Total Invoice Belum Lunas"
-                    value={formatCurrency(financials.totalUnpaid)}
-                    sublabel="Desember 2025"
+                    value={formatCurrency(stats?.invoices.unpaidAmount ?? 0)}
+                    sublabel={stats?.invoices.month ?? ""}
                     variant="danger"
                     bordered={false}
                 />
                 <FinancialCard
                     icon={<Wallet size={18} className="text-purple-500" />}
                     label="Pengeluaran Sub Unit"
-                    value={formatCurrency(financials.subUnitExpenses)}
-                    sublabel="Desember 2025"
+                    value={formatCurrency(stats?.expenses.subUnit ?? 0)}
+                    sublabel={stats?.invoices.month ?? ""}
                     variant="default"
                     bordered={false}
                 />
@@ -352,15 +351,6 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
                         <p className="text-sm text-slate-500">Pendaftaran pelanggan di area Anda</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                            <Input
-                                placeholder="Cari"
-                                className="pl-9 w-48 rounded-xl border-slate-200"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
                         <Button className="bg-[#101D42] text-white rounded-xl font-bold">
                             <Plus size={16} className="mr-2" />
                             Tambah Pelanggan
@@ -419,7 +409,7 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
                     </div>
                 ) : (
                     <BaseTable
-                        data={customers.map((c, i) => ({ ...c, no: i + 1 }))}
+                        data={customers.map((c: Customer, i: number) => ({ ...c, no: i + 1 }))}
                         columns={columns}
                         rowKey={(row) => row.id}
                         className="border-none shadow-none"
