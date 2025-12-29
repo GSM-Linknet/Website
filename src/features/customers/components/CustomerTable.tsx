@@ -10,13 +10,32 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Customer } from "@/constants/customers_mock";
+// import type { Customer } from "@/constants/customers_mock"; // Deprecated
+import type { Customer } from "@/services/customer.service";
 
 interface CustomerTableProps {
     customers: Customer[];
+    loading?: boolean;
+    page?: number;
+    totalPages?: number;
+    totalItems?: number;
+    onPageChange?: (page: number) => void;
+    onDetail?: (customer: Customer) => void;
+    onEdit?: (customer: Customer) => void;
+    onDelete?: (id: string) => void;
 }
 
-export const CustomerTable = ({ customers }: CustomerTableProps) => {
+export const CustomerTable = ({
+    customers,
+    loading,
+    page,
+    totalPages,
+    totalItems,
+    onPageChange,
+    onDetail,
+    onEdit,
+    onDelete
+}: CustomerTableProps) => {
     const columns = [
         {
             header: "NO",
@@ -36,87 +55,79 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                        <span className="font-bold text-slate-800 text-[13px]">{row.name}</span>
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-800 text-[13px]">{row.name}</span>
+                            {row.isFreeAccount && (
+                                <Badge className="bg-blue-100 text-blue-600 border-none text-[9px] px-1.5 h-4 font-bold rounded-full">
+                                    FREE
+                                </Badge>
+                            )}
+                        </div>
                         <span className="text-[11px] text-slate-400 font-medium">{row.phone}</span>
                     </div>
                 </div>
             ),
         },
         {
-            header: "AREA",
-            accessorKey: "area",
-            className: "text-center",
+            header: "ALAMAT",
+            accessorKey: "address",
+            className: "text-center max-w-[150px] truncate",
             cell: (row: Customer) => (
-                <Badge variant="outline" className={cn(
-                    "rounded-md text-[10px] font-bold px-2 py-0.5 border-none",
-                    row.area === "BMY" ? "bg-rose-100 text-rose-600" :
-                        row.area === "TNJG" ? "bg-sky-100 text-sky-600" :
-                            "bg-amber-100 text-amber-600"
-                )}>
-                    {row.area}
-                </Badge>
+                <span title={row.address} className="text-xs text-slate-600 truncate block max-w-[150px]">{row.address || "-"}</span>
             ),
         },
         {
             header: "INTERNET",
-            accessorKey: "internet",
+            accessorKey: "statusNet",
             cell: (row: Customer) => (
                 <Badge className={cn(
                     "rounded-xl text-[10px] font-bold px-2.5 py-1 space-x-1.5 border-none",
-                    row.internet === "Unsuspend" ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+                    row.statusNet ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
                 )}>
-                    {row.internet === "Unsuspend" ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
-                    <span>{row.internet}</span>
+                    {row.statusNet ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                    <span>{row.statusNet ? "Online" : "Offline"}</span>
                 </Badge>
             ),
         },
         {
-            header: "ID PELANGGAN",
-            accessorKey: "customerId",
-            className: "text-slate-600 font-bold text-[12px]",
-        },
-        {
-            header: "SITE ID",
-            accessorKey: "siteId",
+            header: "ODP",
+            accessorKey: "ODPCode",
             className: "text-slate-500 font-medium text-[12px]",
         },
         {
             header: "EMAIL",
             accessorKey: "email",
-            className: "text-slate-400 font-medium lowercase text-[12px]",
+            className: "text-slate-400 font-medium lowercase text-[12px] max-w-[150px] truncate",
         },
         {
             header: "PAKET",
-            accessorKey: "package",
+            accessorKey: "paket",
             className: "text-slate-500 font-bold text-[12px]",
-        },
-        {
-            header: "TANGGAL",
-            accessorKey: "day",
-            className: "w-12 text-center text-slate-600 font-bold",
+            cell: (row: Customer) => row.paket?.name || "-"
         },
         {
             header: "STATUS",
-            accessorKey: "status",
+            accessorKey: "statusCust",
             cell: (row: Customer) => (
                 <Badge className={cn(
                     "rounded-md text-[11px] font-bold px-3 py-1 border-none",
-                    row.status === "Aktif" ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+                    row.statusCust ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
                 )}>
-                    {row.status}
+                    {row.statusCust ? "Aktif" : "Non-Aktif"}
                 </Badge>
             ),
         },
         {
-            header: "TANGGAL AKTIVASI",
-            accessorKey: "activationDate",
-            className: "min-w-[180px] text-slate-500 font-medium text-[12px]",
+            header: "TERDAFTAR",
+            accessorKey: "createdAt",
+            className: "min-w-[120px] text-slate-500 font-medium text-[12px]",
+            cell: (row: Customer) => row.createdAt ? new Date(row.createdAt).toLocaleDateString("id-ID") : "-"
         },
         {
             header: "AKSI",
             accessorKey: "actions",
             className: "w-10 text-center",
-            cell: () => (
+            cell: (row: Customer) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100 text-slate-400">
@@ -124,9 +135,24 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="rounded-xl border-slate-100 bg-white shadow-xl">
-                        <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold">Detail</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold">Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600">Hapus</DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="cursor-pointer rounded-lg text-xs font-semibold"
+                            onClick={() => onDetail?.(row)}
+                        >
+                            Detail
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="cursor-pointer rounded-lg text-xs font-semibold"
+                            onClick={() => onEdit?.(row)}
+                        >
+                            Kelola
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
+                            onClick={() => onDelete?.(row.id)}
+                        >
+                            Hapus
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
@@ -139,6 +165,11 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
             columns={columns}
             rowKey={(row) => row.id}
             className="border-none shadow-none"
+            loading={loading}
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPageChange={onPageChange}
         />
     );
 };

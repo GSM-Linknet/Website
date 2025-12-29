@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Search, Plus, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -8,14 +9,311 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { RegistrationTable } from "../components/RegistrationTable";
-import { REGISTRATIONS } from "@/constants/registrations";
+import { BaseTable } from "@/components/shared/BaseTable";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { AddCustomerDialog } from "../components/AddCustomerDialog";
+import { CustomerModal } from "../components/CustomerModal";
+import { CustomerDetailModal } from "../components/CustomerDetailModal";
+import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { AuthService } from "@/services/auth.service";
+import { CustomerService } from "@/services/customer.service";
+import { useCustomers } from "../hooks/useCustomers";
+import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/utils";
+import type { Customer } from "@/services/customer.service";
 
-/**
- * CustomerRegistrationPage matches the high-fidelity design for registration management.
- */
+// ==================== Page Component ====================
+
 export default function CustomerRegistrationPage() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const userProfile = AuthService.getUser();
+  const userRole = userProfile?.role || "USER";
+  const resource = "pelanggan.pendaftaran";
+
+  const canCreate = AuthService.hasPermission(userRole, resource, "create");
+  const canEdit = AuthService.hasPermission(userRole, resource, "edit");
+  const canDelete = AuthService.hasPermission(userRole, resource, "delete");
+  const canVerify = AuthService.hasPermission(userRole, resource, "verify");
+
+  const {
+    data: customers,
+    loading,
+    page,
+    totalPages,
+    setPage,
+    setQuery,
+    creating,
+    update,
+    updating,
+    remove,
+    deleting,
+    refetch: refresh
+  } = useCustomers();
+
+  // Modal states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerToView, setCustomerToView] = useState<Customer | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Initial state for filters
+  const [filters, setFilters] = useState({
+    status: "all",
+    internet: "all",
+    wilayah: "all",
+  });
+
+
+  const handleFilterChange = (key: string, value: string) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+
+    // Build the query
+    const searchParts: string[] = [];
+    if (searchQuery) searchParts.push(`name:${searchQuery}`);
+    if (newFilters.status !== "all") searchParts.push(`statusCust:${newFilters.status === "verified"}`);
+    if (newFilters.internet !== "all") searchParts.push(`statusNet:${newFilters.internet === "online"}`);
+
+    setQuery({ search: searchParts.join("+") });
+  };
+
+  const handleSearch = (val: string) => {
+    setSearchQuery(val);
+    const searchParts: string[] = [];
+    if (val) searchParts.push(`name:${val}`);
+    if (filters.status !== "all") searchParts.push(`statusCust:${filters.status === "verified"}`);
+    if (filters.internet !== "all") searchParts.push(`statusNet:${filters.internet === "online"}`);
+    if (filters.wilayah !== "all") searchParts.push(`idWilayah:${filters.wilayah}`);
+
+    setQuery({ search: searchParts.join("+") });
+  };
+
+  // Get current user for role-based status
+  const currentUser = AuthService.getUser();
+  const isSubUnit = currentUser?.role === "SALES";
+  const defaultRegStatus = isSubUnit ? "Menunggu" : "Diproses";
+
+  // Handle create customer from dialog - throws on error for dialog to catch
+  const handleCreateCustomer = async (customerData: Partial<Customer> | FormData) => {
+    // Call service directly to allow error propagation to the dialog
+    await CustomerService.createCustomer(customerData);
+    // Only reaches here on success
+    toast({
+      title: "Berhasil",
+      description: "Pelanggan baru berhasil didaftarkan",
+    });
+    refresh();
+  };
+
+  // Handle edit
+  const handleEdit = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (data: Partial<Customer>) => {
+    if (!selectedCustomer) return false;
+    const result = await update(selectedCustomer.id, data);
+    if (result) {
+      toast({
+        title: "Berhasil",
+        description: "Data pelanggan berhasil diperbarui",
+      });
+      setIsEditModalOpen(false);
+      setSelectedCustomer(null);
+      return true;
+    }
+    return false;
+  };
+
+  // Handle delete
+  const handleDeleteClick = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedCustomer) return;
+    const success = await remove(selectedCustomer.id);
+    if (success) {
+      toast({
+        title: "Berhasil",
+        description: "Pelanggan berhasil dihapus",
+      });
+      setIsDeleteModalOpen(false);
+      setSelectedCustomer(null);
+    }
+  };
+
+  // Handle verify
+  const handleViewDetail = (row: Customer) => {
+    setCustomerToView(row);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleVerifyAction = async (id: string, isVerify: boolean, siteId?: string) => {
+    await handleVerify(id, isVerify, siteId);
+    setIsDetailModalOpen(false);
+  };
+
+  const handleVerify = async (idOrCustomer: string | Customer, isVerify: boolean = true, siteId?: string) => {
+    const id = typeof idOrCustomer === 'string' ? idOrCustomer : idOrCustomer.id;
+
+    if (!confirm(`Apakah anda yakin ingin ${isVerify ? 'memverifikasi' : 'menolak'} pelanggan ini ? `)) return;
+
+    setVerifyingId(id);
+    try {
+      if (isVerify) {
+        await CustomerService.verifyCustomer(id, siteId);
+        toast({
+          title: "Verifikasi Berhasil",
+          description: "Pelanggan telah diverifikasi.",
+        });
+      } else {
+        await CustomerService.rejectCustomer(id);
+        toast({
+          title: "Pelanggan Ditolak",
+          description: "Status pelanggan ditolak.",
+          variant: "destructive",
+        });
+      }
+      refresh();
+    } catch (error) {
+      toast({
+        title: "Gagal Memproses",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
+  // Table columns
+  const columns = [
+    {
+      header: "NAMA",
+      accessorKey: "name",
+      className: "min-w-[200px]",
+      cell: (row: Customer) => (
+        <div className="flex items-center space-x-3">
+          <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
+            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${row.name}`} />
+            <AvatarFallback className="bg-blue-100 text-blue-600 font-bold text-xs">
+              {row.name.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar >
+          <div className="flex flex-col">
+            <span className="font-bold text-slate-800 text-[13px]">{row.name}</span>
+            <span className="text-[11px] text-slate-400 font-medium">{row.phone}</span>
+          </div>
+        </div >
+      ),
+    },
+    {
+      header: "ALAMAT",
+      accessorKey: "address",
+      className: "text-center max-w-[150px] truncate",
+      cell: (row: Customer) => (
+        <span title={row.address} className="text-xs text-slate-600 truncate block max-w-[150px]">{row.address || "-"}</span>
+      ),
+    },
+    {
+      header: "PAKET",
+      accessorKey: "paket",
+      className: "text-slate-500 font-bold text-[12px]",
+      cell: (row: Customer) => row.paket?.name || "-"
+    },
+    {
+      header: "STATUS",
+      accessorKey: "statusCust",
+      cell: (row: Customer) => (
+        <Badge className={cn(
+          "rounded-md text-[11px] font-bold px-3 py-1 border-none",
+          row.statusCust ? "bg-sky-100 text-sky-600" : "bg-amber-100 text-amber-600"
+        )}>
+          {row.statusCust ? "Terverifikasi" : "Pending"}
+        </Badge>
+      ),
+    },
+    {
+      header: "TANGGAL DAFTAR",
+      accessorKey: "createdAt",
+      className: "min-w-[120px] text-slate-500 font-medium text-[12px]",
+      cell: (row: Customer) => row.createdAt ? new Date(row.createdAt).toLocaleDateString("id-ID") : "-"
+    },
+    {
+      header: "AKSI",
+      accessorKey: "actions",
+      className: "w-10 text-center",
+      cell: (row: Customer) => {
+        const isPending = !row.statusCust;
+        const hasActions = canEdit || canDelete || (canVerify && isPending);
+
+        if (!hasActions) return <span className="text-slate-400">-</span>;
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-slate-100 text-slate-400">
+                <MoreHorizontal size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl border-slate-100 bg-white shadow-xl">
+              <DropdownMenuItem
+                className="cursor-pointer rounded-lg text-xs font-semibold"
+                onClick={() => handleViewDetail(row)}
+              >
+                <Eye size={14} className="mr-2" />
+                Lihat Detail
+              </DropdownMenuItem>
+              {canVerify && isPending && (
+                <>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
+                    onClick={() => handleVerifyAction(row.id, true)}
+                  >
+                    <CheckCircle size={14} className="mr-2" />
+                    Verifikasi
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600 focus:text-rose-700 bg-rose-50/50 mb-1"
+                    onClick={() => handleVerifyAction(row.id, false)}
+                  >
+                    <XCircle size={14} className="mr-2" />
+                    Tolak
+                  </DropdownMenuItem>
+                </>
+              )}
+              {canEdit && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold"
+                  onClick={() => handleEdit(row)}
+                >
+                  <Edit2 size={14} className="mr-2" />
+                  Edit
+                </DropdownMenuItem>
+              )}
+              {canDelete && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
+                  onClick={() => handleDeleteClick(row)}
+                >
+                  <Trash2 size={14} className="mr-2" />
+                  Hapus
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
@@ -40,52 +338,138 @@ export default function CustomerRegistrationPage() {
               placeholder="Cari"
               className="pl-10 w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
-          <Button className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-6 shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02]">
-            <Plus size={18} className="mr-2" />
-            Tambah Pelanggan
-          </Button>
+          {canCreate && (
+            <AddCustomerDialog
+              initialStatus={defaultRegStatus}
+              onCreate={handleCreateCustomer}
+              isCreating={creating}
+            />
+          )}
         </div>
       </div>
 
       {/* Filters Section */}
       <div className="flex flex-wrap items-center gap-3">
-        <FilterDropdown label="Semua Status" />
-        <FilterDropdown label="Semua Pembayaran" />
-        <FilterDropdown label="Semua Internet" />
+        <FilterDropdown
+          label="Semua Status"
+          activeValue={filters.status}
+          options={[
+            { label: "Semua Status", value: "all" },
+            { label: "Terverifikasi", value: "verified" },
+            { label: "Pending", value: "pending" },
+          ]}
+          onSelect={(val) => handleFilterChange("status", val)}
+        />
+        <FilterDropdown
+          label="Semua Internet"
+          activeValue={filters.internet}
+          options={[
+            { label: "Semua Internet", value: "all" },
+            { label: "Online", value: "online" },
+            { label: "Offline", value: "offline" },
+          ]}
+          onSelect={(val) => handleFilterChange("internet", val)}
+        />
+      
       </div>
 
       {/* Table Content */}
       <div className="bg-white rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
-        <RegistrationTable registrations={REGISTRATIONS} />
+        <BaseTable
+          data={customers}
+          columns={columns}
+          rowKey={(row) => row.id}
+          className="border-none shadow-none"
+          loading={loading}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
       </div>
+
+      {/* Modals ... */}
+      <CustomerModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedCustomer(null);
+        }}
+        onSubmit={handleEditSubmit}
+        isLoading={updating}
+        initialData={selectedCustomer}
+      />
+
+      <CustomerDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        customer={customerToView}
+        onVerify={handleVerifyAction}
+        canVerify={canVerify}
+        verifying={!!verifyingId}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedCustomer(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        itemName={selectedCustomer?.name}
+        isLoading={deleting}
+      />
     </div>
   );
 }
 
-const FilterDropdown = ({ label }: { label: string }) => (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <Button
-        variant="outline"
-        className="h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between min-w-[200px] border shadow-sm"
-      >
-        <span>{label}</span>
-        <ChevronDown size={14} className="text-slate-400" />
-      </Button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent className="w-[200px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
-      <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">
-        Opsi 1
-      </DropdownMenuItem>
-      <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">
-        Opsi 2
-      </DropdownMenuItem>
-      <DropdownMenuItem className="rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700">
-        Opsi 3
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
-);
+// ==================== Helper Components ====================
+
+interface FilterOption {
+  label: string;
+  value: string;
+}
+
+interface FilterDropdownProps {
+  label: string;
+  options: FilterOption[];
+  activeValue: string;
+  onSelect: (value: string) => void;
+}
+
+const FilterDropdown = ({ label, options, activeValue, onSelect }: FilterDropdownProps) => {
+  const activeLabel = options.find(opt => opt.value === activeValue)?.label || label;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between min-w-[180px] border shadow-sm",
+            activeValue !== "all" && "border-blue-500 text-blue-600 bg-blue-50/50"
+          )}
+        >
+          <span>{activeLabel}</span>
+          <ChevronDown size={14} className={cn("text-slate-400", activeValue !== "all" && "text-blue-500")} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-[180px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+        {options.map((option) => (
+          <DropdownMenuItem
+            key={option.value}
+            className={cn(
+              "rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700",
+              activeValue === option.value && "bg-blue-50 text-blue-600"
+            )}
+            onClick={() => onSelect(option.value)}
+          >
+            {option.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};

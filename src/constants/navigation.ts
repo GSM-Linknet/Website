@@ -1,11 +1,14 @@
 import { 
   LayoutDashboard, 
   Users, 
-  PieChart, 
-  UserCheck, 
+  Database,
+  Wrench,
+  Factory,
+  BarChart3,
   TrendingUp, 
   Smartphone, 
-  History 
+  History,
+  Settings
 } from "lucide-react";
 import type { NavItem } from "@/types";
 
@@ -13,54 +16,95 @@ export const NAVIGATION_ITEMS: NavItem[] = [
   {
     title: "Dashboard",
     icon: LayoutDashboard,
-    href: "/",
+    href: "/dashboard",
+    resource: "dashboard",
+  },
+  {
+    title: "Master",
+    icon: Database,
+    resource: "master",
+    items: [
+      { title: "Wilayah", href: "/master/wilayah", resource: "master.wilayah" },
+      { title: "Cabang", href: "/master/cabang", resource: "master.wilayah" }, // Maps to wilayah for simplicity or keep as is
+      { title: "Unit", href: "/master/unit", resource: "master.unit" },
+      { title: "Sub Unit", href: "/master/sub-unit", resource: "master.unit" },
+      { title: "Paket & Harga", href: "/master/paket", resource: "master.paket" },
+      { title: "Diskon", href: "/master/diskon", resource: "master.diskon" },
+      { title: "Users", href: "/master/users", resource: "master.wilayah" }, // Should ideally have its own or share
+      { title: "Schedule Pasang", href: "/master/schedule", resource: "master.schedule" },
+    ],
   },
   {
     title: "Pelanggan",
     icon: Users,
+    resource: "pelanggan",
     items: [
-      { title: "Pendaftaran Pelanggan", href: "/pelanggan/pendaftaran" },
-      { title: "Kelola Pelanggan", href: "/pelanggan/kelola" },
+      { title: "Pendaftaran (Sales)", href: "/pelanggan/pendaftaran", resource: "pelanggan.pendaftaran" },
+      { title: "Kelola Pelanggan", href: "/pelanggan/kelola", resource: "pelanggan.kelola" },
+      { title: "Layanan Mandiri", href: "/pelanggan/layanan", resource: "pelanggan.layanan" },
     ],
   },
   {
-    title: "Mitra",
-    icon: PieChart,
+    title: "Teknisi",
+    icon: Wrench,
+    resource: "teknisi",
     items: [
-      { title: "Pendaftaran Mitra", href: "/mitra/pendaftaran" },
+      { title: "Database Teknisi", href: "/teknisi/database", resource: "teknisi.database" },
+      { title: "Tools & Peralatan", href: "/teknisi/tools", resource: "teknisi.tools" },
+      { title: "Harga Jasa (Labor)", href: "/teknisi/harga-jasa", resource: "teknisi.harga" },
     ],
   },
   {
-    title: "Pengguna",
-    icon: UserCheck,
+    title: "Produksi",
+    icon: Factory,
+    resource: "produksi",
     items: [
-      { title: "Admin", href: "/pengguna/admin" },
-      { title: "Unit", href: "/pengguna/unit" },
-      { title: "Supervisor", href: "/pengguna/supervisor" },
-      { title: "Sales", href: "/pengguna/sales" },
-      { title: "Mitra A", href: "/pengguna/mitra-a" },
-      { title: "Mitra B", href: "/pengguna/mitra-b" },
+      { title: "Input Prospek", href: "/produksi/prospek", resource: "produksi.prospek" },
+      { title: "Verifikasi Admin", href: "/produksi/verifikasi", resource: "produksi.verifikasi" },
+      { title: "Work Orders (WO)", href: "/produksi/wo", resource: "produksi.wo" },
+    ],
+  },
+  {
+    title: "Reporting",
+    icon: BarChart3,
+    resource: "reporting",
+    items: [
+      { title: "Performance Sales", href: "/reporting/sales", resource: "reporting.sales" },
+      { title: "KA Unit Activity", href: "/reporting/unit", resource: "reporting.unit" },
+      { title: "Laporan Berkala", href: "/reporting/berkala", resource: "reporting.berkala" },
     ],
   },
   {
     title: "Keuangan",
     icon: TrendingUp,
+    resource: "keuangan",
     items: [
-      { title: "Monitoring Pembayaran", href: "/keuangan/pembayaran" },
-      { title: "Pengajuan Penarikan", href: "/keuangan/penarikan" },
-      { title: "Saldo Pengguna", href: "/keuangan/saldo" },
-      { title: "Payout", href: "/keuangan/payout" },
-      { title: "Cashflow", href: "/keuangan/cashflow" },
+      { title: "Tagihan", href: "/keuangan/invoice", resource: "keuangan.invoice" },
+      { title: "History Pembayaran", href: "/keuangan/history", resource: "keuangan.history" },
+      { title: "Aging Reports", href: "/keuangan/aging", resource: "keuangan.aging" },
+      { title: "Saldo & Payout", href: "/keuangan/saldo", resource: "keuangan.saldo" },
+      { title: "Disbursement", href: "/keuangan/payout", resource: "keuangan.payout" },
+    ],
+  },
+  {
+    title: "Settings",
+    icon: Settings,
+    resource: "settings",
+    items: [
+      { title: "Hak Akses", href: "/settings/permissions", resource: "settings.permissions" },
+      { title: "WhatsApp Gateway", href: "/settings/whatsapp", resource: "settings.whatsapp" },
     ],
   },
   {
     title: "Aplikasi",
     icon: Smartphone,
     href: "/aplikasi",
+    resource: "dashboard",
   },
   {
     title: "Logs",
     icon: History,
     href: "/logs",
+    resource: "dashboard",
   },
 ];

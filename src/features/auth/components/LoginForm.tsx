@@ -21,7 +21,7 @@ export const LoginForm = () => {
         try {
             await AuthService.login(credentials);
             // Logic for storing token would go here
-            navigate("/");
+            navigate("/dashboard");
         } catch (error) {
             console.error("Login failed:", error);
         } finally {
