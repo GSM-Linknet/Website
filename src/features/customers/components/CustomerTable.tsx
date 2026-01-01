@@ -30,10 +30,8 @@ const userProfile = AuthService.getUser();
 const userRole = userProfile?.role || "USER";
 const resource = "pelanggan.kelola";
 
-const canCreate = AuthService.hasPermission(userRole, resource, "create");
 const canEdit = AuthService.hasPermission(userRole, resource, "edit");
 const canDelete = AuthService.hasPermission(userRole, resource, "delete");
-const canVerify = AuthService.hasPermission(userRole, resource, "verify");
 
 export const CustomerTable = ({
   customers,
@@ -182,36 +180,36 @@ export const CustomerTable = ({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 rounded-lg hover:bg-slate-100 text-slate-400"
+              >
+                <MoreHorizontal size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="rounded-xl border-slate-100 bg-white shadow-xl"
             >
-              <MoreHorizontal size={18} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="rounded-xl border-slate-100 bg-white shadow-xl"
-          >
-            <DropdownMenuItem
-              className="cursor-pointer rounded-lg text-xs font-semibold"
-              onClick={() => onDetail?.(row)}
-            >
-              Detail
-            </DropdownMenuItem>
-            {canEdit && (
               <DropdownMenuItem
                 className="cursor-pointer rounded-lg text-xs font-semibold"
-                onClick={() => onEdit?.(row)}
+                onClick={() => onDetail?.(row)}
               >
-                Kelola
+                Detail
               </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
-              onClick={() => onDelete?.(row.id)}
-            >
-              Hapus
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              {canEdit && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold"
+                  onClick={() => onEdit?.(row)}
+                >
+                  Kelola
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
+                onClick={() => onDelete?.(row.id)}
+              >
+                Hapus
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         );
       },
     },

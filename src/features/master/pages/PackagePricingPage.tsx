@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Wifi, Edit2, Trash2, MapPin } from "lucide-react";
+import { Plus, Wifi, Edit2, Trash2, MapPin, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import {
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { usePackage } from "../hooks/usePackage";
 import { useWilayah } from "../hooks/useWilayah";
 import { PackageModal } from "../components/PackageModal";
+import { PackageDetailModal } from "../components/PackageDetailModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { AuthService } from "@/services/auth.service";
@@ -52,6 +53,7 @@ export default function PackagePricingPage() {
 
     const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
     const modal = useDisclosure();
+    const detailModal = useDisclosure();
     const deleteModal = useDisclosure();
 
     // Default to first wilayah if admin haven't selected any
@@ -64,6 +66,11 @@ export default function PackagePricingPage() {
     const handleAdd = () => {
         setSelectedPackage(null);
         modal.onOpen();
+    };
+
+    const handleDetail = (pkg: Package) => {
+        setSelectedPackage(pkg);
+        detailModal.onOpen();
     };
 
     const handleEdit = (pkg: Package) => {
@@ -79,8 +86,12 @@ export default function PackagePricingPage() {
     const handleSubmit = async (data: Partial<Package>) => {
         const payload = {
             ...data,
-            // Automatically set idWilayah if not in edit mode and selector is active
-            idWilayah: data.idWilayah || selectedWilayahId,
+            // If creating and no wilayah selected but filter is active, auto-select it? 
+            // Better to let user strictly choose in modal.
+            // But if we want to be helpful:
+            wilayahIds: (data.wilayahIds && data.wilayahIds.length > 0)
+                ? data.wilayahIds
+                : (selectedWilayahId ? [selectedWilayahId] : [])
         };
 
         if (selectedPackage) {
@@ -110,12 +121,24 @@ export default function PackagePricingPage() {
         },
         {
             header: "WILAYAH",
-            accessorKey: "wilayah.name",
-            cell: (row: any) => (
-                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                    <MapPin size={10} /> {row.wilayah?.name || "-"}
-                </span>
-            ),
+            accessorKey: "wilayah",
+            cell: (row: any) => {
+                const count = row.packagesWilayah?.length || 0;
+                const names = row.packagesWilayah?.map((pw: any) => pw.wilayah?.name).join(", ");
+
+                return (
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                            <MapPin size={10} /> {count > 0 ? `${count} Wilayah` : "-"}
+                        </span>
+                        {count > 0 && (
+                            <span className="text-[10px] text-slate-400 truncate max-w-[150px]" title={names}>
+                                {names}
+                            </span>
+                        )}
+                    </div>
+                );
+            },
         },
         {
             header: "KECEPATAN",
@@ -148,6 +171,14 @@ export default function PackagePricingPage() {
 
                 return (
                     <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-8 h-8 rounded-lg text-slate-600 hover:bg-slate-50"
+                            onClick={() => handleDetail(row)}
+                        >
+                            <Eye size={14} />
+                        </Button>
                         {canEdit && (
                             <Button
                                 variant="ghost"
@@ -290,6 +321,12 @@ export default function PackagePricingPage() {
                 onSubmit={handleSubmit}
                 isLoading={isLoading}
                 initialData={selectedPackage}
+            />
+
+            <PackageDetailModal
+                isOpen={detailModal.isOpen}
+                onClose={detailModal.onClose}
+                data={selectedPackage}
             />
 
             <DeleteConfirmationModal
