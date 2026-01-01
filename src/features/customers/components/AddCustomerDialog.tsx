@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Plus, User, Mail, Phone, CreditCard, MapPin, Hash, Package, Upload, Save, ArrowRight, ArrowLeft, Loader2, X, Image as ImageIcon, AlertCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,33 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
         setCaImage({ file: null, preview: null });
         setActiveTab("personal");
     };
+
+
+    useEffect(() => {
+        if (open && !formData.customerLocation) {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        setFormData(prev => ({
+                            ...prev,
+                            customerLocation: {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            }
+                        }));
+                    },
+                    (error) => {
+                        console.error("Error getting location:", error);
+                        toast({
+                            title: "Gagal mendapatkan lokasi",
+                            description: "Pastikan izin lokasi diaktifkan di browser Anda.",
+                            variant: "destructive",
+                        });
+                    }
+                );
+            }
+        }
+    }, [open, formData.customerLocation, toast]);
 
     const handleSubmit = async () => {
         setValidationErrors([]);
@@ -246,8 +273,8 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                     <span className="font-semibold">Tambah Pelanggan</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] h-[90vh] flex flex-col py-0 px-0 gap-0 overflow-hidden bg-white sm:rounded-2xl transition-all duration-300">
-                <div className="bg-[#101D42] p-6 text-white text-center sm:text-left">
+            <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] h-[90vh] flex flex-col py-0 px-0 gap-0 overflow-hidden bg-white sm:rounded-2xl transition-all duration-300">
+                <div className="bg-[#101D42] p-4 sm:p-6 text-white text-center sm:text-left">
                     <DialogHeader className="space-y-1">
                         <DialogTitle className="text-2xl font-bold tracking-tight text-white flex items-center justify-start gap-3">
                             <User className="bg-white/10 p-1.5 w-9 h-9 rounded-lg backdrop-blur-sm" />
@@ -301,7 +328,7 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-slate-600 font-medium flex gap-2 items-center"><Mail size={14} /> Email</Label>
                                         <Input
@@ -323,7 +350,7 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-slate-600 font-medium flex gap-2 items-center"><CreditCard size={14} /> No. KTP</Label>
                                         <Input
@@ -361,7 +388,7 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4 pt-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                                     <FileUploader
                                         label="Foto Rumah (Depan)"
                                         value={frontHome}
@@ -400,7 +427,7 @@ export function AddCustomerDialog({ initialStatus = "Menunggu", onCreate, isCrea
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label className="text-slate-600 font-medium flex gap-2 items-center"><Hash size={14} /> Kode ODP</Label>
                                     <Input

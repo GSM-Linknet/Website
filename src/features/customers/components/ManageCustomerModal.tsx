@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Select,
     SelectContent,
@@ -17,6 +18,22 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    User,
+    Mail,
+    Phone,
+    MapPin,
+    Package,
+    Calendar,
+    Loader2,
+    Hash,
+} from "lucide-react";
+import type { Customer } from "@/services/customer.service";
+import { usePackage } from "@/features/master/hooks/usePackage";
+import { useToast } from "@/hooks/useToast";
+import { CustomerService } from "@/services/customer.service";
+import { cn } from "@/lib/utils";
+
 const CustomToggle = ({ checked, onChange }: { checked: boolean, onChange: (val: boolean) => void }) => (
     <button
         type="button"
@@ -34,22 +51,6 @@ const CustomToggle = ({ checked, onChange }: { checked: boolean, onChange: (val:
         />
     </button>
 );
-import {
-    User,
-    Mail,
-    Phone,
-    MapPin,
-    Package,
-    Calendar,
-    ShieldCheck,
-    Loader2,
-    Gift,
-} from "lucide-react";
-import type { Customer } from "@/services/customer.service";
-import { usePackage } from "@/features/master/hooks/usePackage";
-import { useToast } from "@/hooks/useToast";
-import { CustomerService } from "@/services/customer.service";
-import { cn } from "@/lib/utils";
 
 interface ManageCustomerModalProps {
     isOpen: boolean;
@@ -68,6 +69,7 @@ export function ManageCustomerModal({
     const { data: packages } = usePackage({ paginate: false });
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<Customer>>({});
+    const [activeTab, setActiveTab] = useState("personal");
 
     useEffect(() => {
         if (customer) {
@@ -108,214 +110,279 @@ export function ManageCustomerModal({
         }
     };
 
-    const handleToggle = (field: keyof Customer, value: boolean) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
-
-    const handleChange = (field: keyof Customer, value: any) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
-
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl p-0">
-                <div className="bg-[#101D42] p-6 text-white sticky top-0 z-10">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                            <User className="w-5 h-5 text-blue-300" />
-                            Kelola Pelanggan
-                        </DialogTitle>
-                        <DialogDescription className="text-blue-100/70">
-                            Ubah status, paket, dan informasi pelanggan
-                        </DialogDescription>
-                    </DialogHeader>
-                </div>
+            <DialogContent className="sm:max-w-[700px] p-0 gap-0 overflow-hidden bg-white max-h-[90vh] flex flex-col">
+                <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-white sticky top-0 z-10">
+                    <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                            <User className="w-5 h-5 text-blue-600" />
+                        </div>
+                        Kelola Pelanggan
+                    </DialogTitle>
+                    <DialogDescription className="text-slate-500">
+                        Update informasi dan status layanan pelanggan
+                    </DialogDescription>
+                </DialogHeader>
 
-                <div className="p-6 space-y-8">
-                    {/* Status Section */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-[#101D42] uppercase tracking-wider flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4" />
-                            Status & Akses
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <div className="space-y-0.5">
-                                    <Label className="text-sm font-bold">Status Internet</Label>
-                                    <p className="text-xs text-slate-500">Suspend atau aktifkan koneksi</p>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+                    <div className="px-6 border-b border-slate-100 bg-slate-50/50">
+                        <TabsList className="h-12 bg-transparent p-0 gap-6">
+                            <TabsTrigger
+                                value="personal"
+                                className="h-full px-0 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none bg-transparent font-medium text-slate-500 hover:text-slate-700 transition-all flex items-center gap-2"
+                            >
+                                <User className="w-4 h-4" />
+                                Personal
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="service"
+                                className="h-full px-0 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none bg-transparent font-medium text-slate-500 hover:text-slate-700 transition-all flex items-center gap-2"
+                            >
+                                <Package className="w-4 h-4" />
+                                Layanan & Status
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="location"
+                                className="h-full px-0 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none bg-transparent font-medium text-slate-500 hover:text-slate-700 transition-all flex items-center gap-2"
+                            >
+                                <MapPin className="w-4 h-4" />
+                                Lokasi
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                        <TabsContent value="personal" className="p-6 m-0 space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                            <User className="w-3.5 h-3.5" />
+                                            Nama Lengkap
+                                        </Label>
+                                        <Input
+                                            value={formData.name || ""}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                            placeholder="Masukkan nama lengkap"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                            <Mail className="w-3.5 h-3.5" />
+                                            Email
+                                        </Label>
+                                        <Input
+                                            value={formData.email || ""}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                            placeholder="contoh@email.com"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${formData.statusNet ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {formData.statusNet ? 'AKTIF' : 'SUSPEND'}
-                                    </span>
-                                    <CustomToggle
-                                        checked={!!formData.statusNet}
-                                        onChange={(val: boolean) => handleToggle("statusNet", val)}
-                                    />
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                            <Phone className="w-3.5 h-3.5" />
+                                            No. Telepon/WA
+                                        </Label>
+                                        <Input
+                                            value={formData.phone || ""}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                            placeholder="08..."
+                                        />
+                                    </div>
+                                    {customer?.customerId && (
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                                <Hash className="w-3.5 h-3.5" />
+                                                ID Pelanggan (Auto)
+                                            </Label>
+                                            <Input
+                                                value={customer.customerId}
+                                                readOnly
+                                                className="h-10 bg-slate-100 text-slate-500 border-slate-200 font-mono"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-
-                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <div className="space-y-0.5">
-                                    <Label className="text-sm font-bold">Status Pelanggan</Label>
-                                    <p className="text-xs text-slate-500">Aktifkan atau non-aktifkan akun</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${formData.statusCust ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-700'}`}>
-                                        {formData.statusCust ? 'AKTIF' : 'NON-AKTIF'}
-                                    </span>
-                                    <CustomToggle
-                                        checked={!!formData.statusCust}
-                                        onChange={(val: boolean) => handleToggle("statusCust", val)}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100 md:col-span-2">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                                        <Gift size={20} />
-                                    </div>
-                                    <div className="space-y-0.5">
-                                        <Label className="text-sm font-bold">Akun Free</Label>
-                                        <p className="text-xs text-slate-500">Pelanggan tidak akan ditagih biaya bulanan</p>
-                                    </div>
-                                </div>
-                                <CustomToggle
-                                    checked={!!formData.isFreeAccount}
-                                    onChange={(val: boolean) => handleToggle("isFreeAccount", val)}
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    Alamat Lengkap
+                                </Label>
+                                <Input
+                                    value={formData.address || ""}
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                    className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                                    placeholder="Jalan, No. Rumah, RT/RW, Kelurahan, Kecamatan"
                                 />
                             </div>
-                        </div>
-                    </div>
+                        </TabsContent>
 
-                    {/* Billing & Package Section */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-[#101D42] uppercase tracking-wider flex items-center gap-2">
-                            <Package className="w-4 h-4" />
-                            Layanan & Penagihan
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Paket Internet</Label>
-                                <Select
-                                    value={formData.idPackages}
-                                    onValueChange={(val) => handleChange("idPackages", val)}
-                                >
-                                    <SelectTrigger className="rounded-xl border-slate-200">
-                                        <SelectValue placeholder="Pilih Paket" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl">
-                                        {packages.map((pkg) => (
-                                            <SelectItem key={pkg.id} value={pkg.id}>
-                                                {pkg.name} - Rp {pkg.price.toLocaleString()}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Tanggal Penagihan</Label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <Input
-                                        type="number"
-                                        min={1}
-                                        max={31}
-                                        value={formData.billingDate}
-                                        onChange={(e) => handleChange("billingDate", parseInt(e.target.value))}
-                                        className="pl-10 rounded-xl border-slate-200"
-                                        placeholder="1-31"
-                                    />
-                                </div>
-                                <p className="text-[10px] text-slate-400 italic font-medium">
-                                    Invoice bulanan akan jatuh tempo pada tanggal ini setiap bulannya.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Personal Info Section */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-[#101D42] uppercase tracking-wider flex items-center gap-2">
-                            <User className="w-4 h-4" />
-                            Data Pelanggan
-                        </h3>
-                        <div className="grid grid-cols-1 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Nama Lengkap</Label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <Input
-                                        value={formData.name}
-                                        onChange={(e) => handleChange("name", e.target.value)}
-                                        className="pl-10 rounded-xl border-slate-200"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <TabsContent value="service" className="p-6 m-0 space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label className="text-xs font-bold text-slate-500 uppercase">Email</Label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                        <Input
-                                            type="email"
-                                            value={formData.email}
-                                            onChange={(e) => handleChange("email", e.target.value)}
-                                            className="pl-10 rounded-xl border-slate-200"
-                                        />
-                                    </div>
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <Package className="w-3.5 h-3.5" />
+                                        Paket Internet
+                                    </Label>
+                                    <Select
+                                        value={formData.idPackages}
+                                        onValueChange={(val) => setFormData({ ...formData, idPackages: val })}
+                                    >
+                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors">
+                                            <SelectValue placeholder="Pilih Paket" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {packages?.map((pkg) => (
+                                                <SelectItem key={pkg.id} value={pkg.id}>
+                                                    {pkg.name} - Rp {pkg.price.toLocaleString("id-ID")}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-xs font-bold text-slate-500 uppercase">Nomor HP / WhatsApp</Label>
-                                    <div className="relative">
-                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                        <Input
-                                            value={formData.phone}
-                                            onChange={(e) => handleChange("phone", e.target.value)}
-                                            className="pl-10 rounded-xl border-slate-200"
-                                        />
-                                    </div>
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        Tanggal Tagihan
+                                    </Label>
+                                    <Select
+                                        value={String(formData.billingDate)}
+                                        onValueChange={(val) => setFormData({ ...formData, billingDate: parseInt(val) })}
+                                    >
+                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors">
+                                            <SelectValue placeholder="Pilih Tanggal" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Array.from({ length: 28 }, (_, i) => i + 1).map((date) => (
+                                                <SelectItem key={date} value={String(date)}>
+                                                    Tanggal {date}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold text-slate-500 uppercase">Alamat Lengkap</Label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-3 top-3 text-slate-400" size={16} />
-                                    <textarea
-                                        value={formData.address}
-                                        onChange={(e) => handleChange("address", e.target.value)}
-                                        className="w-full min-h-[100px] pl-10 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#101D42]/10 transition-all text-sm"
+                            <div className="flex flex-col gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <Label className="text-sm font-semibold text-slate-900">Status Pelanggan</Label>
+                                        <p className="text-xs text-slate-500">Aktifkan atau nonaktifkan pelanggan ini</p>
+                                    </div>
+                                    <CustomToggle
+                                        checked={formData.statusCust || false}
+                                        onChange={(val) => setFormData({ ...formData, statusCust: val })}
+                                    />
+                                </div>
+                                <div className="h-px bg-slate-200 w-full" />
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <Label className="text-sm font-semibold text-slate-900">Status Internet</Label>
+                                        <p className="text-xs text-slate-500">Koneksi internet terhubung/terputus</p>
+                                    </div>
+                                    <CustomToggle
+                                        checked={formData.statusNet || false}
+                                        onChange={(val) => setFormData({ ...formData, statusNet: val })}
+                                    />
+                                </div>
+                                <div className="h-px bg-slate-200 w-full" />
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <Label className="text-sm font-semibold text-slate-900">Akun Gratis</Label>
+                                        <p className="text-xs text-slate-500">Tandai sebagai akun gratis (tanpa tagihan)</p>
+                                    </div>
+                                    <CustomToggle
+                                        checked={formData.isFreeAccount || false}
+                                        onChange={(val) => setFormData({ ...formData, isFreeAccount: val })}
                                     />
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                        </TabsContent>
 
-                <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 sticky bottom-0 z-10">
-                    <Button
-                        variant="ghost"
-                        onClick={onClose}
-                        className="rounded-xl font-bold"
-                    >
-                        Batal
-                    </Button>
-                    <Button
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-8 shadow-lg shadow-blue-900/10"
-                    >
-                        {loading ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                            "Simpan Perubahan"
-                        )}
-                    </Button>
-                </DialogFooter>
+                        <TabsContent value="location" className="p-6 m-0 space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        Koordinat Pelanggan
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs text-slate-500">Latitude</Label>
+                                            <Input
+                                                value={formData.latUser || ""}
+                                                onChange={(e) => setFormData({ ...formData, latUser: parseFloat(e.target.value) || 0 })}
+                                                className="h-10 bg-slate-50 border-slate-200 focus:bg-white"
+                                                type="number"
+                                                step="any"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs text-slate-500">Longitude</Label>
+                                            <Input
+                                                value={formData.longUser || ""}
+                                                onChange={(e) => setFormData({ ...formData, longUser: parseFloat(e.target.value) || 0 })}
+                                                className="h-10 bg-slate-50 border-slate-200 focus:bg-white"
+                                                type="number"
+                                                step="any"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        Koordinat ODP
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs text-slate-500">Latitude</Label>
+                                            <Input
+                                                value={formData.latODP || ""}
+                                                onChange={(e) => setFormData({ ...formData, latODP: parseFloat(e.target.value) || 0 })}
+                                                className="h-10 bg-slate-50 border-slate-200 focus:bg-white"
+                                                type="number"
+                                                step="any"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs text-slate-500">Longitude</Label>
+                                            <Input
+                                                value={formData.longODP || ""}
+                                                onChange={(e) => setFormData({ ...formData, longODP: parseFloat(e.target.value) || 0 })}
+                                                className="h-10 bg-slate-50 border-slate-200 focus:bg-white"
+                                                type="number"
+                                                step="any"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </div>
+
+                    <DialogFooter className="p-6 border-t border-slate-100 bg-white sticky bottom-0 z-10">
+                        <Button variant="outline" onClick={onClose} disabled={loading} className="h-10 px-6 rounded-lg font-medium">
+                            Batal
+                        </Button>
+                        <Button onClick={handleSubmit} disabled={loading} className="h-10 px-6 bg-[#101D42] hover:bg-[#1a2d61] text-white rounded-lg font-medium min-w-[120px]">
+                            {loading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Menyimpan...
+                                </>
+                            ) : (
+                                "Simpan Perubahan"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </Tabs>
             </DialogContent>
         </Dialog>
     );

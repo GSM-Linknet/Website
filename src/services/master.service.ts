@@ -44,7 +44,17 @@ export interface Package extends BaseEntity {
   speed: number;
   price: number;
   description?: string;
-  idWilayah: string;
+  wilayahIds?: string[];
+  packagesWilayah?: { wilayah: Wilayah }[]; // Relation for reading
+  duration?: number; // Days
+  costBandwidth?: number;
+  salesIncome?: number;
+  spCommission?: number;
+  adminCommission?: number;
+  unitCommission?: number;
+  spvCommission?: number;
+  salesCommission?: number;
+  otherCommission?: number;
 }
 
 export interface Discount extends BaseEntity {

@@ -132,6 +132,12 @@ export function CustomerDetailModal({
               </h3>
               <div className="grid grid-cols-1 gap-4">
                 <InfoItem
+                  icon={Hash}
+                  label="ID Pelanggan"
+                  value={customer.customerId}
+                  isMono
+                />
+                <InfoItem
                   icon={User}
                   label="Nama Lengkap"
                   value={customer.name}

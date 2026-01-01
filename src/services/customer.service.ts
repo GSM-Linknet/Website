@@ -5,6 +5,7 @@ import type { BaseQuery, PaginatedResponse, Unit, SubUnit } from "./master.servi
 // Interfaces based on Prisma Schema
 export interface Customer {
   id: string;
+  customerId?: string;
   name: string;
   email: string;
   phone: string;

@@ -39,7 +39,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: Users,
     resource: "pelanggan",
     items: [
-      { title: "Pendaftaran (Sales)", href: "/pelanggan/pendaftaran", resource: "pelanggan.pendaftaran" },
+      { title: "Pendaftaran Baru", href: "/pelanggan/pendaftaran", resource: "pelanggan.pendaftaran" },
       { title: "Kelola Pelanggan", href: "/pelanggan/kelola", resource: "pelanggan.kelola" },
       { title: "Layanan Mandiri", href: "/pelanggan/layanan", resource: "pelanggan.layanan" },
     ],
