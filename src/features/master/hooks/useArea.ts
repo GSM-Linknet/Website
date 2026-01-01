@@ -1,26 +1,26 @@
 import { useFetch } from "@/hooks/useFetch";
 import { useCrud } from "@/hooks/useCrud";
 import { MasterService } from "@/services/master.service";
-import type { Wilayah, BaseQuery } from "@/services/master.service";
+import type { Area, BaseQuery } from "@/services/master.service";
 
 /**
- * Hook for managing Wilayah data.
+ * Hook for managing Area data.
  * Separates data fetching and CRUD logic from the presentation layer.
  */
-export function useWilayah(initialQuery?: BaseQuery) {
-  const fetchResult = useFetch<Wilayah>(
-    (query) => MasterService.getWilayahs(query),
+export function useArea(initialQuery?: BaseQuery) {
+  const fetchResult = useFetch<Area>(
+    (query) => MasterService.getAreas(query),
     { 
       query: { paginate: true, limit: 10, ...initialQuery }, 
       autoFetch: true 
     }
   );
 
-  const crudResult = useCrud<Wilayah>(
+  const crudResult = useCrud<Area>(
     {
-      create: MasterService.createWilayah,
-      update: MasterService.updateWilayah,
-      delete: MasterService.deleteWilayah,
+      create: MasterService.createArea,
+      update: MasterService.updateArea,
+      delete: MasterService.deleteArea,
     },
     {
       onCreateSuccess: fetchResult.refetch,
@@ -35,4 +35,4 @@ export function useWilayah(initialQuery?: BaseQuery) {
   };
 }
 
-export default useWilayah;
+export default useArea;

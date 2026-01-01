@@ -100,6 +100,40 @@ export default function SubUnitPage() {
             className: "text-slate-500"
         },
         {
+            header: "WILAYAH",
+            accessorKey: "subUnitWilayah",
+            cell: (row: SubUnit) => {
+                const wilayahs = row.subUnitWilayah?.map(sw => sw.wilayah.name) || [];
+                return wilayahs.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                        {wilayahs.map((name, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                {name}
+                            </span>
+                        ))}
+                    </div>
+                ) : <span className="text-slate-400">-</span>;
+            },
+            className: "text-slate-500"
+        },
+        {
+            header: "AREA",
+            accessorKey: "subUnitArea",
+            cell: (row: SubUnit) => {
+                const areas = row.subUnitArea?.map(sa => sa.area.name) || [];
+                return areas.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                        {areas.map((name, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                                {name}
+                            </span>
+                        ))}
+                    </div>
+                ) : <span className="text-slate-400">-</span>;
+            },
+            className: "text-slate-500"
+        },
+        {
             header: "KUOTA",
             accessorKey: "quota",
             className: "w-[150px]",

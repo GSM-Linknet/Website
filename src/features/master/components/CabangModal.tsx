@@ -2,15 +2,10 @@ import { useState, useEffect } from "react";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Building2, Hash, MapPin } from "lucide-react";
 import { useWilayah } from "../hooks/useWilayah";
+import { useArea } from "../hooks/useArea";
 import type { Cabang } from "@/services/master.service";
 
 interface CabangModalProps {
@@ -31,27 +26,33 @@ export function CabangModal({
   const [formData, setFormData] = useState({
     name: "",
     code: "",
-    idWilayah: "",
+    wilayahIds: [] as string[],
+    areaIds: [] as string[],
   });
 
-  const { data: wilayahs, loading: loadingWilayah } = useWilayah({
-    limit: 100,
-  });
+  const { data: wilayahs, loading: loadingWilayah } = useWilayah({ limit: 100 });
+  const { data: areas, loading: loadingArea } = useArea({ limit: 100 });
   const isEdit = !!initialData;
 
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
+        // Extract IDs from junction tables
+        const wilayahIds = initialData.cabangWilayah?.map(cw => cw.wilayah.id) || [];
+        const areaIds = initialData.cabangArea?.map(ca => ca.area.id) || [];
+
         setFormData({
           name: initialData.name || "",
           code: initialData.code || "",
-          idWilayah: initialData.idWilayah || "",
+          wilayahIds,
+          areaIds,
         });
       } else {
         setFormData({
           name: "",
           code: "",
-          idWilayah: "",
+          wilayahIds: [],
+          areaIds: [],
         });
       }
     }
@@ -62,6 +63,24 @@ export function CabangModal({
     if (success) {
       onClose();
     }
+  };
+
+  const toggleWilayah = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      wilayahIds: prev.wilayahIds.includes(id)
+        ? prev.wilayahIds.filter(wId => wId !== id)
+        : [...prev.wilayahIds, id]
+    }));
+  };
+
+  const toggleArea = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      areaIds: prev.areaIds.includes(id)
+        ? prev.areaIds.filter(aId => aId !== id)
+        : [...prev.areaIds, id]
+    }));
   };
 
   return (
@@ -78,7 +97,7 @@ export function CabangModal({
       primaryActionLabel={isEdit ? "Simpan Perubahan" : "Simpan Cabang"}
       primaryActionOnClick={handleSubmit}
       primaryActionLoading={isLoading}
-      size="md"
+      size="lg"
     >
       <div className="space-y-5">
         {/* Code Field */}
@@ -121,39 +140,68 @@ export function CabangModal({
           />
         </div>
 
-        {/* Wilayah Field */}
+        {/* Wilayah Multi-Select */}
         <div className="space-y-2">
-          <Label
-            htmlFor="wilayah"
-            className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"
-          >
+          <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
             <MapPin size={14} className="text-blue-500" />
-            Wilayah
+            Wilayah (bisa pilih lebih dari 1)
           </Label>
-          <Select
-            value={formData.idWilayah}
-            onValueChange={(val) =>
-              setFormData({ ...formData, idWilayah: val })
-            }
-            disabled={isLoading || loadingWilayah}
-          >
-            <SelectTrigger className="rounded-xl border-slate-200 focus:ring-blue-500/20 focus:border-blue-500 h-11">
-              <SelectValue
-                placeholder={
-                  loadingWilayah
-                    ? "Memuat wilayah..."
-                    : "Pilih wilayah operasional"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-100 shadow-xl">
-              {wilayahs.map((w) => (
-                <SelectItem key={w.id} value={w.id} className="rounded-lg">
-                  {w.name} ({w.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="border border-slate-200 rounded-xl p-3 max-h-40 overflow-y-auto space-y-2">
+            {loadingWilayah ? (
+              <p className="text-sm text-slate-400">Memuat wilayah...</p>
+            ) : wilayahs.length === 0 ? (
+              <p className="text-sm text-slate-400">Tidak ada wilayah</p>
+            ) : (
+              wilayahs.map((w) => (
+                <div key={w.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`wilayah-${w.id}`}
+                    checked={formData.wilayahIds.includes(w.id)}
+                    onCheckedChange={() => toggleWilayah(w.id)}
+                    disabled={isLoading}
+                  />
+                  <label
+                    htmlFor={`wilayah-${w.id}`}
+                    className="text-sm font-medium text-slate-700 cursor-pointer"
+                  >
+                    {w.name} ({w.code})
+                  </label>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Area Multi-Select */}
+        <div className="space-y-2">
+          <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <MapPin size={14} className="text-green-500" />
+            Area (bisa pilih lebih dari 1)
+          </Label>
+          <div className="border border-slate-200 rounded-xl p-3 max-h-40 overflow-y-auto space-y-2">
+            {loadingArea ? (
+              <p className="text-sm text-slate-400">Memuat area...</p>
+            ) : areas.length === 0 ? (
+              <p className="text-sm text-slate-400">Tidak ada area</p>
+            ) : (
+              areas.map((a) => (
+                <div key={a.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`area-${a.id}`}
+                    checked={formData.areaIds.includes(a.id)}
+                    onCheckedChange={() => toggleArea(a.id)}
+                    disabled={isLoading}
+                  />
+                  <label
+                    htmlFor={`area-${a.id}`}
+                    className="text-sm font-medium text-slate-700 cursor-pointer"
+                  >
+                    {a.name} ({a.code})
+                  </label>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </BaseModal>

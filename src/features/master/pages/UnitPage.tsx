@@ -99,7 +99,41 @@ export default function UnitPage() {
             cell: (row: Unit) => row.cabang?.name || "-",
             className: "text-slate-500"
         },
-          {
+        {
+            header: "WILAYAH",
+            accessorKey: "unitWilayah",
+            cell: (row: Unit) => {
+                const wilayahs = row.unitWilayah?.map(uw => uw.wilayah.name) || [];
+                return wilayahs.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                        {wilayahs.map((name, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                {name}
+                            </span>
+                        ))}
+                    </div>
+                ) : <span className="text-slate-400">-</span>;
+            },
+            className: "text-slate-500"
+        },
+        {
+            header: "AREA",
+            accessorKey: "unitArea",
+            cell: (row: Unit) => {
+                const areas = row.unitArea?.map(ua => ua.area.name) || [];
+                return areas.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                        {areas.map((name, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                                {name}
+                            </span>
+                        ))}
+                    </div>
+                ) : <span className="text-slate-400">-</span>;
+            },
+            className: "text-slate-500"
+        },
+        {
             header: "KUOTA",
             accessorKey: "quota",
             className: "w-[150px]",

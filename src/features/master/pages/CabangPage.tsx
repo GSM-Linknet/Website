@@ -104,8 +104,36 @@ export default function CabangPage() {
       },
       {
         header: "WILAYAH",
-        accessorKey: "wilayahId",
-        cell: (row: Cabang) => row.wilayah?.name || "-",
+        accessorKey: "cabangWilayah",
+        cell: (row: Cabang) => {
+          const wilayahs = row.cabangWilayah?.map(cw => cw.wilayah.name) || [];
+          return wilayahs.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {wilayahs.map((name, i) => (
+                <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                  {name}
+                </span>
+              ))}
+            </div>
+          ) : <span className="text-slate-400">-</span>;
+        },
+        className: "text-slate-500",
+      },
+      {
+        header: "AREA",
+        accessorKey: "cabangArea",
+        cell: (row: Cabang) => {
+          const areas = row.cabangArea?.map(ca => ca.area.name) || [];
+          return areas.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {areas.map((name, i) => (
+                <span key={i} className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                  {name}
+                </span>
+              ))}
+            </div>
+          ) : <span className="text-slate-400">-</span>;
+        },
         className: "text-slate-500",
       },
       {

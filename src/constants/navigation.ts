@@ -24,6 +24,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: Database,
     resource: "master",
     items: [
+      { title: "Area", href: "/master/area", resource: "master.area" },
       { title: "Wilayah", href: "/master/wilayah", resource: "master.wilayah" },
       { title: "Cabang", href: "/master/cabang", resource: "master.wilayah" }, // Maps to wilayah for simplicity or keep as is
       { title: "Unit", href: "/master/unit", resource: "master.unit" },
