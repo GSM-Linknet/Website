@@ -8,7 +8,8 @@ export type PermissionResource =
     // Dashboard
     | "dashboard"
     // Master
-    | "master.wilayah" 
+    | "master.wilayah"
+    | "master.area"
     | "master.unit" 
     | "master.paket" 
     | "master.diskon" 
@@ -82,6 +83,7 @@ export const PERMISSIONS: PermissionMatrix = {
       // Full Access
       "dashboard": ["view", "export"],
       "master.wilayah": ["view", "create", "edit", "delete", "export"],
+      "master.area": ["view", "create", "edit", "delete", "export"],
       "master.unit": ["view", "create", "edit", "delete", "export"],
       "master.paket": ["view", "create", "edit", "delete", "export"],
       "master.diskon": ["view", "create", "edit", "delete", "export"],
@@ -109,6 +111,7 @@ export const PERMISSIONS: PermissionMatrix = {
   "ADMIN_PUSAT": {
       "dashboard": ["view"],
       "master.wilayah": ["view", "create", "edit"],
+      "master.area": ["view", "create", "edit"],
       "master.unit": ["view", "create", "edit"],
       "master.paket": ["view", "create", "edit"],
       "master.diskon": ["view", "create", "edit"],
@@ -133,6 +136,7 @@ export const PERMISSIONS: PermissionMatrix = {
   "ADMIN_CABANG": {
       "dashboard": ["view"],
       "master.wilayah": ["view"],
+      "master.area": ["view"],
       "master.unit": ["view", "create", "edit"],
       "pelanggan.pendaftaran": ["view", "verify"],
       "pelanggan.kelola": ["view", "edit"],
@@ -157,6 +161,7 @@ export const PERMISSIONS: PermissionMatrix = {
   "SUPERVISOR": {
       "dashboard": ["view"],
       "master.wilayah": ["view"],
+      "master.area": ["view"],
       "master.unit": ["view"],
       "master.paket": ["view"],
       "master.diskon": ["view"],

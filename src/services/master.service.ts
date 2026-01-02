@@ -11,13 +11,24 @@ export interface BaseEntity {
 export interface Wilayah extends BaseEntity {
   name: string;
   code: string;
+  description?: string;
+}
+
+export interface Area extends BaseEntity {
+  name: string;
+  code: string;
+  description?: string;
 }
 
 export interface Cabang extends BaseEntity {
   name: string;
   code: string;
-  idWilayah: string;
+  idWilayah?: string; // Legacy
   wilayah?: Wilayah;
+  wilayahIds?: string[];
+  areaIds?: string[];
+  cabangWilayah?: { wilayah: Wilayah }[];
+  cabangArea?: { area: Area }[];
 }
 
 export interface Unit extends BaseEntity {
@@ -27,6 +38,10 @@ export interface Unit extends BaseEntity {
   cabang?: Cabang;
   quota: number;
   quotaUsed: number;
+  wilayahIds?: string[];
+  areaIds?: string[];
+  unitWilayah?: { wilayah: Wilayah }[];
+  unitArea?: { area: Area }[];
 }
 
 export interface SubUnit extends BaseEntity {
@@ -36,6 +51,10 @@ export interface SubUnit extends BaseEntity {
   unit?: Unit;
   quota: number;
   quotaUsed: number;
+  wilayahIds?: string[];
+  areaIds?: string[];
+  subUnitWilayah?: { wilayah: Wilayah }[];
+  subUnitArea?: { area: Area }[];
 }
 
 export interface Package extends BaseEntity {
@@ -92,6 +111,7 @@ export interface ApiResponse<T> {
 
 const ENDPOINTS = {
   WILAYAH: "/master/wilayah",
+  AREA: "/master/area",
   CABANG: "/master/cabang",
   UNIT: "/master/unit",
   SUB_UNIT: "/master/sub-unit",
@@ -120,6 +140,26 @@ export const MasterService = {
   },
   deleteWilayah: async (id: string) => {
     return apiClient.delete<void>(`${ENDPOINTS.WILAYAH}/delete/${id}`);
+  },
+
+  // --- Area ---
+  getAreas: async (query: BaseQuery = {}) => {
+    return apiClient.get<PaginatedResponse<Area>>(
+      `${ENDPOINTS.AREA}/find-all`,
+      { params: query }
+    );
+  },
+  getArea: async (id: string) => {
+    return apiClient.get<Area>(`${ENDPOINTS.AREA}/find-one/${id}`);
+  },
+  createArea: async (data: Partial<Area>) => {
+    return apiClient.post<Area>(`${ENDPOINTS.AREA}/create`, data);
+  },
+  updateArea: async (id: string, data: Partial<Area>) => {
+    return apiClient.patch<Area>(`${ENDPOINTS.AREA}/update/${id}`, data);
+  },
+  deleteArea: async (id: string) => {
+    return apiClient.delete<void>(`${ENDPOINTS.AREA}/delete/${id}`);
   },
 
   // --- Cabang ---

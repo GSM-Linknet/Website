@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Plus, Building2, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { CabangModal } from "../components/CabangModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { SearchInput } from "@/components/shared/SearchInput";
 import { useCabang } from "../hooks/useCabang";
 import { useToast } from "@/hooks/useToast";
 import type { Cabang } from "@/services/master.service";
@@ -34,6 +35,7 @@ export default function CabangPage() {
     updating,
     remove: deleteCabang,
     deleting,
+    setQuery,
   } = useCabang();
 
   // Modal State
@@ -104,8 +106,36 @@ export default function CabangPage() {
       },
       {
         header: "WILAYAH",
-        accessorKey: "wilayahId",
-        cell: (row: Cabang) => row.wilayah?.name || "-",
+        accessorKey: "cabangWilayah",
+        cell: (row: Cabang) => {
+          const wilayahs = row.cabangWilayah?.map(cw => cw.wilayah.name) || [];
+          return wilayahs.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {wilayahs.map((name, i) => (
+                <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                  {name}
+                </span>
+              ))}
+            </div>
+          ) : <span className="text-slate-400">-</span>;
+        },
+        className: "text-slate-500",
+      },
+      {
+        header: "AREA",
+        accessorKey: "cabangArea",
+        cell: (row: Cabang) => {
+          const areas = row.cabangArea?.map(ca => ca.area.name) || [];
+          return areas.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {areas.map((name, i) => (
+                <span key={i} className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                  {name}
+                </span>
+              ))}
+            </div>
+          ) : <span className="text-slate-400">-</span>;
+        },
         className: "text-slate-500",
       },
       {
@@ -146,6 +176,9 @@ export default function CabangPage() {
     ],
     [deleting, canEdit, canDelete],
   );
+  const handleSearch = useCallback((val: string) => {
+    setQuery({ search: val ? `name:${val}` : undefined });
+  }, [setQuery]);
 
   return (
     <div className="space-y-6">
@@ -158,13 +191,19 @@ export default function CabangPage() {
           </p>
         </div>
         {canCreate && (
-          <Button
-            onClick={handleAdd}
-            className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
-          >
-            <Plus size={18} className="mr-2" />
-            Tambah Cabang
-          </Button>
+          <div className="flex items-center gap-4">
+            <SearchInput
+              onSearch={handleSearch}
+              placeholder="Cari cabang..."
+            />
+            <Button
+              onClick={handleAdd}
+              className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 h-11"
+            >
+              <Plus size={18} className="mr-2" />
+              Tambah Cabang
+            </Button>
+          </div>
         )}
       </div>
 

@@ -43,6 +43,7 @@ const AgingReportsPage = lazy(
 );
 const PayoutPage = lazy(() => import("@/features/finance/pages/PayoutPage"));
 const WilayahPage = lazy(() => import("@/features/master/pages/WilayahPage"));
+const AreaPage = lazy(() => import("@/features/master/pages/AreaPage"));
 const CabangPage = lazy(() => import("@/features/master/pages/CabangPage"));
 const UnitPage = lazy(() => import("@/features/master/pages/UnitPage"));
 const SubUnitPage = lazy(() => import("@/features/master/pages/SubUnitPage"));
@@ -69,6 +70,7 @@ const WhatsAppSettingsPage = lazy(
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
+const LogPage = lazy(() => import("@/features/log/LogPage"));
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
 
@@ -193,6 +195,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <WilayahPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "area",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <AreaPage />
               </Suspense>
             ),
           },

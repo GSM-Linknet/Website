@@ -55,13 +55,13 @@ export function BaseModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className={cn(
-          "rounded-[1.5rem] border-none shadow-2xl overflow-hidden p-0",
+          "rounded-[1.5rem] border-none shadow-2xl p-0 flex flex-col max-h-[90vh] w-[95vw]", // Responsive width and max-height
           sizeClasses[size],
           className,
         )}
       >
         {/* Header Section */}
-        <DialogHeader className="p-6 pb-0 space-y-3">
+        <DialogHeader className="p-6 pb-2 space-y-3 flex-shrink-0">
           <div className="flex items-center gap-3">
             {Icon && (
               <div className="p-2.5 bg-blue-50 text-[#101D42] rounded-xl ring-1 ring-blue-100/50">
@@ -81,12 +81,14 @@ export function BaseModal({
           </div>
         </DialogHeader>
 
-        {/* Content Section */}
-        <div className="p-6">{children}</div>
+        {/* Content Section - Scrollable */}
+        <div className="p-6 py-2 overflow-y-auto flex-1 custom-scrollbar">
+          {children}
+        </div>
 
         {/* Footer Section */}
         {showFooter && (
-          <DialogFooter className="p-6 pt-0 flex gap-2">
+          <DialogFooter className="p-6 pt-2 flex gap-2 flex-shrink-0 bg-white z-10">
             {footer || (
               <>
                 <Button

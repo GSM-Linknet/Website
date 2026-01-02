@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Plus, Building2, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { UnitModal } from "../components/UnitModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { SearchInput } from "@/components/shared/SearchInput";
 import { useUnit } from "../hooks/useUnit";
 import { useToast } from "@/hooks/useToast";
 import type { Unit } from "@/services/master.service";
@@ -33,7 +34,8 @@ export default function UnitPage() {
         update,
         updating,
         remove: deleteUnit,
-        deleting
+        deleting,
+        setQuery
     } = useUnit();
 
     // Modal State
@@ -99,7 +101,41 @@ export default function UnitPage() {
             cell: (row: Unit) => row.cabang?.name || "-",
             className: "text-slate-500"
         },
-          {
+        {
+            header: "WILAYAH",
+            accessorKey: "unitWilayah",
+            cell: (row: Unit) => {
+                const wilayahs = row.unitWilayah?.map(uw => uw.wilayah.name) || [];
+                return wilayahs.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                        {wilayahs.map((name, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                {name}
+                            </span>
+                        ))}
+                    </div>
+                ) : <span className="text-slate-400">-</span>;
+            },
+            className: "text-slate-500"
+        },
+        {
+            header: "AREA",
+            accessorKey: "unitArea",
+            cell: (row: Unit) => {
+                const areas = row.unitArea?.map(ua => ua.area.name) || [];
+                return areas.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                        {areas.map((name, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                                {name}
+                            </span>
+                        ))}
+                    </div>
+                ) : <span className="text-slate-400">-</span>;
+            },
+            className: "text-slate-500"
+        },
+        {
             header: "KUOTA",
             accessorKey: "quota",
             className: "w-[150px]",
@@ -164,6 +200,10 @@ export default function UnitPage() {
         },
     ], [deleting, canEdit, canDelete]);
 
+    const handleSearch = useCallback((val: string) => {
+        setQuery({ search: val ? `name:${val}` : undefined });
+    }, [setQuery]);
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -173,13 +213,19 @@ export default function UnitPage() {
                     <p className="text-sm text-slate-500">Manajemen unit operasional di bawah cabang</p>
                 </div>
                 {canCreate && (
-                    <Button
-                        onClick={handleAdd}
-                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
-                    >
-                        <Plus size={18} className="mr-2" />
-                        Tambah Unit
-                    </Button>
+                    <div className="flex items-center gap-4">
+                        <SearchInput
+                            onSearch={handleSearch}
+                            placeholder="Cari unit..."
+                        />
+                        <Button
+                            onClick={handleAdd}
+                            className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 h-11"
+                        >
+                            <Plus size={18} className="mr-2" />
+                            Tambah Unit
+                        </Button>
+                    </div>
                 )}
             </div>
 
