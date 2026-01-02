@@ -90,7 +90,14 @@ export function useFetch<T>(
   }, [query, page]);
 
   const setQuery = useCallback((newQuery: Partial<BaseQuery>) => {
-    setQueryState((prev) => ({ ...prev, ...newQuery }));
+    setQueryState((prev) => {
+      const merged = { ...prev, ...newQuery };
+      // Only update if actually different to prevent unnecessary refetches
+      if (JSON.stringify(prev) === JSON.stringify(merged)) {
+        return prev;
+      }
+      return merged;
+    });
     setPage(1); // Reset to first page on query change
   }, []);
 

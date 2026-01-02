@@ -26,6 +26,7 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
         name: "",
         email: "",
         phone: "",
+        phone2: "",
         ktpNumber: "",
         address: "",
         posNumber: "",
@@ -44,6 +45,7 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                 name: initialData.name || "",
                 email: initialData.email || "",
                 phone: initialData.phone || "",
+                phone2: initialData.phone2 || "",
                 ktpNumber: String(initialData.ktpNumber) || "",
                 address: initialData.address || "",
                 posNumber: String(initialData.posNumber) || "",
@@ -59,6 +61,7 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                 name: "",
                 email: "",
                 phone: "",
+                phone2: "",
                 ktpNumber: "",
                 address: "",
                 posNumber: "",
@@ -78,6 +81,7 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
+            phone2: formData.phone2 || undefined,
             ktpNumber: formData.ktpNumber || undefined,
             address: formData.address,
             posNumber: formData.posNumber || undefined,
@@ -153,6 +157,15 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                                             placeholder="0812..."
                                             value={formData.phone}
                                             onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-600 font-medium flex gap-2 items-center"><Phone size={14} /> WhatsApp 2 / Telp</Label>
+                                        <Input
+                                            className="h-11 rounded-lg border-slate-200 bg-white"
+                                            placeholder="0812... (opsional)"
+                                            value={formData.phone2}
+                                            onChange={e => setFormData({ ...formData, phone2: e.target.value })}
                                         />
                                     </div>
                                 </div>

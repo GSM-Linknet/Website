@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Plus, MapPin, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -6,6 +6,7 @@ import { useArea } from "../hooks/useArea";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { AreaModal } from "../components/AreaModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { SearchInput } from "@/components/shared/SearchInput";
 import type { Area } from "@/services/master.service";
 import { AuthService } from "@/services/auth.service";
 
@@ -32,7 +33,8 @@ export default function AreaPage() {
         update,
         updating,
         remove,
-        deleting
+        deleting,
+        setQuery
     } = useArea();
 
     const createDisclosure = useDisclosure();
@@ -124,6 +126,10 @@ export default function AreaPage() {
         },
     ], [canEdit, canDelete]);
 
+    const handleSearch = useCallback((val: string) => {
+        setQuery({ search: val ? `name:${val}` : undefined });
+    }, [setQuery]);
+
     return (
         <div className="space-y-6">
             {/* Modals */}
@@ -152,13 +158,19 @@ export default function AreaPage() {
                     </p>
                 </div>
                 {canCreate && (
-                    <Button
-                        onClick={createDisclosure.onOpen}
-                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
-                    >
-                        <Plus size={18} className="mr-2" />
-                        Tambah Area
-                    </Button>
+                    <div className="flex items-center gap-4">
+                        <SearchInput
+                            onSearch={handleSearch}
+                            placeholder="Cari area..."
+                        />
+                        <Button
+                            onClick={createDisclosure.onOpen}
+                            className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 h-11"
+                        >
+                            <Plus size={18} className="mr-2" />
+                            Tambah Area
+                        </Button>
+                    </div>
                 )}
             </div>
 

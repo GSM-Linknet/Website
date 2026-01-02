@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Plus, Building2, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { UnitModal } from "../components/UnitModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { SearchInput } from "@/components/shared/SearchInput";
 import { useUnit } from "../hooks/useUnit";
 import { useToast } from "@/hooks/useToast";
 import type { Unit } from "@/services/master.service";
@@ -33,7 +34,8 @@ export default function UnitPage() {
         update,
         updating,
         remove: deleteUnit,
-        deleting
+        deleting,
+        setQuery
     } = useUnit();
 
     // Modal State
@@ -198,6 +200,10 @@ export default function UnitPage() {
         },
     ], [deleting, canEdit, canDelete]);
 
+    const handleSearch = useCallback((val: string) => {
+        setQuery({ search: val ? `name:${val}` : undefined });
+    }, [setQuery]);
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -207,13 +213,19 @@ export default function UnitPage() {
                     <p className="text-sm text-slate-500">Manajemen unit operasional di bawah cabang</p>
                 </div>
                 {canCreate && (
-                    <Button
-                        onClick={handleAdd}
-                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
-                    >
-                        <Plus size={18} className="mr-2" />
-                        Tambah Unit
-                    </Button>
+                    <div className="flex items-center gap-4">
+                        <SearchInput
+                            onSearch={handleSearch}
+                            placeholder="Cari unit..."
+                        />
+                        <Button
+                            onClick={handleAdd}
+                            className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 h-11"
+                        >
+                            <Plus size={18} className="mr-2" />
+                            Tambah Unit
+                        </Button>
+                    </div>
                 )}
             </div>
 

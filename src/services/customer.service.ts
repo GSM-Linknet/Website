@@ -9,6 +9,7 @@ export interface Customer {
   name: string;
   email: string;
   phone: string;
+  phone2?: string;
   idUpline: string;
   ktpNumber: string; // String type to match backend
   ktpFile: string;
