@@ -61,6 +61,9 @@ const AdminVerificationPage = lazy(
 const WorkOrderPage = lazy(
   () => import("@/features/production/pages/WorkOrderPage"),
 );
+const CoverageMapPage = lazy(
+  () => import("@/features/production/pages/CoverageMapPage"),
+);
 const PermissionPage = lazy(
   () => import("@/features/settings/pages/PermissionPage"),
 );
@@ -70,7 +73,6 @@ const WhatsAppSettingsPage = lazy(
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
-const LogPage = lazy(() => import("@/features/log/LogPage"));
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
 
@@ -317,6 +319,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <WorkOrderPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "coverage-map",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CoverageMapPage />
               </Suspense>
             ),
           },
