@@ -124,7 +124,7 @@ const ENDPOINTS = {
 export const MasterService = {
   // --- Wilayah ---
   getWilayahs: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Wilayah>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Wilayah>>>(
       `${ENDPOINTS.WILAYAH}/find-all`,
       { params: query }
     );
@@ -144,7 +144,7 @@ export const MasterService = {
 
   // --- Area ---
   getAreas: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Area>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Area>>>(
       `${ENDPOINTS.AREA}/find-all`,
       { params: query }
     );
@@ -164,7 +164,7 @@ export const MasterService = {
 
   // --- Cabang ---
   getCabangs: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Cabang>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Cabang>>>(
       `${ENDPOINTS.CABANG}/find-all`,
       { params: query }
     );
@@ -184,7 +184,7 @@ export const MasterService = {
 
   // --- Unit ---
   getUnits: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Unit>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Unit>>>(
       `${ENDPOINTS.UNIT}/find-all`,
       { params: query }
     );
@@ -204,7 +204,7 @@ export const MasterService = {
 
   // --- SubUnit ---
   getSubUnits: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<SubUnit>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<SubUnit>>>(
       `${ENDPOINTS.SUB_UNIT}/find-all`,
       { params: query }
     );
@@ -224,7 +224,7 @@ export const MasterService = {
 
   // --- Package ---
   getPackages: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Package>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Package>>>(
       `${ENDPOINTS.PACKAGE}/find-all`,
       { params: query }
     );
@@ -244,7 +244,7 @@ export const MasterService = {
 
   // --- Discount ---
   getDiscounts: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Discount>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Discount>>>(
       `${ENDPOINTS.DISCOUNT}/find-all`,
       { params: query }
     );

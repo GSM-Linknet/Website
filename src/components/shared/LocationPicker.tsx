@@ -1,7 +1,8 @@
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Label } from "@/components/ui/label";
+import { useEffect, useRef } from "react";
 
 // Fix Leaflet's default icon path issues in React
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -34,6 +35,28 @@ function LocationMarker({ value, onChange }: { value: { lat: number; lng: number
     );
 }
 
+// Component to update map view when value changes (e.g., from manual input)
+function MapUpdater({ value }: { value: { lat: number; lng: number } | null }) {
+    const map = useMap();
+    const prevValueRef = useRef<{ lat: number; lng: number } | null>(null);
+
+    useEffect(() => {
+        if (value && value.lat !== 0 && value.lng !== 0) {
+            const prevValue = prevValueRef.current;
+            // Only fly to if coordinates actually changed (not on initial render from click)
+            if (!prevValue || prevValue.lat !== value.lat || prevValue.lng !== value.lng) {
+                map.flyTo([value.lat, value.lng], map.getZoom(), {
+                    animate: true,
+                    duration: 0.5
+                });
+            }
+            prevValueRef.current = value;
+        }
+    }, [value, map]);
+
+    return null;
+}
+
 export function LocationPicker({ label, value, onChange }: LocationPickerProps) {
     // Default center (Jakarta/Indonesia approximate) if no value
     const defaultCenter = { lat: -6.200000, lng: 106.816666 };
@@ -55,6 +78,7 @@ export function LocationPicker({ label, value, onChange }: LocationPickerProps) 
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     <LocationMarker value={value} onChange={onChange} />
+                    <MapUpdater value={value} />
                 </MapContainer>
             </div>
             {value && (
@@ -65,3 +89,4 @@ export function LocationPicker({ label, value, onChange }: LocationPickerProps) 
         </div>
     );
 }
+

@@ -51,7 +51,7 @@ export default function CoverageMapPage() {
     const fetchAreas = async () => {
         try {
             const res = await MasterService.getAreas({ limit: 100 });
-            setAreas(res.items || []);
+            setAreas(res.data.items || []);
         } catch (error) {
             console.error("Failed to fetch areas", error);
         }
@@ -59,7 +59,7 @@ export default function CoverageMapPage() {
 
     const fetchPoints = async () => {
         try {
-            const params: any = { limit: 2000 };
+            const params: any = { paginate: false };
             if (filterAreaId !== "all") {
                 params.areaId = filterAreaId;
             }

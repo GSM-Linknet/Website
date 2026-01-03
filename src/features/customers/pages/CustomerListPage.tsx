@@ -59,7 +59,7 @@ export default function CustomerListPage() {
 
     useEffect(() => {
         MasterService.getWilayahs({ paginate: false }).then(res => {
-            const items = (res as any)?.items || (Array.isArray(res) ? res : []);
+            const items = res.data?.items || [];
             setWilayahs(items);
         }).catch(err => {
             console.error("Failed to fetch wilayahs:", err);

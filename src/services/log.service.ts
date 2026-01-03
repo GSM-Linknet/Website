@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import type { ApiResponse, PaginatedResponse, BaseQuery, BaseEntity } from "./master.service";
+import type {  PaginatedResponse, BaseQuery, BaseEntity } from "./master.service";
 
 export interface Log extends BaseEntity {
   action: string;

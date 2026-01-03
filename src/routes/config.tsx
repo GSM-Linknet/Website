@@ -75,6 +75,7 @@ const PeriodicReportPage = lazy(
 );
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
+const LogPage = lazy(() => import("@/features/log/LogPage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -414,7 +415,7 @@ export const routes: RouteObject[] = [
         path: "logs",
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ComingSoonPage />
+            <LogPage />
           </Suspense>
         ),
       },
