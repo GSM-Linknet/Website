@@ -81,6 +81,21 @@ export default function CoverageMapPage() {
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
+
+        // Validate file size (max 10MB per file for KMZ)
+        const MAX_KMZ_SIZE = 10 * 1024 * 1024;
+        const oversizedFile = files.find(f => f.size > MAX_KMZ_SIZE);
+
+        if (oversizedFile) {
+            toast({
+                variant: "destructive",
+                title: "File Terlalu Besar",
+                description: `File "${oversizedFile.name}" melebihi batas 10MB. Ukuran file: ${(oversizedFile.size / (1024 * 1024)).toFixed(2)}MB`
+            });
+            e.target.value = "";
+            return;
+        }
+
         if (!selectedAreaId) {
             toast({ variant: "destructive", title: "Peringatan", description: "Silakan pilih Area terlebih dahulu." });
             return;
@@ -101,7 +116,7 @@ export default function CoverageMapPage() {
             toast({
                 variant: "destructive",
                 title: "Gagal",
-                description: "Gagal mengimport file KMZ.",
+                description: "Gagal mengimport file KMZ. Pastikan file tidak rusak atau terlalu besar.",
             });
         } finally {
             setUploading(false);

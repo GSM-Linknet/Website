@@ -115,9 +115,13 @@ export function AddCustomerDialog({
     if (file) {
       // Validate file size (max 2MB)
       if (file.size > MAX_FILE_SIZE) {
+        const errorMsg = `Ukuran file maksimal 2MB. File yang dipilih: ${(file.size / (1024 * 1024)).toFixed(2)}MB`;
+
+        setValidationErrors(prev => [...prev, errorMsg]);
+
         toast({
           title: "File Terlalu Besar",
-          description: `Ukuran file maksimal 2MB. File yang dipilih: ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+          description: errorMsg,
           variant: "destructive",
         });
         // Reset input
