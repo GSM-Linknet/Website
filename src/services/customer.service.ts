@@ -27,6 +27,7 @@ export interface Customer {
   sideHome: string;
   ODPImage: string;
   CaImage?: string;
+  attachment?: string;
   
   idPackages: string;
   statusCust: boolean;

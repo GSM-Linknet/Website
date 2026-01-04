@@ -1,8 +1,9 @@
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import { useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap, LayersControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Label } from "@/components/ui/label";
-import { useEffect, useRef } from "react";
+// import { MapFullscreenControl } from "./MapFullscreenControl";
 
 // Fix Leaflet's default icon path issues in React
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -21,6 +22,7 @@ interface LocationPickerProps {
     value: { lat: number; lng: number } | null;
     onChange: (coords: { lat: number; lng: number }) => void;
 }
+
 
 function LocationMarker({ value, onChange }: { value: { lat: number; lng: number } | null; onChange: (coords: { lat: number; lng: number }) => void }) {
     const map = useMapEvents({
@@ -65,18 +67,34 @@ export function LocationPicker({ label, value, onChange }: LocationPickerProps) 
     return (
         <div className="space-y-2">
             <Label className="text-slate-600 font-medium text-xs uppercase tracking-wider">{label}</Label>
-            <div className="h-[200px] w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm relative isolate z-0">
+            <div className="h-[400px] w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm relative isolate z-0">
                 {/* Z-index 0 and isolation to ensure it stays below modal overlays */}
                 <MapContainer
                     center={center}
-                    zoom={13}
+                    zoom={17}
+                    maxZoom={22}
                     scrollWheelZoom={false}
                     style={{ height: "100%", width: "100%" }}
                 >
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
+                    <LayersControl position="topright">
+                        <LayersControl.BaseLayer checked name="Satellite">
+                            <TileLayer
+
+                                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                                maxZoom={22}
+                                maxNativeZoom={18}
+                            />
+                        </LayersControl.BaseLayer>
+                        <LayersControl.BaseLayer name="OpenStreetMap">
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                maxZoom={22}
+                                maxNativeZoom={19}
+                            />
+                        </LayersControl.BaseLayer>
+                    </LayersControl>
+                    {/* <MapFullscreenControl /> */}
                     <LocationMarker value={value} onChange={onChange} />
                     <MapUpdater value={value} />
                 </MapContainer>

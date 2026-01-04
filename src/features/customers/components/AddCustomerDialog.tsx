@@ -103,6 +103,32 @@ export function AddCustomerDialog({
     file: null,
     preview: null,
   });
+  const [attachment, setAttachment] = useState<FilePreview>({
+    file: null,
+    preview: null,
+  });
+
+  // Fetch current location when dialog opens
+  useEffect(() => {
+    if (open && !formData.customerLocation) {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setFormData(prev => ({
+              ...prev,
+              customerLocation: { lat: latitude, lng: longitude },
+              odpLocation: { lat: latitude, lng: longitude },
+            }));
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+          },
+          { enableHighAccuracy: true }
+        );
+      }
+    }
+  }, [open]);
 
   // Maximum file size: 2MB
   const MAX_FILE_SIZE = 2 * 1024 * 1024;
@@ -166,6 +192,7 @@ export function AddCustomerDialog({
     setSideHome({ file: null, preview: null });
     setOdpImage({ file: null, preview: null });
     setCaImage({ file: null, preview: null });
+    setAttachment({ file: null, preview: null });
     setActiveTab("personal");
   };
 
@@ -237,6 +264,7 @@ export function AddCustomerDialog({
     if (sideHome.file) formDataPayload.append("sideHome", sideHome.file);
     if (odpImage.file) formDataPayload.append("ODPImage", odpImage.file);
     if (caImage.file) formDataPayload.append("CaImage", caImage.file);
+    if (attachment.file) formDataPayload.append("attachment", attachment.file);
 
     try {
       if (onCreate) {
@@ -364,7 +392,7 @@ export function AddCustomerDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-[#101D42] hover:bg-[#1e3a8a] gap-2 shadow-lg shadow-blue-900/20 rounded-xl px-5 h-11 transition-all hover:scale-[1.02] text-white">
+        <Button className="bg-[#101D42] hover:bg-[#1e3a8a] gap-2 shadow-lg shadow-blue-900/20 rounded-xl px-5 h-11 transition-all hover:scale-[1.02] text-white w-full sm:w-auto justify-center sm:justify-start">
           <Plus size={18} />
           <span className="font-semibold">Tambah Pelanggan</span>
         </Button>
@@ -465,6 +493,7 @@ export function AddCustomerDialog({
                     <Input
                       className="h-11 rounded-lg border-slate-200 bg-white"
                       placeholder="0812..."
+                      type="number"
                       value={formData.whatsapp}
                       onChange={(e) =>
                         setFormData({ ...formData, whatsapp: e.target.value })
@@ -478,6 +507,7 @@ export function AddCustomerDialog({
                     <Input
                       className="h-11 rounded-lg border-slate-200 bg-white"
                       placeholder="0812... (opsional)"
+                      type="number"
                       value={formData.whatsapp2}
                       onChange={(e) =>
                         setFormData({ ...formData, whatsapp2: e.target.value })
@@ -494,6 +524,7 @@ export function AddCustomerDialog({
                     <Input
                       className="h-11 rounded-lg border-slate-200 bg-white"
                       placeholder="327..."
+                      type="number"
                       value={formData.ktp}
                       onChange={(e) =>
                         setFormData({ ...formData, ktp: e.target.value })
@@ -527,6 +558,7 @@ export function AddCustomerDialog({
                   <Input
                     className="h-11 rounded-lg border-slate-200 bg-white w-1/3"
                     placeholder="12345"
+                    type="number"
                     value={formData.postalCode}
                     onChange={(e) =>
                       setFormData({ ...formData, postalCode: e.target.value })
@@ -614,12 +646,19 @@ export function AddCustomerDialog({
                 onClear={() => clearFile(setCaImage)}
               />
 
+              <FileUploader
+                label="Lampiran Gambar Tambahan (Opsional)"
+                value={attachment}
+                onChange={(e) => handleFileChange(e, setAttachment)}
+                onClear={() => clearFile(setAttachment)}
+              />
+
               <div className="space-y-6">
                 <div className="space-y-3">
                   <LocationPicker
                     label="Titik Lokasi Pelanggan"
                     value={formData.customerLocation}
-                    onChange={(coords) =>
+                    onChange={(coords: { lat: number; lng: number }) =>
                       handleLocationChange("customerLocation", coords)
                     }
                   />
@@ -671,7 +710,7 @@ export function AddCustomerDialog({
                   <LocationPicker
                     label="Titik Lokasi ODP"
                     value={formData.odpLocation}
-                    onChange={(coords) =>
+                    onChange={(coords: { lat: number; lng: number }) =>
                       handleLocationChange("odpLocation", coords)
                     }
                   />

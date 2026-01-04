@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { MapFullscreenControl } from "@/components/shared/MapFullscreenControl";
 import L from "leaflet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -295,7 +296,7 @@ export default function CoverageMapPage() {
                                         />
                                     </LayersControl.BaseLayer>
                                 </LayersControl>
-
+                                <MapFullscreenControl />
                                 {points.map((p) => (
                                     <Marker key={p.id} position={[p.lat, p.lng]} icon={CoverageIcon}>
                                         <Popup>
