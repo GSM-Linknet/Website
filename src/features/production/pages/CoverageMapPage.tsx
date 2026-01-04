@@ -5,7 +5,7 @@ import { MapFullscreenControl } from "@/components/shared/MapFullscreenControl";
 import L from "leaflet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Trash2, Info, Plus, Map as MapIcon, List, Filter } from "lucide-react";
+import { Upload, Trash2, Info, Map as MapIcon, List, Filter } from "lucide-react";
 import { CoverageService, type Coverage } from "@/services/coverage.service";
 import { useToast } from "@/hooks/useToast";
 import { useNavigate } from "react-router-dom";
@@ -62,7 +62,7 @@ export default function CoverageMapPage() {
         try {
             const params: any = { paginate: false };
             if (filterAreaId !== "all") {
-                params.areaId = filterAreaId;
+                params.where = `areaId:${filterAreaId}`;
             }
             const response = await CoverageService.findAll(params);
             setPoints(response.data.items || []);
@@ -165,22 +165,7 @@ export default function CoverageMapPage() {
                     {row.status}
                 </span>
             ),
-        },
-        {
-            header: "Aksi",
-            id: "actions",
-            accessorKey: "id",
-            className: "w-[120px]",
-            cell: (row: Coverage) => (
-                <Button
-                    size="sm"
-                    className="h-8 rounded-lg text-[10px] gap-1"
-                    onClick={() => navigate(`/produksi/prospek?name=${row.externalId}&address=${row.name}`)}
-                >
-                    <Plus size={12} /> Jadi Prospek
-                </Button>
-            ),
-        },
+        }
     ], [navigate]);
 
     return (

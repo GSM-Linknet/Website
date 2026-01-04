@@ -61,7 +61,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     resource: "produksi",
     items: [
       { title: "Input Prospek", href: "/produksi/prospek", resource: "produksi.prospek" },
-      { title: "Peta Coverage", href: "/produksi/coverage-map", resource: "produksi.prospek" },
+      { title: "Peta Coverage", href: "/produksi/coverage-map", resource: "produksi.cakupan" },
       { title: "Verifikasi Admin", href: "/produksi/verifikasi", resource: "produksi.verifikasi" },
       { title: "Work Orders (WO)", href: "/produksi/wo", resource: "produksi.wo" },
     ],

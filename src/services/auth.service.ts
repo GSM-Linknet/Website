@@ -27,6 +27,7 @@ export type PermissionResource =
     | "produksi.prospek" 
     | "produksi.verifikasi" 
     | "produksi.wo"
+    | "produksi.cakupan"
     // Reporting
     | "reporting.sales" 
     | "reporting.unit" 

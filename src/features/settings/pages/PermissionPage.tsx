@@ -72,7 +72,8 @@ const MODULE_GROUPS: {
             resources: [
                 { key: "produksi.prospek", label: "Input Prospek" },
                 { key: "produksi.verifikasi", label: "Verifikasi Admin" },
-                { key: "produksi.wo", label: "Work Orders (WO)" }
+                { key: "produksi.wo", label: "Work Orders (WO)" },
+                { key: "produksi.cakupan", label: "Coverage Maps" }
             ]
         },
         {

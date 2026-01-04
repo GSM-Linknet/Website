@@ -10,7 +10,7 @@ export function useLog(initialQuery?: BaseQuery) {
   const fetchResult = useFetch<Log>(
     (query) => LogService.getLogs(query),
     { 
-      query: { paginate: true, limit: 10, ...initialQuery }, 
+      query: { paginate: true, limit: 10, ...initialQuery, order: "createdAt:desc" }, 
       autoFetch: true 
     }
   );
