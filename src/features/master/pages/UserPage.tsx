@@ -18,7 +18,7 @@ export default function UserPage() {
     const { toast } = useToast();
     const userProfile = AuthService.getUser();
     const userRole = userProfile?.role || "USER";
-    const resource = "master.wilayah"; // Keep as is for now for page access
+    const resource = "master.users";
     const impersonateResource = "master.users";
 
     const canCreate = AuthService.hasPermission(userRole, resource, "create");

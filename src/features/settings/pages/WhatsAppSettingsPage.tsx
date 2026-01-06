@@ -5,17 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/useToast';
 import { WhatsAppService } from '@/services/whatsapp.service';
-import { Loader2, RefreshCw, LogOut, CheckCircle2, XCircle, QrCode } from 'lucide-react';
+import { SystemService } from '@/services/system.service';
+import { Loader2, RefreshCw, LogOut, CheckCircle2, XCircle, QrCode, Power } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const WhatsAppSettingsPage: React.FC = () => {
     const [status, setStatus] = useState<'connected' | 'disconnected' | 'qr' | 'loading'>('loading');
     const [qrCode, setQrCode] = useState<string | null>(null);
+    const [isFeatureEnabled, setIsFeatureEnabled] = useState<boolean>(true);
+    const [isToggling, setIsToggling] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
         // Initial status check
         fetchStatus();
+        fetchFeatureStatus();
 
         // Initialize Socket.io
         const socketUrl = import.meta.env.VITE_API_BASE_URL
@@ -55,6 +59,38 @@ const WhatsAppSettingsPage: React.FC = () => {
         }
     };
 
+    const fetchFeatureStatus = async () => {
+        try {
+            const res = await SystemService.getWhatsappStatus();
+            setIsFeatureEnabled(res.data.enabled);
+        } catch (err) {
+            console.error('Failed to fetch WhatsApp feature status:', err);
+        }
+    };
+
+    const handleToggleFeature = async () => {
+        try {
+            setIsToggling(true);
+            const newValue = !isFeatureEnabled;
+            await SystemService.toggleWhatsapp(newValue);
+            setIsFeatureEnabled(newValue);
+            toast({
+                title: newValue ? "Fitur WhatsApp Aktif" : "Fitur WhatsApp Nonaktif",
+                description: newValue
+                    ? "Sistem akan kembali mengirimkan notifikasi otomatis."
+                    : "Sistem tidak akan mengirimkan notifikasi WhatsApp sampai diaktifkan kembali.",
+            });
+        } catch (err) {
+            toast({
+                title: "Gagal Mengubah Status",
+                description: "Terjadi kesalahan saat memperbarui pengaturan.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsToggling(false);
+        }
+    };
+
     const handleLogout = async () => {
         try {
             setStatus('loading');
@@ -75,9 +111,49 @@ const WhatsAppSettingsPage: React.FC = () => {
 
     return (
         <div className="p-6 space-y-6 animate-in fade-in duration-500">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Pengaturan WhatsApp</h1>
-                <p className="text-slate-500">Kelola koneksi WhatsApp Gateway untuk notifikasi sistem.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Pengaturan WhatsApp</h1>
+                    <p className="text-slate-500">Kelola koneksi WhatsApp Gateway untuk notifikasi sistem.</p>
+                </div>
+
+                <div className={cn(
+                    "flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300",
+                    isFeatureEnabled
+                        ? "bg-blue-50 border-blue-100 ring-4 ring-blue-50/50"
+                        : "bg-slate-50 border-slate-200"
+                )}>
+                    <div className="flex items-center gap-3">
+                        <div className={cn(
+                            "p-2 rounded-xl transition-colors",
+                            isFeatureEnabled ? "bg-blue-500 text-white" : "bg-slate-200 text-slate-500"
+                        )}>
+                            <Power className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-slate-900">Fitur Utama</p>
+                            <p className="text-xs text-slate-500">
+                                {isFeatureEnabled ? 'Status: AKTIF' : 'Status: NONAKTIF'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleToggleFeature}
+                        disabled={isToggling}
+                        className={cn(
+                            "relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50",
+                            isFeatureEnabled ? "bg-blue-600" : "bg-slate-300"
+                        )}
+                    >
+                        <span
+                            className={cn(
+                                "inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200",
+                                isFeatureEnabled ? "translate-x-6" : "translate-x-1"
+                            )}
+                        />
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

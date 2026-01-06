@@ -53,7 +53,7 @@ const PackagePricingPage = lazy(
 const DiscountPage = lazy(() => import("@/features/master/pages/DiscountPage"));
 const UserPage = lazy(() => import("@/features/master/pages/UserPage"));
 const InstallSchedulePage = lazy(
-  () => import("@/features/master/pages/InstallSchedulePage"),
+  () => import("@/features/production/pages/InstallSchedulePage"),
 );
 const AdminVerificationPage = lazy(
   () => import("@/features/production/pages/AdminVerificationPage"),

@@ -31,8 +31,8 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "Sub Unit", href: "/master/sub-unit", resource: "master.unit" },
       { title: "Paket & Harga", href: "/master/paket", resource: "master.paket" },
       { title: "Diskon", href: "/master/diskon", resource: "master.diskon" },
-      { title: "Users", href: "/master/users", resource: "master.wilayah" }, // Should ideally have its own or share
-      { title: "Schedule Pasang", href: "/master/schedule", resource: "master.schedule" },
+      { title: "Users", href: "/master/users", resource: "master.users" },
+      
     ],
   },
   {
@@ -53,6 +53,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "Database Teknisi", href: "/teknisi/database", resource: "teknisi.database" },
       { title: "Tools & Peralatan", href: "/teknisi/tools", resource: "teknisi.tools" },
       { title: "Harga Jasa (Labor)", href: "/teknisi/harga-jasa", resource: "teknisi.harga" },
+     
     ],
   },
   {
@@ -60,9 +61,10 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: Factory,
     resource: "produksi",
     items: [
-      { title: "Input Prospek", href: "/produksi/prospek", resource: "produksi.prospek" },
+      // { title: "Input Prospek", href: "/produksi/prospek", resource: "produksi.prospek" },
       { title: "Peta Coverage", href: "/produksi/coverage-map", resource: "produksi.cakupan" },
-      { title: "Verifikasi Admin", href: "/produksi/verifikasi", resource: "produksi.verifikasi" },
+      // { title: "Verifikasi Admin", href: "/produksi/verifikasi", resource: "produksi.verifikasi" },
+      { title: "Schedule Pasang", href: "/master/schedule", resource: "master.schedule" },
       { title: "Work Orders (WO)", href: "/produksi/wo", resource: "produksi.wo" },
     ],
   },
@@ -85,7 +87,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "History Pembayaran", href: "/keuangan/history", resource: "keuangan.history" },
       { title: "Aging Reports", href: "/keuangan/aging", resource: "keuangan.aging" },
       { title: "Saldo & Payout", href: "/keuangan/saldo", resource: "keuangan.saldo" },
-      { title: "Disbursement", href: "/keuangan/payout", resource: "keuangan.payout" },
+      { title: "Disbursement", href: "/keuangan/payout", resource: "payout" },
     ],
   },
   {

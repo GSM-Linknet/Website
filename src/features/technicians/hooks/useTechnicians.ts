@@ -16,9 +16,13 @@ export function useTechnicians(initialQuery?: BaseQuery) {
   const crudResult = useCrud<Technician>(
     {
       create: TechnicianService.createTechnician,
+      update: TechnicianService.updateTechnician,
+      delete: TechnicianService.deleteTechnician,
     },
     {
       onCreateSuccess: fetchResult.refetch,
+      onUpdateSuccess: fetchResult.refetch,
+      onDeleteSuccess: fetchResult.refetch,
     }
   );
 

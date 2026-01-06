@@ -84,6 +84,23 @@ export interface Discount extends BaseEntity {
   validTo?: string;
 }
 
+export interface Schedule extends BaseEntity {
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  technicianId?: string;
+  customerId?: string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  unitId?: string;
+  subUnitId?: string;
+  customer?: any;
+  technician?: any;
+  unit?: any;
+  subUnit?: any;
+}
+
 export interface BaseQuery {
   page?: number;
   limit?: number;
@@ -117,6 +134,7 @@ const ENDPOINTS = {
   SUB_UNIT: "/master/sub-unit",
   PACKAGE: "/master/package",
   DISCOUNT: "/master/discount",
+  SCHEDULE: "/master/schedule",
 };
 
 // ==================== Service ====================
@@ -260,6 +278,26 @@ export const MasterService = {
   },
   deleteDiscount: async (id: string) => {
     return apiClient.delete<void>(`${ENDPOINTS.DISCOUNT}/delete/${id}`);
+  },
+
+  // --- Schedule ---
+  getSchedules: async (query: BaseQuery = {}) => {
+    return apiClient.get<ApiResponse<PaginatedResponse<Schedule>>>(
+      `${ENDPOINTS.SCHEDULE}/find-all`,
+      { params: query }
+    );
+  },
+  getSchedule: async (id: string) => {
+    return apiClient.get<Schedule>(`${ENDPOINTS.SCHEDULE}/find-one/${id}`);
+  },
+  createSchedule: async (data: Partial<Schedule>) => {
+    return apiClient.post<Schedule>(`${ENDPOINTS.SCHEDULE}/create`, data);
+  },
+  updateSchedule: async (id: string, data: Partial<Schedule>) => {
+    return apiClient.patch<Schedule>(`${ENDPOINTS.SCHEDULE}/update/${id}`, data);
+  },
+  deleteSchedule: async (id: string) => {
+    return apiClient.delete<void>(`${ENDPOINTS.SCHEDULE}/delete/${id}`);
   },
 };
 
