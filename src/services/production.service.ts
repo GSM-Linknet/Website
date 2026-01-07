@@ -21,15 +21,62 @@ export interface Prospect {
 
 export interface WorkOrder {
   id: string;
+  woNumber: string;
+  
+  // Relations
   customerId?: string;
+  customer?: {
+    id: string;
+    name: string;
+    phone: string;
+    customerId?: string;
+    address?: string;
+  };
+  
   prospectId?: string;
-  type: string; // installation, maintenance, repair
+  
+  technicianId?: string;
+  technician?: {
+    id: string;
+    user?: {
+      name: string;
+    };
+  };
+  
+  // Hierarchy
+  unitId?: string;
+  unit?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  
+  subUnitId?: string;
+  subUnit?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  
+  // Core fields
+  title: string;
+  description?: string;
+  type: string; // installation, maintenance, repair, upgrade
   status: string; // pending, assigned, in_progress, completed, cancelled
-  priority: string; // normal, etc
+  priority: string; // low, normal, high, urgent
+  
+  // Schedule
   scheduledDate?: string;
   completedDate?: string;
-  technicianId?: string;
+  
+  // Completion
+  completionPhoto?: string;
+  
+  // Notes
   notes?: string;
+  
+  // Tracking
+  createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -69,6 +116,13 @@ export const ProductionService = {
   },
   updateWorkOrder: async (id: string, data: Partial<WorkOrder>) => {
     return apiClient.patch<WorkOrder>(`${ENDPOINTS.WO}/update/${id}`, data);
+  },
+  completeWorkOrderWithPhoto: async (id: string, photo: File) => {
+    const formData = new FormData();
+    formData.append('completionPhoto', photo);
+    return apiClient.patch<WorkOrder>(`${ENDPOINTS.WO}/complete-with-photo/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
   deleteWorkOrder: async (id: string) => {
     return apiClient.delete(`${ENDPOINTS.WO}/delete/${id}`);

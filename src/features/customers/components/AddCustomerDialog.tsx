@@ -103,6 +103,35 @@ export function AddCustomerDialog({
     file: null,
     preview: null,
   });
+  const [attachment, setAttachment] = useState<FilePreview>({
+    file: null,
+    preview: null,
+  });
+
+  // Fetch current location when dialog opens
+  useEffect(() => {
+    if (open && !formData.customerLocation) {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setFormData(prev => ({
+              ...prev,
+              customerLocation: { lat: latitude, lng: longitude },
+              odpLocation: { lat: latitude, lng: longitude },
+            }));
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+          },
+          { enableHighAccuracy: true }
+        );
+      }
+    }
+  }, [open]);
+
+  // Maximum file size: 2MB
+  const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -110,6 +139,21 @@ export function AddCustomerDialog({
   ) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size (max 2MB)
+      if (file.size > MAX_FILE_SIZE) {
+        const errorMsg = `Ukuran file maksimal 2MB. File yang dipilih: ${(file.size / (1024 * 1024)).toFixed(2)}MB`;
+
+        setValidationErrors(prev => [...prev, errorMsg]);
+
+        toast({
+          title: "File Terlalu Besar",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        // Reset input
+        e.target.value = "";
+        return;
+      }
       const preview = URL.createObjectURL(file);
       setter({ file, preview });
     }
@@ -148,6 +192,7 @@ export function AddCustomerDialog({
     setSideHome({ file: null, preview: null });
     setOdpImage({ file: null, preview: null });
     setCaImage({ file: null, preview: null });
+    setAttachment({ file: null, preview: null });
     setActiveTab("personal");
   };
 
@@ -219,6 +264,7 @@ export function AddCustomerDialog({
     if (sideHome.file) formDataPayload.append("sideHome", sideHome.file);
     if (odpImage.file) formDataPayload.append("ODPImage", odpImage.file);
     if (caImage.file) formDataPayload.append("CaImage", caImage.file);
+    if (attachment.file) formDataPayload.append("attachment", attachment.file);
 
     try {
       if (onCreate) {
@@ -228,25 +274,37 @@ export function AddCustomerDialog({
       resetForm();
       setOpen(false);
     } catch (error) {
-      if (error instanceof ApiError && error.data?.data) {
-        // Extract validation errors from API response
-        const errors = Array.isArray(error.data.data)
-          ? error.data.data
-          : [error.data.message || "Terjadi kesalahan"];
-        setValidationErrors(errors);
-        toast({
-          title: "Validasi Gagal",
-          description: errors[0] || "Form tidak valid",
-          variant: "destructive",
-        });
+      // Extract validation errors from API response
+      const apiError = error as ApiError;
+      let errors: string[] = [];
+
+      if (apiError?.data?.data && Array.isArray(apiError.data.data)) {
+        // Joi validation errors: { data: ["error1", "error2", ...] }
+        errors = apiError.data.data;
+      } else if (apiError?.data?.message) {
+        // Single error message from API
+        errors = [apiError.data.message];
+      } else if (apiError?.message) {
+        // Error message from ApiError class
+        errors = [apiError.message];
+      } else if (error instanceof Error) {
+        errors = [error.message];
       } else {
-        toast({
-          title: "Error",
-          description:
-            error instanceof Error ? error.message : "Terjadi kesalahan",
-          variant: "destructive",
-        });
+        errors = ["Terjadi kesalahan saat menyimpan data"];
       }
+
+      setValidationErrors(errors);
+
+      // Show each error as individual toast for visibility
+      errors.forEach((errorMsg, index) => {
+        setTimeout(() => {
+          toast({
+            title: index === 0 ? "Validasi Gagal" : "Error",
+            description: errorMsg,
+            variant: "destructive",
+          });
+        }, index * 300); // Stagger toasts to avoid overlap
+      });
     }
   };
 
@@ -323,7 +381,7 @@ export function AddCustomerDialog({
             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 group-hover:text-blue-500 transition-colors">
               <ImageIcon size={28} className="mb-2 opacity-50" />
               <span className="text-xs font-medium">Klik untuk upload</span>
-              <span className="text-[10px] opacity-70">JPG, PNG max 5MB</span>
+              <span className="text-[10px] opacity-70">JPG, PNG max 2MB</span>
             </div>
           </div>
         )}
@@ -334,7 +392,7 @@ export function AddCustomerDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-[#101D42] hover:bg-[#1e3a8a] gap-2 shadow-lg shadow-blue-900/20 rounded-xl px-5 h-11 transition-all hover:scale-[1.02] text-white">
+        <Button className="bg-[#101D42] hover:bg-[#1e3a8a] gap-2 shadow-lg shadow-blue-900/20 rounded-xl px-5 h-11 transition-all hover:scale-[1.02] text-white w-full sm:w-auto justify-center sm:justify-start">
           <Plus size={18} />
           <span className="font-semibold">Tambah Pelanggan</span>
         </Button>
@@ -435,6 +493,7 @@ export function AddCustomerDialog({
                     <Input
                       className="h-11 rounded-lg border-slate-200 bg-white"
                       placeholder="0812..."
+                      type="number"
                       value={formData.whatsapp}
                       onChange={(e) =>
                         setFormData({ ...formData, whatsapp: e.target.value })
@@ -448,6 +507,7 @@ export function AddCustomerDialog({
                     <Input
                       className="h-11 rounded-lg border-slate-200 bg-white"
                       placeholder="0812... (opsional)"
+                      type="number"
                       value={formData.whatsapp2}
                       onChange={(e) =>
                         setFormData({ ...formData, whatsapp2: e.target.value })
@@ -464,6 +524,7 @@ export function AddCustomerDialog({
                     <Input
                       className="h-11 rounded-lg border-slate-200 bg-white"
                       placeholder="327..."
+                      type="number"
                       value={formData.ktp}
                       onChange={(e) =>
                         setFormData({ ...formData, ktp: e.target.value })
@@ -497,6 +558,7 @@ export function AddCustomerDialog({
                   <Input
                     className="h-11 rounded-lg border-slate-200 bg-white w-1/3"
                     placeholder="12345"
+                    type="number"
                     value={formData.postalCode}
                     onChange={(e) =>
                       setFormData({ ...formData, postalCode: e.target.value })
@@ -584,22 +646,117 @@ export function AddCustomerDialog({
                 onClear={() => clearFile(setCaImage)}
               />
 
-              <div className="space-y-6">
-                <LocationPicker
-                  label="Titik Lokasi Pelanggan"
-                  value={formData.customerLocation}
-                  onChange={(coords) =>
-                    handleLocationChange("customerLocation", coords)
-                  }
-                />
+              <FileUploader
+                label="Lampiran Gambar Tambahan (Opsional)"
+                value={attachment}
+                onChange={(e) => handleFileChange(e, setAttachment)}
+                onClear={() => clearFile(setAttachment)}
+              />
 
-                <LocationPicker
-                  label="Titik Lokasi ODP"
-                  value={formData.odpLocation}
-                  onChange={(coords) =>
-                    handleLocationChange("odpLocation", coords)
-                  }
-                />
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <LocationPicker
+                    label="Titik Lokasi Pelanggan"
+                    value={formData.customerLocation}
+                    onChange={(coords: { lat: number; lng: number }) =>
+                      handleLocationChange("customerLocation", coords)
+                    }
+                  />
+                  <div className="grid grid-cols-2 gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center gap-1.5">
+                        <MapPin size={10} className="text-blue-500" />
+                        Latitude Pelanggan
+                      </Label>
+                      <Input
+                        type="number"
+                        step="any"
+                        value={formData.customerLocation?.lat ?? ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          handleLocationChange("customerLocation", {
+                            lat: isNaN(val) ? 0 : val,
+                            lng: formData.customerLocation?.lng ?? 0
+                          });
+                        }}
+                        className="h-9 text-xs bg-white border-slate-200 focus:border-blue-400 focus:ring-blue-400/10 transition-all font-mono"
+                        placeholder="0.000000"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center gap-1.5">
+                        <MapPin size={10} className="text-blue-500" />
+                        Longitude Pelanggan
+                      </Label>
+                      <Input
+                        type="number"
+                        step="any"
+                        value={formData.customerLocation?.lng ?? ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          handleLocationChange("customerLocation", {
+                            lat: formData.customerLocation?.lat ?? 0,
+                            lng: isNaN(val) ? 0 : val
+                          });
+                        }}
+                        className="h-9 text-xs bg-white border-slate-200 focus:border-blue-400 focus:ring-blue-400/10 transition-all font-mono"
+                        placeholder="0.000000"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <LocationPicker
+                    label="Titik Lokasi ODP"
+                    value={formData.odpLocation}
+                    onChange={(coords: { lat: number; lng: number }) =>
+                      handleLocationChange("odpLocation", coords)
+                    }
+                  />
+                  <div className="grid grid-cols-2 gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center gap-1.5">
+                        <Hash size={10} className="text-orange-500" />
+                        Latitude ODP
+                      </Label>
+                      <Input
+                        type="number"
+                        step="any"
+                        value={formData.odpLocation?.lat ?? ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          handleLocationChange("odpLocation", {
+                            lat: isNaN(val) ? 0 : val,
+                            lng: formData.odpLocation?.lng ?? 0
+                          });
+                        }}
+                        className="h-9 text-xs bg-white border-slate-200 focus:border-blue-400 focus:ring-blue-400/10 transition-all font-mono"
+                        placeholder="0.000000"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center gap-1.5">
+                        <Hash size={10} className="text-orange-500" />
+                        Longitude ODP
+                      </Label>
+                      <Input
+                        type="number"
+                        step="any"
+                        value={formData.odpLocation?.lng ?? ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          handleLocationChange("odpLocation", {
+                            lat: formData.odpLocation?.lat ?? 0,
+                            lng: isNaN(val) ? 0 : val
+                          });
+                        }}
+                        className="h-9 text-xs bg-white border-slate-200 focus:border-blue-400 focus:ring-blue-400/10 transition-all font-mono"
+                        placeholder="0.000000"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </TabsContent>
           </div>

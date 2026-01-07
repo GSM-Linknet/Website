@@ -41,6 +41,7 @@ const ROLES: { value: UserRole; label: string }[] = [
   { value: "ADMIN_UNIT", label: "Admin Unit" },
   { value: "SUPERVISOR", label: "Supervisor" },
   { value: "SALES", label: "Sales" },
+  { value: "TECHNICIAN", label: "Technician" },
   { value: "USER", label: "User" },
 ];
 

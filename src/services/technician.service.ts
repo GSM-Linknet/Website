@@ -10,6 +10,18 @@ export interface Technician {
   availability: string;
   rating?: number;
   user?: any;
+  unit?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  subUnit?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  unitId?: string;
+  subUnitId?: string;
 }
 
 export interface Tool {
@@ -20,6 +32,18 @@ export interface Tool {
   quantity: number;
   condition: string;
   location?: string;
+  unitId?: string;
+  subUnitId?: string;
+  unit?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  subUnit?: {
+    id: string;
+    name: string;
+    code: string;
+  };
 }
 
 export interface LaborPrice {
@@ -28,6 +52,18 @@ export interface LaborPrice {
   code: string;
   price: number;
   description?: string;
+  unitId?: string;
+  subUnitId?: string;
+  unit?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  subUnit?: {
+    id: string;
+    name: string;
+    code: string;
+  };
 }
 
 const ENDPOINTS = {
@@ -43,6 +79,12 @@ export const TechnicianService = {
   },
   createTechnician: async (data: Partial<Technician>) => {
     return apiClient.post<Technician>(`${ENDPOINTS.DATABASE}/create`, data);
+  },
+  updateTechnician: async (id: string, data: Partial<Technician>) => {
+    return apiClient.patch<Technician>(`${ENDPOINTS.DATABASE}/update/${id}`, data);
+  },
+  deleteTechnician: async (id: string) => {
+    return apiClient.delete(`${ENDPOINTS.DATABASE}/delete/${id}`);
   },
   // Note: Standard CRUD might vary if technician is tied to User
 

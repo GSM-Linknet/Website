@@ -84,6 +84,23 @@ export interface Discount extends BaseEntity {
   validTo?: string;
 }
 
+export interface Schedule extends BaseEntity {
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  technicianId?: string;
+  customerId?: string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  unitId?: string;
+  subUnitId?: string;
+  customer?: any;
+  technician?: any;
+  unit?: any;
+  subUnit?: any;
+}
+
 export interface BaseQuery {
   page?: number;
   limit?: number;
@@ -117,6 +134,7 @@ const ENDPOINTS = {
   SUB_UNIT: "/master/sub-unit",
   PACKAGE: "/master/package",
   DISCOUNT: "/master/discount",
+  SCHEDULE: "/master/schedule",
 };
 
 // ==================== Service ====================
@@ -124,7 +142,7 @@ const ENDPOINTS = {
 export const MasterService = {
   // --- Wilayah ---
   getWilayahs: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Wilayah>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Wilayah>>>(
       `${ENDPOINTS.WILAYAH}/find-all`,
       { params: query }
     );
@@ -144,7 +162,7 @@ export const MasterService = {
 
   // --- Area ---
   getAreas: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Area>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Area>>>(
       `${ENDPOINTS.AREA}/find-all`,
       { params: query }
     );
@@ -164,7 +182,7 @@ export const MasterService = {
 
   // --- Cabang ---
   getCabangs: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Cabang>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Cabang>>>(
       `${ENDPOINTS.CABANG}/find-all`,
       { params: query }
     );
@@ -184,7 +202,7 @@ export const MasterService = {
 
   // --- Unit ---
   getUnits: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Unit>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Unit>>>(
       `${ENDPOINTS.UNIT}/find-all`,
       { params: query }
     );
@@ -204,7 +222,7 @@ export const MasterService = {
 
   // --- SubUnit ---
   getSubUnits: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<SubUnit>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<SubUnit>>>(
       `${ENDPOINTS.SUB_UNIT}/find-all`,
       { params: query }
     );
@@ -224,7 +242,7 @@ export const MasterService = {
 
   // --- Package ---
   getPackages: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Package>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Package>>>(
       `${ENDPOINTS.PACKAGE}/find-all`,
       { params: query }
     );
@@ -244,7 +262,7 @@ export const MasterService = {
 
   // --- Discount ---
   getDiscounts: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Discount>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Discount>>>(
       `${ENDPOINTS.DISCOUNT}/find-all`,
       { params: query }
     );
@@ -260,6 +278,26 @@ export const MasterService = {
   },
   deleteDiscount: async (id: string) => {
     return apiClient.delete<void>(`${ENDPOINTS.DISCOUNT}/delete/${id}`);
+  },
+
+  // --- Schedule ---
+  getSchedules: async (query: BaseQuery = {}) => {
+    return apiClient.get<ApiResponse<PaginatedResponse<Schedule>>>(
+      `${ENDPOINTS.SCHEDULE}/find-all`,
+      { params: query }
+    );
+  },
+  getSchedule: async (id: string) => {
+    return apiClient.get<Schedule>(`${ENDPOINTS.SCHEDULE}/find-one/${id}`);
+  },
+  createSchedule: async (data: Partial<Schedule>) => {
+    return apiClient.post<Schedule>(`${ENDPOINTS.SCHEDULE}/create`, data);
+  },
+  updateSchedule: async (id: string, data: Partial<Schedule>) => {
+    return apiClient.patch<Schedule>(`${ENDPOINTS.SCHEDULE}/update/${id}`, data);
+  },
+  deleteSchedule: async (id: string) => {
+    return apiClient.delete<void>(`${ENDPOINTS.SCHEDULE}/delete/${id}`);
   },
 };
 

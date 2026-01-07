@@ -134,6 +134,7 @@ Administrators can manage active customers with the following features:
 - **Custom Billing Dates**: Set specific days of the month for invoice generation (Default: 10th).
 - **Package Upgrades**: Change internet packages for active customers.
 - **Data Editing**: Update customer personal and contact information.
+- **Manual Coordinate Input**: Flexibility to enter latitude and longitude manually or via map picker in the registration form.
 
 ### Layanan Pelanggan (Self-Service List)
 

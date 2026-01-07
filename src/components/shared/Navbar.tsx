@@ -1,7 +1,6 @@
 import {
     Bell,
     Menu,
-    Search,
     ChevronDown,
     PanelLeftClose,
     PanelLeftOpen,
@@ -72,7 +71,7 @@ export const Navbar = () => {
                     <Menu size={20} />
                 </Button>
 
-               
+
             </div>
 
             <div className="flex items-center space-x-2 sm:space-x-4">

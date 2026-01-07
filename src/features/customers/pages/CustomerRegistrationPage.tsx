@@ -41,6 +41,7 @@ export default function CustomerRegistrationPage() {
   const {
     data: customers,
     loading,
+    totalItems,
     page,
     totalPages,
     setPage,
@@ -224,6 +225,12 @@ export default function CustomerRegistrationPage() {
       ),
     },
     {
+      header: "SITE ID",
+      accessorKey: "siteId",
+      className: "text-slate-500 font-bold text-[12px]",
+      cell: (row: Customer) => row.siteId || "-"
+    },
+    {
       header: "PAKET",
       accessorKey: "paket",
       className: "text-slate-500 font-bold text-[12px]",
@@ -272,7 +279,7 @@ export default function CustomerRegistrationPage() {
                 <Eye size={14} className="mr-2" />
                 Lihat Detail
               </DropdownMenuItem>
-              {canVerify && isPending && (
+              {canVerify && (
                 <>
                   <DropdownMenuItem
                     className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
@@ -328,15 +335,15 @@ export default function CustomerRegistrationPage() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <div className="relative group">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative group w-full sm:w-auto">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
               size={18}
             />
             <Input
               placeholder="Cari"
-              className="pl-10 w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+              className="pl-10 w-full sm:w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
             />
@@ -363,21 +370,12 @@ export default function CustomerRegistrationPage() {
           ]}
           onSelect={(val) => handleFilterChange("status", val)}
         />
-        <FilterDropdown
-          label="Semua Internet"
-          activeValue={filters.internet}
-          options={[
-            { label: "Semua Internet", value: "all" },
-            { label: "Online", value: "online" },
-            { label: "Offline", value: "offline" },
-          ]}
-          onSelect={(val) => handleFilterChange("internet", val)}
-        />
-      
+
+
       </div>
 
       {/* Table Content */}
-      <div className="bg-white rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
+      <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
         <BaseTable
           data={customers}
           columns={columns}
@@ -386,6 +384,7 @@ export default function CustomerRegistrationPage() {
           loading={loading}
           page={page}
           totalPages={totalPages}
+          totalItems={totalItems}
           onPageChange={setPage}
         />
       </div>
@@ -448,7 +447,7 @@ const FilterDropdown = ({ label, options, activeValue, onSelect }: FilterDropdow
         <Button
           variant="outline"
           className={cn(
-            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between min-w-[180px] border shadow-sm",
+            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
             activeValue !== "all" && "border-blue-500 text-blue-600 bg-blue-50/50"
           )}
         >

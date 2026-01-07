@@ -29,6 +29,7 @@ export function useUser(initialQuery?: BaseQuery) {
   return {
     ...fetchResult,
     ...crudResult,
+    setQuery: fetchResult.setQuery,
   };
 }
 
