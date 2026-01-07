@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -11,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import { Building2, Hash, MapPin } from "lucide-react";
 import { useUnit } from "../hooks/useUnit";
+import { useWilayah } from "../hooks/useWilayah";
+import { useArea } from "../hooks/useArea";
 import type { SubUnit } from "@/services/master.service";
 
 interface SubUnitModalProps {
@@ -33,21 +36,28 @@ export function SubUnitModal({
         code: "",
         unitId: "",
         quota: 0,
+        wilayahIds: [] as string[],
+        areaIds: [] as string[],
     });
 
-    const { data: units, loading: loadingUnit } = useUnit({
-        paginate: false
-    });
+    const { data: units, loading: loadingUnit } = useUnit({ paginate: false });
+    const { data: wilayahs, loading: loadingWilayah } = useWilayah({ limit: 100 });
+    const { data: areas, loading: loadingArea } = useArea({ limit: 100 });
     const isEdit = !!initialData;
 
     useEffect(() => {
         if (isOpen) {
             if (initialData) {
+                const wilayahIds = initialData.subUnitWilayah?.map(sw => sw.wilayah.id) || [];
+                const areaIds = initialData.subUnitArea?.map(sa => sa.area.id) || [];
+
                 setFormData({
                     name: initialData.name || "",
                     code: initialData.code || "",
                     unitId: initialData.unitId || "",
                     quota: initialData.quota || 0,
+                    wilayahIds,
+                    areaIds,
                 });
             } else {
                 setFormData({
@@ -55,6 +65,8 @@ export function SubUnitModal({
                     code: "",
                     unitId: "",
                     quota: 0,
+                    wilayahIds: [],
+                    areaIds: [],
                 });
             }
         }
@@ -65,6 +77,24 @@ export function SubUnitModal({
         if (success) {
             onClose();
         }
+    };
+
+    const toggleWilayah = (id: string) => {
+        setFormData(prev => ({
+            ...prev,
+            wilayahIds: prev.wilayahIds.includes(id)
+                ? prev.wilayahIds.filter(wId => wId !== id)
+                : [...prev.wilayahIds, id]
+        }));
+    };
+
+    const toggleArea = (id: string) => {
+        setFormData(prev => ({
+            ...prev,
+            areaIds: prev.areaIds.includes(id)
+                ? prev.areaIds.filter(aId => aId !== id)
+                : [...prev.areaIds, id]
+        }));
     };
 
     return (
@@ -81,7 +111,7 @@ export function SubUnitModal({
             primaryActionLabel={isEdit ? "Simpan Perubahan" : "Simpan Sub Unit"}
             primaryActionOnClick={handleSubmit}
             primaryActionLoading={isLoading}
-            size="md"
+            size="lg"
         >
             <div className="space-y-5">
                 {/* Code Field */}
@@ -158,6 +188,7 @@ export function SubUnitModal({
                         </SelectContent>
                     </Select>
                 </div>
+
                 {/* Quota Field */}
                 <div className="space-y-2">
                     <Label
@@ -178,6 +209,70 @@ export function SubUnitModal({
                         disabled={isLoading}
                         min={0}
                     />
+                </div>
+
+                {/* Wilayah Multi-Select */}
+                <div className="space-y-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <MapPin size={14} className="text-blue-500" />
+                        Wilayah (bisa pilih lebih dari 1)
+                    </Label>
+                    <div className="border border-slate-200 rounded-xl p-3 max-h-32 overflow-y-auto space-y-2">
+                        {loadingWilayah ? (
+                            <p className="text-sm text-slate-400">Memuat wilayah...</p>
+                        ) : wilayahs.length === 0 ? (
+                            <p className="text-sm text-slate-400">Tidak ada wilayah</p>
+                        ) : (
+                            wilayahs.map((w) => (
+                                <div key={w.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`subunit-wilayah-${w.id}`}
+                                        checked={formData.wilayahIds.includes(w.id)}
+                                        onCheckedChange={() => toggleWilayah(w.id)}
+                                        disabled={isLoading}
+                                    />
+                                    <label
+                                        htmlFor={`subunit-wilayah-${w.id}`}
+                                        className="text-sm font-medium text-slate-700 cursor-pointer"
+                                    >
+                                        {w.name} ({w.code})
+                                    </label>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Area Multi-Select */}
+                <div className="space-y-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <MapPin size={14} className="text-green-500" />
+                        Area (bisa pilih lebih dari 1)
+                    </Label>
+                    <div className="border border-slate-200 rounded-xl p-3 max-h-32 overflow-y-auto space-y-2">
+                        {loadingArea ? (
+                            <p className="text-sm text-slate-400">Memuat area...</p>
+                        ) : areas.length === 0 ? (
+                            <p className="text-sm text-slate-400">Tidak ada area</p>
+                        ) : (
+                            areas.map((a) => (
+                                <div key={a.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`subunit-area-${a.id}`}
+                                        checked={formData.areaIds.includes(a.id)}
+                                        onCheckedChange={() => toggleArea(a.id)}
+                                        disabled={isLoading}
+                                    />
+                                    <label
+                                        htmlFor={`subunit-area-${a.id}`}
+                                        className="text-sm font-medium text-slate-700 cursor-pointer"
+                                    >
+                                        {a.name} ({a.code})
+                                    </label>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
         </BaseModal>

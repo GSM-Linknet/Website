@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, MapPin, Smartphone, Laptop, Globe, Zap, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,19 +6,33 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductionService } from "@/services/production.service";
 import { useToast } from "@/hooks/useToast";
+import { useSearchParams } from "react-router-dom";
 
 export default function ProspectEntryPage() {
     const { toast } = useToast();
+    const [searchParams] = useSearchParams();
     const [formData, setFormData] = useState({
-        name: "",
+        name: searchParams.get("name") || "",
         phone: "",
-        address: "",
+        address: searchParams.get("address") || "",
         hpCount: "1",
         laptopCount: "0",
         provider: "",
         mbpsNeeds: "",
         targetPrice: ""
     });
+
+    useEffect(() => {
+        const name = searchParams.get("name");
+        const address = searchParams.get("address");
+        if (name || address) {
+            setFormData(prev => ({
+                ...prev,
+                name: name || prev.name,
+                address: address || prev.address
+            }));
+        }
+    }, [searchParams]);
     const [loading, setLoading] = useState(false);
     // const { toast } = useToast();
 

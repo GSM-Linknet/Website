@@ -43,6 +43,7 @@ const AgingReportsPage = lazy(
 );
 const PayoutPage = lazy(() => import("@/features/finance/pages/PayoutPage"));
 const WilayahPage = lazy(() => import("@/features/master/pages/WilayahPage"));
+const AreaPage = lazy(() => import("@/features/master/pages/AreaPage"));
 const CabangPage = lazy(() => import("@/features/master/pages/CabangPage"));
 const UnitPage = lazy(() => import("@/features/master/pages/UnitPage"));
 const SubUnitPage = lazy(() => import("@/features/master/pages/SubUnitPage"));
@@ -52,13 +53,16 @@ const PackagePricingPage = lazy(
 const DiscountPage = lazy(() => import("@/features/master/pages/DiscountPage"));
 const UserPage = lazy(() => import("@/features/master/pages/UserPage"));
 const InstallSchedulePage = lazy(
-  () => import("@/features/master/pages/InstallSchedulePage"),
+  () => import("@/features/production/pages/InstallSchedulePage"),
 );
 const AdminVerificationPage = lazy(
   () => import("@/features/production/pages/AdminVerificationPage"),
 );
 const WorkOrderPage = lazy(
   () => import("@/features/production/pages/WorkOrderPage"),
+);
+const CoverageMapPage = lazy(
+  () => import("@/features/production/pages/CoverageMapPage"),
 );
 const PermissionPage = lazy(
   () => import("@/features/settings/pages/PermissionPage"),
@@ -71,6 +75,7 @@ const PeriodicReportPage = lazy(
 );
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
+const LogPage = lazy(() => import("@/features/log/LogPage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -197,6 +202,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "area",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <AreaPage />
+              </Suspense>
+            ),
+          },
+          {
             path: "cabang",
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -310,6 +323,14 @@ export const routes: RouteObject[] = [
               </Suspense>
             ),
           },
+          {
+            path: "coverage-map",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CoverageMapPage />
+              </Suspense>
+            ),
+          },
         ],
       },
       {
@@ -394,7 +415,7 @@ export const routes: RouteObject[] = [
         path: "logs",
         element: (
           <Suspense fallback={<PageLoader />}>
-            <ComingSoonPage />
+            <LogPage />
           </Suspense>
         ),
       },

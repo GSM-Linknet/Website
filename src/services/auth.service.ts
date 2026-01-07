@@ -1,14 +1,15 @@
 import { apiClient } from "./api-client";
 import Cookies from "js-cookie";
 
-export type UserRole = "SUPER_ADMIN" | "ADMIN_PUSAT" | "ADMIN_CABANG" | "ADMIN_UNIT" | "SUPERVISOR" | "SALES" | "USER";
+export type UserRole = "SUPER_ADMIN" | "ADMIN_PUSAT" | "ADMIN_CABANG" | "ADMIN_UNIT" | "SUPERVISOR" | "SALES" | "TECHNICIAN" | "USER";
 
 // Flattened keys for granular permissions
 export type PermissionResource = 
     // Dashboard
     | "dashboard"
     // Master
-    | "master.wilayah" 
+    | "master.wilayah"
+    | "master.area"
     | "master.unit" 
     | "master.paket" 
     | "master.diskon" 
@@ -26,6 +27,7 @@ export type PermissionResource =
     | "produksi.prospek" 
     | "produksi.verifikasi" 
     | "produksi.wo"
+    | "produksi.cakupan"
     // Reporting
     | "reporting.sales" 
     | "reporting.unit" 
@@ -38,6 +40,7 @@ export type PermissionResource =
     // Settings
     | "settings.permissions"
     | "settings.whatsapp"
+    | "settings.system"
     // Other
     | "customer"
     | "payout";
@@ -75,6 +78,7 @@ export const MOCK_USERS: User[] = [
   { id: "4", name: "Admin Unit", role: "ADMIN_UNIT" },
   { id: "5", name: "Supervisor Unit", role: "SUPERVISOR" },
   { id: "6", name: "Sales Sub Unit", role: "SALES" },
+  { id: "7", name: "Teknisi Lapangan", role: "TECHNICIAN" },
 ];
 
 export const PERMISSIONS: PermissionMatrix = {
@@ -82,6 +86,7 @@ export const PERMISSIONS: PermissionMatrix = {
       // Full Access
       "dashboard": ["view", "export"],
       "master.wilayah": ["view", "create", "edit", "delete", "export"],
+      "master.area": ["view", "create", "edit", "delete", "export"],
       "master.unit": ["view", "create", "edit", "delete", "export"],
       "master.paket": ["view", "create", "edit", "delete", "export"],
       "master.diskon": ["view", "create", "edit", "delete", "export"],
@@ -104,11 +109,13 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.invoice": ["view", "create", "edit", "delete", "export"],
       "settings.permissions": ["view", "create", "edit", "delete"],
       "settings.whatsapp": ["view", "edit"],
+      "settings.system": ["view", "edit"],
       "master.users": ["impersonate"],
   },
   "ADMIN_PUSAT": {
       "dashboard": ["view"],
       "master.wilayah": ["view", "create", "edit"],
+      "master.area": ["view", "create", "edit"],
       "master.unit": ["view", "create", "edit"],
       "master.paket": ["view", "create", "edit"],
       "master.diskon": ["view", "create", "edit"],
@@ -129,10 +136,12 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.aging": ["view"],
       "keuangan.saldo": ["view"],
       "settings.permissions": ["view"],
+      "settings.system": ["view", "edit"],
   },
   "ADMIN_CABANG": {
       "dashboard": ["view"],
       "master.wilayah": ["view"],
+      "master.area": ["view"],
       "master.unit": ["view", "create", "edit"],
       "pelanggan.pendaftaran": ["view", "verify"],
       "pelanggan.kelola": ["view", "edit"],
@@ -157,6 +166,7 @@ export const PERMISSIONS: PermissionMatrix = {
   "SUPERVISOR": {
       "dashboard": ["view"],
       "master.wilayah": ["view"],
+      "master.area": ["view"],
       "master.unit": ["view"],
       "master.paket": ["view"],
       "master.diskon": ["view"],
@@ -201,6 +211,12 @@ export const PERMISSIONS: PermissionMatrix = {
       "keuangan.aging": [],
       "keuangan.saldo": [],
       "settings.permissions": [],
+  },
+  "TECHNICIAN": {
+      "dashboard": ["view"],
+      "teknisi.database": ["view"],
+      "produksi.prospek": ["view"],
+      "produksi.wo": ["view", "edit"],
   },
   "USER": { "dashboard": [], "master.wilayah": [], "master.unit": [], "master.paket": [], "master.diskon": [], "master.schedule": [], "pelanggan.pendaftaran": [], "pelanggan.kelola": [], "pelanggan.layanan": [], "teknisi.database": [], "teknisi.tools": [], "teknisi.harga": [], "produksi.prospek": [], "produksi.verifikasi": [], "produksi.wo": [], "reporting.sales": [], "reporting.unit": [], "reporting.berkala": [], "keuangan.history": [], "keuangan.aging": [], "keuangan.saldo": [], "settings.permissions": [] }
 };

@@ -45,11 +45,7 @@ export const CustomerTable = ({
   onDelete,
 }: CustomerTableProps) => {
   const columns = [
-    {
-      header: "NO",
-      accessorKey: "no",
-      className: "w-12 text-center",
-    },
+    
     {
       header: "ID PELANGGAN",
       accessorKey: "customerId",

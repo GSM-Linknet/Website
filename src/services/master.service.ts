@@ -11,13 +11,24 @@ export interface BaseEntity {
 export interface Wilayah extends BaseEntity {
   name: string;
   code: string;
+  description?: string;
+}
+
+export interface Area extends BaseEntity {
+  name: string;
+  code: string;
+  description?: string;
 }
 
 export interface Cabang extends BaseEntity {
   name: string;
   code: string;
-  idWilayah: string;
+  idWilayah?: string; // Legacy
   wilayah?: Wilayah;
+  wilayahIds?: string[];
+  areaIds?: string[];
+  cabangWilayah?: { wilayah: Wilayah }[];
+  cabangArea?: { area: Area }[];
 }
 
 export interface Unit extends BaseEntity {
@@ -27,6 +38,10 @@ export interface Unit extends BaseEntity {
   cabang?: Cabang;
   quota: number;
   quotaUsed: number;
+  wilayahIds?: string[];
+  areaIds?: string[];
+  unitWilayah?: { wilayah: Wilayah }[];
+  unitArea?: { area: Area }[];
 }
 
 export interface SubUnit extends BaseEntity {
@@ -36,6 +51,10 @@ export interface SubUnit extends BaseEntity {
   unit?: Unit;
   quota: number;
   quotaUsed: number;
+  wilayahIds?: string[];
+  areaIds?: string[];
+  subUnitWilayah?: { wilayah: Wilayah }[];
+  subUnitArea?: { area: Area }[];
 }
 
 export interface Package extends BaseEntity {
@@ -65,6 +84,23 @@ export interface Discount extends BaseEntity {
   validTo?: string;
 }
 
+export interface Schedule extends BaseEntity {
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  technicianId?: string;
+  customerId?: string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  unitId?: string;
+  subUnitId?: string;
+  customer?: any;
+  technician?: any;
+  unit?: any;
+  subUnit?: any;
+}
+
 export interface BaseQuery {
   page?: number;
   limit?: number;
@@ -92,11 +128,13 @@ export interface ApiResponse<T> {
 
 const ENDPOINTS = {
   WILAYAH: "/master/wilayah",
+  AREA: "/master/area",
   CABANG: "/master/cabang",
   UNIT: "/master/unit",
   SUB_UNIT: "/master/sub-unit",
   PACKAGE: "/master/package",
   DISCOUNT: "/master/discount",
+  SCHEDULE: "/master/schedule",
 };
 
 // ==================== Service ====================
@@ -104,7 +142,7 @@ const ENDPOINTS = {
 export const MasterService = {
   // --- Wilayah ---
   getWilayahs: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Wilayah>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Wilayah>>>(
       `${ENDPOINTS.WILAYAH}/find-all`,
       { params: query }
     );
@@ -122,9 +160,29 @@ export const MasterService = {
     return apiClient.delete<void>(`${ENDPOINTS.WILAYAH}/delete/${id}`);
   },
 
+  // --- Area ---
+  getAreas: async (query: BaseQuery = {}) => {
+    return apiClient.get<ApiResponse<PaginatedResponse<Area>>>(
+      `${ENDPOINTS.AREA}/find-all`,
+      { params: query }
+    );
+  },
+  getArea: async (id: string) => {
+    return apiClient.get<Area>(`${ENDPOINTS.AREA}/find-one/${id}`);
+  },
+  createArea: async (data: Partial<Area>) => {
+    return apiClient.post<Area>(`${ENDPOINTS.AREA}/create`, data);
+  },
+  updateArea: async (id: string, data: Partial<Area>) => {
+    return apiClient.patch<Area>(`${ENDPOINTS.AREA}/update/${id}`, data);
+  },
+  deleteArea: async (id: string) => {
+    return apiClient.delete<void>(`${ENDPOINTS.AREA}/delete/${id}`);
+  },
+
   // --- Cabang ---
   getCabangs: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Cabang>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Cabang>>>(
       `${ENDPOINTS.CABANG}/find-all`,
       { params: query }
     );
@@ -144,7 +202,7 @@ export const MasterService = {
 
   // --- Unit ---
   getUnits: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Unit>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Unit>>>(
       `${ENDPOINTS.UNIT}/find-all`,
       { params: query }
     );
@@ -164,7 +222,7 @@ export const MasterService = {
 
   // --- SubUnit ---
   getSubUnits: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<SubUnit>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<SubUnit>>>(
       `${ENDPOINTS.SUB_UNIT}/find-all`,
       { params: query }
     );
@@ -184,7 +242,7 @@ export const MasterService = {
 
   // --- Package ---
   getPackages: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Package>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Package>>>(
       `${ENDPOINTS.PACKAGE}/find-all`,
       { params: query }
     );
@@ -204,7 +262,7 @@ export const MasterService = {
 
   // --- Discount ---
   getDiscounts: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Discount>>(
+    return apiClient.get<ApiResponse<PaginatedResponse<Discount>>>(
       `${ENDPOINTS.DISCOUNT}/find-all`,
       { params: query }
     );
@@ -220,6 +278,26 @@ export const MasterService = {
   },
   deleteDiscount: async (id: string) => {
     return apiClient.delete<void>(`${ENDPOINTS.DISCOUNT}/delete/${id}`);
+  },
+
+  // --- Schedule ---
+  getSchedules: async (query: BaseQuery = {}) => {
+    return apiClient.get<ApiResponse<PaginatedResponse<Schedule>>>(
+      `${ENDPOINTS.SCHEDULE}/find-all`,
+      { params: query }
+    );
+  },
+  getSchedule: async (id: string) => {
+    return apiClient.get<Schedule>(`${ENDPOINTS.SCHEDULE}/find-one/${id}`);
+  },
+  createSchedule: async (data: Partial<Schedule>) => {
+    return apiClient.post<Schedule>(`${ENDPOINTS.SCHEDULE}/create`, data);
+  },
+  updateSchedule: async (id: string, data: Partial<Schedule>) => {
+    return apiClient.patch<Schedule>(`${ENDPOINTS.SCHEDULE}/update/${id}`, data);
+  },
+  deleteSchedule: async (id: string) => {
+    return apiClient.delete<void>(`${ENDPOINTS.SCHEDULE}/delete/${id}`);
   },
 };
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Plus, MapPin, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -6,6 +6,7 @@ import { useWilayah } from "../hooks/useWilayah";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { WilayahModal } from "../components/WilayahModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { SearchInput } from "@/components/shared/SearchInput";
 import type { Wilayah } from "@/services/master.service";
 import { AuthService } from "@/services/auth.service";
 
@@ -32,8 +33,11 @@ export default function WilayahPage() {
         update,
         updating,
         remove,
-        deleting
+        deleting,
+        setQuery
     } = useWilayah();
+
+    console.log(totalItems);
 
     const createDisclosure = useDisclosure();
     const deleteDisclosure = useDisclosure();
@@ -124,6 +128,10 @@ export default function WilayahPage() {
         },
     ], [canEdit, canDelete]);
 
+    const handleSearch = useCallback((val: string) => {
+        setQuery({ search: val ? `name:${val}` : undefined });
+    }, [setQuery]);
+
     return (
         <div className="space-y-6">
             {/* Modals */}
@@ -152,13 +160,19 @@ export default function WilayahPage() {
                     </p>
                 </div>
                 {canCreate && (
-                    <Button
-                        onClick={createDisclosure.onOpen}
-                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10"
-                    >
-                        <Plus size={18} className="mr-2" />
-                        Tambah Wilayah
-                    </Button>
+                    <div className="flex items-center gap-4">
+                        <SearchInput
+                            onSearch={handleSearch}
+                            placeholder="Cari wilayah..."
+                        />
+                        <Button
+                            onClick={createDisclosure.onOpen}
+                            className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 h-11"
+                        >
+                            <Plus size={18} className="mr-2" />
+                            Tambah Wilayah
+                        </Button>
+                    </div>
                 )}
             </div>
 

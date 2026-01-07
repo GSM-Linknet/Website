@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Plus, Users, Edit2, Trash2, ShieldCheck, LogIn, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/services/user.service";
 import { AuthService } from "@/services/auth.service";
+import { SearchInput } from "@/components/shared/SearchInput";
 
 // ==================== Page Component ====================
 
@@ -17,7 +18,7 @@ export default function UserPage() {
     const { toast } = useToast();
     const userProfile = AuthService.getUser();
     const userRole = userProfile?.role || "USER";
-    const resource = "master.wilayah"; // Keep as is for now for page access
+    const resource = "master.users";
     const impersonateResource = "master.users";
 
     const canCreate = AuthService.hasPermission(userRole, resource, "create");
@@ -38,7 +39,8 @@ export default function UserPage() {
         update,
         updating,
         remove: deleteUser,
-        deleting
+        deleting,
+        setQuery
     } = useUser();
 
     // Modal State
@@ -124,6 +126,10 @@ export default function UserPage() {
         }
         return false;
     };
+
+    const handleSearch = useCallback((val: string) => {
+        setQuery({ search: val ? `name:${val}` : undefined });
+    }, [setQuery]);
 
     const getRoleBadgeColor = (role: string) => {
         switch (role) {
@@ -250,15 +256,21 @@ export default function UserPage() {
                     </h1>
                     <p className="text-sm text-slate-500">Manajemen akun pengguna dan hak akses sistem</p>
                 </div>
-                {canCreate && (
-                    <Button
-                        onClick={handleAdd}
-                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg"
-                    >
-                        <Plus size={18} className="mr-2" />
-                        Tambah User
-                    </Button>
-                )}
+                <div className="flex items-center gap-4">
+                    <SearchInput
+                        onSearch={handleSearch}
+                        placeholder="Cari user (nama)..."
+                    />
+                    {canCreate && (
+                        <Button
+                            onClick={handleAdd}
+                            className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg"
+                        >
+                            <Plus size={18} className="mr-2" />
+                            Tambah User
+                        </Button>
+                    )}
+                </div>
             </div>
 
             <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">

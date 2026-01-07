@@ -10,7 +10,10 @@ import type { Wilayah, BaseQuery } from "@/services/master.service";
 export function useWilayah(initialQuery?: BaseQuery) {
   const fetchResult = useFetch<Wilayah>(
     (query) => MasterService.getWilayahs(query),
-    { query: initialQuery, autoFetch: true }
+    { 
+      query: { paginate: true, limit: 10, ...initialQuery }, 
+      autoFetch: true 
+    }
   );
 
   const crudResult = useCrud<Wilayah>(

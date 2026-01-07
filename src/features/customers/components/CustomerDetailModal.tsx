@@ -54,17 +54,27 @@ export function CustomerDetailModal({
     src: string;
     label: string;
   } | null>(null);
-  const [siteId, setSiteId] = useState("");
 
+  const [siteId, setSiteId] = useState("");
   if (!customer) return null;
 
-  const InfoItem = ({ icon: Icon, label, value, isMono = false }: any) => (
-    <div className="space-y-1">
-      <Label className="text-xs text-slate-500 flex items-center gap-1.5">
+  const InfoItem = ({ icon: Icon, label, value, isMono = false, onClick }: any) => (
+    <div
+      className={cn("space-y-1", onClick && "cursor-pointer group")}
+      onClick={onClick}
+    >
+      <Label className={cn(
+        "text-xs text-slate-500 flex items-center gap-1.5 transition-colors",
+        onClick && "group-hover:text-blue-500"
+      )}>
         <Icon size={12} /> {label}
       </Label>
       <div
-        className={`text-sm font-medium text-slate-900 ${isMono ? "font-mono" : ""}`}
+        className={cn(
+          "text-sm font-medium text-slate-900 transition-colors",
+          isMono && "font-mono",
+          onClick && "group-hover:text-blue-600 underline underline-offset-4 decoration-blue-200"
+        )}
       >
         {value || "-"}
       </div>
@@ -142,12 +152,17 @@ export function CustomerDetailModal({
                   label="Nama Lengkap"
                   value={customer.name}
                 />
+                <InfoItem icon={Mail} label="Email" value={customer.email} />
                 <div className="grid grid-cols-2 gap-4">
-                  <InfoItem icon={Mail} label="Email" value={customer.email} />
                   <InfoItem
                     icon={Phone}
-                    label="WhatsApp"
+                    label="Telp Utama"
                     value={customer.phone}
+                  />
+                  <InfoItem
+                    icon={Phone}
+                    label="Telp Cadangan"
+                    value={customer.phone2 || "-"}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -192,12 +207,14 @@ export function CustomerDetailModal({
                     label="Koordinat User"
                     value={`${customer.latUser}, ${customer.longUser}`}
                     isMono
+                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${customer.latUser},${customer.longUser}`, '_blank')}
                   />
                   <InfoItem
                     icon={MapPin}
                     label="Koordinat ODP"
                     value={`${customer.latODP}, ${customer.longODP}`}
                     isMono
+                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${customer.latODP},${customer.longODP}`, '_blank')}
                   />
                 </div>
                 {customer.siteId && (
@@ -230,6 +247,7 @@ export function CustomerDetailModal({
                 />
                 <ImagePreview label="Foto ODP" src={customer.ODPImage} />
                 <ImagePreview label="Screenshot CA" src={customer.CaImage} />
+                <ImagePreview label="Lampiran Tambahan" src={customer.attachment} />
               </div>
             </div>
           </div>
@@ -237,24 +255,40 @@ export function CustomerDetailModal({
 
         {/* Footer Actions */}
         <DialogFooter className="p-6 border-t border-slate-100 bg-white gap-2">
-          {canVerify && !customer.statusCust && onVerify && (
+          {canVerify && !customer.siteId && onVerify && (
             <div className="flex flex-col w-full gap-4">
               {/* Quota Warning Section */}
               {(customer.unit || customer.subUnit) && (
-                <div className={cn(
-                  "p-3 rounded-xl border flex items-start gap-3 mb-2",
-                  (customer.subUnit?.quotaUsed ?? 0) >= (customer.subUnit?.quota ?? 0) || (customer.unit?.quotaUsed ?? 0) >= (customer.unit?.quota ?? 0)
-                    ? "bg-red-50 border-red-100 text-red-800"
-                    : (customer.subUnit?.quotaUsed ?? 0) / (customer.subUnit?.quota ?? 1) > 0.8 || (customer.unit?.quotaUsed ?? 0) / (customer.unit?.quota ?? 1) > 0.8
-                      ? "bg-amber-50 border-amber-100 text-amber-800"
-                      : "bg-emerald-50 border-emerald-100 text-emerald-800"
-                )}>
+                <div
+                  className={cn(
+                    "p-3 rounded-xl border flex items-start gap-3 mb-2",
+                    (customer.subUnit?.quotaUsed ?? 0) >=
+                      (customer.subUnit?.quota ?? 0) ||
+                      (customer.unit?.quotaUsed ?? 0) >=
+                      (customer.unit?.quota ?? 0)
+                      ? "bg-red-50 border-red-100 text-red-800"
+                      : (customer.subUnit?.quotaUsed ?? 0) /
+                        (customer.subUnit?.quota ?? 1) >
+                        0.8 ||
+                        (customer.unit?.quotaUsed ?? 0) /
+                        (customer.unit?.quota ?? 1) >
+                        0.8
+                        ? "bg-amber-50 border-amber-100 text-amber-800"
+                        : "bg-emerald-50 border-emerald-100 text-emerald-800",
+                  )}
+                >
                   <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                    <Hash size={16} className={cn(
-                      (customer.subUnit?.quotaUsed ?? 0) >= (customer.subUnit?.quota ?? 0) || (customer.unit?.quotaUsed ?? 0) >= (customer.unit?.quota ?? 0)
-                        ? "text-red-600"
-                        : "text-emerald-600"
-                    )} />
+                    <Hash
+                      size={16}
+                      className={cn(
+                        (customer.subUnit?.quotaUsed ?? 0) >=
+                          (customer.subUnit?.quota ?? 0) ||
+                          (customer.unit?.quotaUsed ?? 0) >=
+                          (customer.unit?.quota ?? 0)
+                          ? "text-red-600"
+                          : "text-emerald-600",
+                      )}
+                    />
                   </div>
                   <div className="flex-1">
                     <p className="text-xs font-bold uppercase tracking-wider mb-0.5">
@@ -265,11 +299,19 @@ export function CustomerDetailModal({
                         ? `${customer.subUnit.name}: ${customer.subUnit.quotaUsed} / ${customer.subUnit.quota}`
                         : `${customer.unit?.name}: ${customer.unit?.quotaUsed} / ${customer.unit?.quota}`}
                     </p>
-                    {(customer.subUnit?.quotaUsed ?? 0) >= (customer.subUnit?.quota ?? 0) || (customer.unit?.quotaUsed ?? 0) >= (customer.unit?.quota ?? 0) ? (
+                    {(customer.subUnit?.quotaUsed ?? 0) >=
+                      (customer.subUnit?.quota ?? 0) ||
+                      (customer.unit?.quotaUsed ?? 0) >=
+                      (customer.unit?.quota ?? 0) ? (
                       <p className="text-[11px] mt-1 font-bold text-red-600 animate-pulse">
                         ⚠️ KUOTA HABIS! Verifikasi akan gagal.
                       </p>
-                    ) : (customer.subUnit?.quotaUsed ?? 0) / (customer.subUnit?.quota ?? 1) > 0.8 || (customer.unit?.quotaUsed ?? 0) / (customer.unit?.quota ?? 1) > 0.8 ? (
+                    ) : (customer.subUnit?.quotaUsed ?? 0) /
+                      (customer.subUnit?.quota ?? 1) >
+                      0.8 ||
+                      (customer.unit?.quotaUsed ?? 0) /
+                      (customer.unit?.quota ?? 1) >
+                      0.8 ? (
                       <p className="text-[11px] mt-1 font-semibold text-amber-700">
                         Sisa kuota menipis. Segera hubungi Admin.
                       </p>

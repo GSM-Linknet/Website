@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/useToast";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-const ROLES: UserRole[] = ["SUPER_ADMIN", "ADMIN_PUSAT", "ADMIN_CABANG", "ADMIN_UNIT", "SUPERVISOR", "SALES", "USER"];
+const ROLES: UserRole[] = ["SUPER_ADMIN", "ADMIN_PUSAT", "ADMIN_CABANG", "ADMIN_UNIT", "SUPERVISOR", "SALES", "TECHNICIAN", "USER"];
 const ROLE_LABELS: Record<UserRole, string> = {
     "SUPER_ADMIN": "Super Admin",
     "ADMIN_PUSAT": "Admin Pusat",
@@ -14,6 +14,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
     "ADMIN_UNIT": "Admin Unit",
     "SUPERVISOR": "Supervisor Unit",
     "SALES": "Sales / Sub Unit",
+    "TECHNICIAN": "Teknisi",
     "USER": "User"
 }
 
@@ -37,11 +38,11 @@ const MODULE_GROUPS: {
             label: "Master Data",
             icon: Database,
             resources: [
-                { key: "master.wilayah", label: "Wilayah" },
-                { key: "master.unit", label: "Unit" },
+                { key: "master.area", label: "Area" },
+                { key: "master.wilayah", label: "Wilayah & Cabang" },
+                { key: "master.unit", label: "Unit & Sub Unit" },
                 { key: "master.paket", label: "Paket & Harga" },
                 { key: "master.diskon", label: "Diskon" },
-                { key: "master.schedule", label: "Schedule Pasang" },
                 { key: "master.users", label: "User Management" }
             ]
         },
@@ -50,7 +51,7 @@ const MODULE_GROUPS: {
             label: "Pelanggan",
             icon: Users,
             resources: [
-                { key: "pelanggan.pendaftaran", label: "Pendaftaran (Sales)" },
+                { key: "pelanggan.pendaftaran", label: "Pendaftaran Baru" },
                 { key: "pelanggan.kelola", label: "Kelola Pelanggan" },
                 { key: "pelanggan.layanan", label: "Layanan Mandiri" }
             ]
@@ -62,7 +63,7 @@ const MODULE_GROUPS: {
             resources: [
                 { key: "teknisi.database", label: "Database Teknisi" },
                 { key: "teknisi.tools", label: "Tools & Peralatan" },
-                { key: "teknisi.harga", label: "Harga Jasa" }
+                { key: "teknisi.harga", label: "Harga Jasa (Labor)" }
             ]
         },
         {
@@ -70,9 +71,9 @@ const MODULE_GROUPS: {
             label: "Produksi",
             icon: Factory,
             resources: [
-                { key: "produksi.prospek", label: "Input Prospek" },
-                { key: "produksi.verifikasi", label: "Verifikasi Admin" },
-                { key: "produksi.wo", label: "Work Orders (WO)" }
+                { key: "produksi.cakupan", label: "Peta Coverage" },
+                { key: "master.schedule", label: "Schedule Pasang" },
+                { key: "produksi.wo", label: "Work Orders (WO)" },
             ]
         },
         {
@@ -90,10 +91,11 @@ const MODULE_GROUPS: {
             label: "Keuangan",
             icon: TrendingUp,
             resources: [
+                { key: "keuangan.invoice", label: "Tagihan" },
                 { key: "keuangan.history", label: "History Pembayaran" },
                 { key: "keuangan.aging", label: "Aging Reports" },
                 { key: "keuangan.saldo", label: "Saldo & Payout" },
-                { key: "keuangan.invoice", label: "Tagihan Pelanggan" }
+                { key: "payout", label: "Disbursement" }
             ]
         },
         {
@@ -101,7 +103,9 @@ const MODULE_GROUPS: {
             label: "Settings",
             icon: Settings,
             resources: [
-                { key: "settings.permissions", label: "Hak Akses" }
+                { key: "settings.permissions", label: "Hak Akses" },
+                { key: "settings.whatsapp", label: "WhatsApp Gateway" },
+                { key: "settings.system", label: "System Settings" }
             ]
         },
     ];
@@ -113,6 +117,7 @@ const ACTIONS: { id: AppAction; label: string }[] = [
     { id: "delete", label: "Del" },
     { id: "verify", label: "Ver" },
     { id: "export", label: "Exp" },
+    { id: "impersonate", label: "Imp" },
 ];
 
 export default function PermissionPage() {
