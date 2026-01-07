@@ -73,7 +73,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: BarChart3,
     resource: "reporting",
     items: [
-      { title: "Performance Sales", href: "/reporting/sales", resource: "reporting.sales" },
+      // { title: "Performance Sales", href: "/reporting/sales", resource: "reporting.sales" },
       { title: "Sales Target", href: "/reporting/sales-target", resource: "reporting.sales-target" },
       { title: "KA Unit Activity", href: "/reporting/unit", resource: "reporting.unit" },
       { title: "Laporan Berkala", href: "/reporting/berkala", resource: "reporting.berkala" },
@@ -100,12 +100,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "WhatsApp Gateway", href: "/settings/whatsapp", resource: "settings.whatsapp" },
     ],
   },
-  {
-    title: "Aplikasi",
-    icon: Smartphone,
-    href: "/aplikasi",
-    resource: "dashboard",
-  },
+ 
   {
     title: "Logs",
     icon: History,
