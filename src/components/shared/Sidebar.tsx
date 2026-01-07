@@ -1,9 +1,9 @@
-import { ChevronDown, ChevronRight, Wallet, Eye, EyeOff } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { NavLink, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { NAVIGATION_ITEMS } from "@/constants/navigation";
 import { useSidebar } from "@/providers/sidebar-provider";
-import { useDisclosure } from "@/hooks/use-disclosure";
+// import { useDisclosure } from "@/hooks/use-disclosure";
 import { useState } from "react";
 import { AuthService, type PermissionResource } from "@/services/auth.service";
 import {
@@ -15,7 +15,7 @@ import {
 
 export const Sidebar = () => {
   const { isCollapsed, toggleCollapse } = useSidebar();
-  const { isOpen: showSaldo, onToggle: toggleSaldo } = useDisclosure(false);
+  // const { isOpen: showSaldo, onToggle: toggleSaldo } = useDisclosure(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const user = AuthService.getUser();
 
@@ -115,7 +115,7 @@ export const Sidebar = () => {
         </Link>
 
         {/* Saldo Widget */}
-        {!isCollapsed && (
+        {/* {!isCollapsed && (
           <div className="px-4 mb-6 animate-in fade-in zoom-in-95 duration-300">
             <div className="bg-blue-600/20 rounded-2xl p-4 relative overflow-hidden group border border-blue-500/10">
               <div className="flex justify-between items-center mb-1">
@@ -144,7 +144,7 @@ export const Sidebar = () => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Navigation */}
         <div className="flex-1 px-3 space-y-1">

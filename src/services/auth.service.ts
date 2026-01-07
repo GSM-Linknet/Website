@@ -30,6 +30,7 @@ export type PermissionResource =
     | "produksi.cakupan"
     // Reporting
     | "reporting.sales" 
+    | "reporting.sales-target"
     | "reporting.unit" 
     | "reporting.berkala"
     // Keuangan
@@ -101,6 +102,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "produksi.verifikasi": ["view", "create", "edit", "delete", "verify"],
       "produksi.wo": ["view", "create", "edit", "delete"],
       "reporting.sales": ["view", "export"],
+      "reporting.sales-target": ["view", "create", "edit", "delete", "export"],
       "reporting.unit": ["view", "export"],
       "reporting.berkala": ["view", "export"],
       "keuangan.history": ["view", "export"],
@@ -130,6 +132,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "produksi.verifikasi": ["view", "verify"],
       "produksi.wo": ["view", "create", "edit"],
       "reporting.sales": ["view", "export"],
+      "reporting.sales-target": ["view", "create", "edit", "delete", "export"],
       "reporting.unit": ["view", "export"],
       "reporting.berkala": ["view", "export"],
       "keuangan.history": ["view"],
@@ -151,6 +154,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "produksi.verifikasi": ["view"],
       "produksi.wo": ["view", "create", "edit"],
       "reporting.sales": ["view"],
+      "reporting.sales-target": ["view", "create", "edit", "delete"],
       "reporting.unit": ["view"],
   },
   "ADMIN_UNIT": {
@@ -181,6 +185,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "produksi.verifikasi": ["view"],
       "produksi.wo": ["view", "create", "edit"],
       "reporting.sales": ["view", "create", "edit"],
+      "reporting.sales-target": ["view", "create", "edit", "delete"],
       "reporting.unit": ["view", "create", "edit"],
       "reporting.berkala": [],
       "keuangan.history": [],

@@ -74,6 +74,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     resource: "reporting",
     items: [
       { title: "Performance Sales", href: "/reporting/sales", resource: "reporting.sales" },
+      { title: "Sales Target", href: "/reporting/sales-target", resource: "reporting.sales-target" },
       { title: "KA Unit Activity", href: "/reporting/unit", resource: "reporting.unit" },
       { title: "Laporan Berkala", href: "/reporting/berkala", resource: "reporting.berkala" },
     ],

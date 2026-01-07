@@ -82,6 +82,7 @@ const MODULE_GROUPS: {
             icon: BarChart3,
             resources: [
                 { key: "reporting.sales", label: "Performance Sales" },
+                { key: "reporting.sales-target", label: "Sales Target Management" },
                 { key: "reporting.unit", label: "KA Unit Activity" },
                 { key: "reporting.berkala", label: "Laporan Berkala" }
             ]

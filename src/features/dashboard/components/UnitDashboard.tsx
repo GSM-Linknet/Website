@@ -4,19 +4,21 @@ import {
     UserPlus,
     Target,
     Wallet,
-    CreditCard,
-    TrendingUp,
     FileText,
     CheckCircle2,
     XCircle,
     ChevronDown,
-    Plus
+    TrendingUp,
+    Activity,
+    Filter
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BarChart } from "@/components/shared/Charts";
+import { MetricCard } from "./MetricCard";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -27,81 +29,6 @@ import { AuthService } from "@/services/auth.service";
 import { DashboardService } from "@/services/dashboard.service";
 import type { Customer } from "@/services/customer.service";
 import { cn } from "@/lib/utils";
-
-// ==================== Stat Card Component ====================
-interface StatCardProps {
-    icon: React.ReactNode;
-    label: string;
-    value: string | number;
-    sublabel?: string;
-    variant?: "default" | "success" | "warning" | "danger";
-    iconBg?: string;
-}
-
-const StatCard = ({ icon, label, value, sublabel, variant = "default", iconBg }: StatCardProps) => {
-    const variantClasses = {
-        default: "border-blue-100/50",
-        success: "border-emerald-100/50",
-        warning: "border-amber-100/50",
-        danger: "border-red-100/50",
-    };
-
-    const defaultIconBg = {
-        default: "bg-blue-500",
-        success: "bg-emerald-500",
-        warning: "bg-amber-500",
-        danger: "bg-red-500",
-    };
-
-    return (
-        <div className={`relative overflow-hidden bg-white rounded-2xl border p-5 shadow-lg shadow-slate-200/40 ${variantClasses[variant]}`}>
-            <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</p>
-                    <p className="text-3xl font-extrabold text-[#101D42] tracking-tight">{value}</p>
-                    {sublabel && <p className="text-[11px] text-slate-400 font-medium">{sublabel}</p>}
-                </div>
-                <div className={`p-3 rounded-xl shadow-lg text-white ${iconBg || defaultIconBg[variant]}`}>
-                    {icon}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// ==================== Financial Card Component ====================
-interface FinancialCardProps {
-    icon: React.ReactNode;
-    label: string;
-    value: string;
-    sublabel?: string;
-    variant?: "default" | "success" | "danger";
-    bordered?: boolean;
-}
-
-const FinancialCard = ({ icon, label, value, sublabel, variant = "default", bordered = true }: FinancialCardProps) => {
-    const variantText = {
-        default: "text-[#101D42]",
-        success: "text-emerald-600",
-        danger: "text-red-600",
-    };
-
-    return (
-        <div className={cn(
-            "bg-white rounded-2xl p-5 flex flex-col justify-between min-h-[140px]",
-            bordered ? "border-2 border-dashed border-slate-200" : "border border-slate-100 shadow-lg shadow-slate-200/40"
-        )}>
-            <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</p>
-                {icon}
-            </div>
-            <div className="mt-auto">
-                <p className={`text-2xl font-extrabold tracking-tight ${variantText[variant]}`}>{value}</p>
-                {sublabel && <p className="text-[11px] text-slate-400 font-medium mt-1">{sublabel}</p>}
-            </div>
-        </div>
-    );
-};
 
 // ==================== Main Dashboard Component ====================
 interface UnitDashboardProps {
@@ -119,6 +46,8 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
         expenses: { subUnit: number };
     } | null>(null);
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [customerTrendData, setCustomerTrendData] = useState<any[]>([]);
+    const [invoiceTrendData, setInvoiceTrendData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const user = AuthService.getUser();
@@ -129,12 +58,16 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [statsData, customersData] = await Promise.all([
+                const [statsData, customersData, customerTrend, invoiceTrend] = await Promise.all([
                     DashboardService.getUnitStats(),
-                    DashboardService.getUnitCustomers(filterQuery || undefined)
+                    DashboardService.getUnitCustomers(filterQuery || undefined),
+                    DashboardService.getUnitCustomerTrend(),
+                    DashboardService.getUnitInvoiceTrend()
                 ]);
                 setStats(statsData);
                 setCustomers((customersData as Customer[]) || []);
+                setCustomerTrendData(customerTrend);
+                setInvoiceTrendData(invoiceTrend);
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
             } finally {
@@ -209,13 +142,6 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
                 </Badge>
             ),
         },
-        { header: "PEMBAYARAN", accessorKey: "billingDate", className: "text-slate-500 text-[12px]", cell: () => "-" },
-        {
-            header: "KOORDINAT",
-            accessorKey: "latUser",
-            className: "text-slate-500 text-[11px] font-mono",
-            cell: (row: Customer) => row.latUser && row.longUser ? `${row.latUser.toFixed(4)}, ${row.longUser.toFixed(4)}` : "-"
-        },
         {
             header: "TANGGAL DAFTAR",
             accessorKey: "createdAt",
@@ -224,178 +150,206 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
         },
     ], []);
 
+    const quotaPercentage = stats?.quota.quota ? Math.round((stats.quota.quotaUsed / stats.quota.quota) * 100) : 0;
+    const collectionRate = stats?.invoices.totalAmount ? Math.round((stats.invoices.paidAmount / stats.invoices.totalAmount) * 100) : 0;
+
     return (
         <div className="space-y-6 animate-in fade-in duration-700">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-[#101D42]">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                        <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-none px-3 py-1 text-xs font-bold">
+                            <Activity size={12} className="mr-1" />
+                            UNIT DASHBOARD
+                        </Badge>
+                    </div>
+                    <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-[#101D42] to-blue-600 bg-clip-text text-transparent">
                         Selamat Datang, {displayName}!
                     </h1>
                     <p className="text-sm text-slate-500 font-medium">
-                        Berikut yang sedang terjadi di dashboard Anda hari ini
+                        Monitor performa unit dan kelola pelanggan Anda
                     </p>
                 </div>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm hover:bg-slate-50">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                FILTER : {filterQuery === "suspend" ? "PELANGGAN SUSPEND" : filterQuery === "active" ? "PELANGGAN AKTIF" : filterQuery === "stopped" ? "PELANGGAN BERHENTI" : "SEMUA PELANGGAN"}
-                            </span>
-                            <ChevronDown size={14} className="ml-2 text-slate-400" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem onClick={() => setFilterQuery("")} className="font-medium">
-                            Semua Pelanggan
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setFilterQuery("suspend")} className="font-medium text-amber-600">
-                            Pelanggan Suspend
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setFilterQuery("active")} className="font-medium text-emerald-600">
-                            Pelanggan Aktif
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setFilterQuery("stopped")} className="font-medium text-red-600">
-                            Pelanggan Berhenti Layanan
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+
             </div>
 
-            {/* Top Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard
-                    icon={<Users size={24} />}
-                    label="Total Pelanggan"
+            {/* Top KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                    title="Total Pelanggan"
                     value={loading ? "..." : stats?.customers.total ?? 0}
+                    icon={Users}
+                    trend={`+${stats?.customers.newThisMonth || 0} bulan ini`}
+                    trendUp={true}
                     variant="default"
                 />
-                <StatCard
-                    icon={<UserPlus size={24} />}
-                    label="Pelanggan Baru Bulan Ini"
-                    value={loading ? "..." : stats?.customers.newThisMonth ?? 0}
-                    variant="default"
+                <MetricCard
+                    title="Pelanggan Aktif"
+                    value={loading ? "..." : stats?.customers.active ?? 0}
+                    icon={UserPlus}
+                    trend={`${Math.round(((stats?.customers.active ?? 0) / (stats?.customers.total ?? 1)) * 100)}% dari total`}
+                    trendUp={true}
+                    variant="success"
                 />
-                <StatCard
-                    icon={<Target size={24} />}
-                    label="Total Kuota"
+                <MetricCard
+                    title="Kuota Unit"
                     value={loading ? "..." : `${stats?.quota.quotaUsed ?? 0} / ${stats?.quota.quota ?? 0}`}
-                    variant="default"
+                    icon={Target}
+                    trend={`${quotaPercentage}% terpakai`}
+                    trendUp={quotaPercentage < 80}
+                    variant={quotaPercentage >= 80 ? "warning" : "info"}
+                />
+                <MetricCard
+                    title="Collection Rate"
+                    value={loading ? "..." : `${collectionRate}%`}
+                    icon={CheckCircle2}
+                    trend="Bulan ini"
+                    trendUp={collectionRate >= 70}
+                    variant={collectionRate >= 70 ? "success" : "danger"}
                 />
             </div>
 
-            {/* Middle Section - Placeholder Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FinancialCard
-                    icon={<Wallet size={20} className="text-slate-400" />}
-                    label="SALDO TERUPDATE"
-                    value="-"
-                    bordered
-                />
-                <FinancialCard
-                    icon={<CreditCard size={20} className="text-slate-400" />}
-                    label="BAYAR KE LINKNET"
-                    value="-"
-                    bordered
-                />
-                <FinancialCard
-                    icon={<TrendingUp size={20} className="text-slate-400" />}
-                    label="PENDAPATAN BRUTO"
-                    value="-"
-                    sublabel="( PEMASUKAN - PENGELUARAN LINKNET)"
-                    bordered
-                />
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Customer Trend */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <TrendingUp size={20} className="text-blue-600" />
+                                Customer Trend
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">6 bulan terakhir</p>
+                        </div>
+                        <Badge className="bg-blue-100 text-blue-700 border-none">
+                            Growing
+                        </Badge>
+                    </div>
+                    <BarChart
+                        data={customerTrendData}
+                        xKey="month"
+                        yKeys={["total", "active"]}
+                    />
+                </div>
+
+                {/* Invoice Status */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <FileText size={20} className="text-green-600" />
+                                Invoice Status
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Weekly performance</p>
+                        </div>
+                        <Badge className="bg-green-100 text-green-700 border-none">
+                            {collectionRate}%
+                        </Badge>
+                    </div>
+                    <BarChart
+                        data={invoiceTrendData}
+                        xKey="week"
+                        yKeys={["paid", "unpaid"]}
+                    />
+                </div>
             </div>
 
             {/* Financial Summary Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <FinancialCard
-                    icon={<FileText size={18} className="text-blue-500" />}
-                    label="Total Seluruh Invoice"
-                    value={formatCurrency(stats?.invoices.totalAmount ?? 0)}
-                    sublabel={stats?.invoices.month ?? ""}
-                    bordered={false}
-                />
-                <FinancialCard
-                    icon={<CheckCircle2 size={18} className="text-emerald-500" />}
-                    label="Total Invoice Lunas"
-                    value={formatCurrency(stats?.invoices.paidAmount ?? 0)}
-                    sublabel={stats?.invoices.month ?? ""}
-                    variant="success"
-                    bordered={false}
-                />
-                <FinancialCard
-                    icon={<XCircle size={18} className="text-red-500" />}
-                    label="Total Invoice Belum Lunas"
-                    value={formatCurrency(stats?.invoices.unpaidAmount ?? 0)}
-                    sublabel={stats?.invoices.month ?? ""}
-                    variant="danger"
-                    bordered={false}
-                />
-                <FinancialCard
-                    icon={<Wallet size={18} className="text-purple-500" />}
-                    label="Pengeluaran Sub Unit"
-                    value={formatCurrency(stats?.expenses.subUnit ?? 0)}
-                    sublabel={stats?.invoices.month ?? ""}
-                    variant="default"
-                    bordered={false}
-                />
-
-            </div>
-
-            {/* Customer Registration Section */}
-            <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div>
-                        <h2 className="text-xl font-bold text-[#101D42]">Pendaftaran Pelanggan</h2>
-                        <p className="text-sm text-slate-500">Pendaftaran pelanggan di area Anda</p>
+            <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl border border-blue-100 p-6 shadow-lg shadow-blue-200/40">
+                <h2 className="text-lg font-bold text-[#101D42] mb-4 flex items-center gap-2">
+                    <Wallet size={20} className="text-blue-600" />
+                    Invoice Overview - {stats?.invoices.month || ""}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                                Total Invoice
+                            </p>
+                            <FileText size={18} className="text-blue-500" />
+                        </div>
+                        <p className="text-2xl font-extrabold text-[#101D42]">
+                            {formatCurrency(stats?.invoices.totalAmount ?? 0)}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">Total bulan ini</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Button className="bg-[#101D42] text-white rounded-xl font-bold">
-                            <Plus size={16} className="mr-2" />
-                            Tambah Pelanggan
-                        </Button>
+
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border border-green-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-green-700 uppercase tracking-wider">
+                                Invoice Lunas
+                            </p>
+                            <CheckCircle2 size={18} className="text-green-500" />
+                        </div>
+                        <p className="text-2xl font-extrabold text-green-600">
+                            {formatCurrency(stats?.invoices.paidAmount ?? 0)}
+                        </p>
+                        <p className="text-xs text-green-500 mt-1">{collectionRate}% dari total</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-5 border border-red-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-red-700 uppercase tracking-wider">
+                                Belum Lunas
+                            </p>
+                            <XCircle size={18} className="text-red-500" />
+                        </div>
+                        <p className="text-2xl font-extrabold text-red-600">
+                            {formatCurrency(stats?.invoices.unpaidAmount ?? 0)}
+                        </p>
+                        <p className="text-xs text-red-500 mt-1">Outstanding</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-5 border border-purple-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-purple-700 uppercase tracking-wider">
+                                Quota Usage
+                            </p>
+                            <Target size={18} className="text-purple-500" />
+                        </div>
+                        <p className="text-2xl font-extrabold text-purple-600">
+                            {quotaPercentage}%
+                        </p>
+                        <p className="text-xs text-purple-500 mt-1">
+                            {stats?.quota.quotaUsed || 0} dari {stats?.quota.quota || 0}
+                        </p>
                     </div>
                 </div>
+            </div>
 
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-3 mb-6">
+            {/* Customer Table Section */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/40">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 className="text-xl font-bold text-[#101D42]">Daftar Pelanggan</h2>
+                        <p className="text-sm text-slate-500">Kelola pelanggan di area Anda</p>
+                    </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600">
-                                Diproses <ChevronDown size={14} className="ml-2" />
+                            <Button variant="outline" className="rounded-xl border-slate-200 hover:bg-slate-50">
+                                <Filter size={16} className="mr-2" />
+                                <span className="text-xs font-bold uppercase tracking-wider">
+                                    {filterQuery === "suspend" ? "SUSPEND" :
+                                        filterQuery === "active" ? "AKTIF" :
+                                            filterQuery === "stopped" ? "BERHENTI" : "SEMUA"}
+                                </span>
+                                <ChevronDown size={14} className="ml-2" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuItem>Semua</DropdownMenuItem>
-                            <DropdownMenuItem>Diproses</DropdownMenuItem>
-                            <DropdownMenuItem>Pending</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600">
-                                Semua Pembayaran <ChevronDown size={14} className="ml-2" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuItem>Semua</DropdownMenuItem>
-                            <DropdownMenuItem>Lunas</DropdownMenuItem>
-                            <DropdownMenuItem>Belum Lunas</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600">
-                                Semua Internet <ChevronDown size={14} className="ml-2" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuItem>Semua</DropdownMenuItem>
-                            <DropdownMenuItem>Online</DropdownMenuItem>
-                            <DropdownMenuItem>Offline</DropdownMenuItem>
+                        <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={() => setFilterQuery("")} className="font-medium">
+                                Semua Pelanggan
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setFilterQuery("active")} className="font-medium text-emerald-600">
+                                Pelanggan Aktif
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setFilterQuery("suspend")} className="font-medium text-amber-600">
+                                Pelanggan Suspend
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setFilterQuery("stopped")} className="font-medium text-red-600">
+                                Berhenti Layanan
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Download, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,8 @@ import type { Customer } from "@/services/customer.service";
 import { useToast } from "@/hooks/useToast";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { cn } from "@/lib/utils";
-import { MasterService, type Wilayah } from "@/services/master.service";
-import { useEffect } from "react";
+import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // ==================== Page Component ====================
 
@@ -44,6 +44,7 @@ export default function CustomerListPage() {
   } = useCustomers();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null,
   );
@@ -55,51 +56,66 @@ export default function CustomerListPage() {
   const [filters, setFilters] = useState({
     status: "all",
     internet: "all",
-    wilayah: "all",
+    unit: "all",
+    subUnit: "all",
   });
-  const [wilayahs, setWilayahs] = useState<Wilayah[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
 
+  // Fetch units on mount
   useEffect(() => {
-    MasterService.getWilayahs({ paginate: false })
+    MasterService.getUnits({ paginate: false })
       .then((res) => {
         const items = res.data?.items || [];
-        setWilayahs(items);
+        setUnits(items);
       })
       .catch((err) => {
-        console.error("Failed to fetch wilayahs:", err);
-        setWilayahs([]);
+        console.error("Failed to fetch units:", err);
+        setUnits([]);
       });
   }, []);
 
-  const handleFilterChange = (key: string, value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
+  // Fetch subUnits when unit changes
+  useEffect(() => {
+    if (filters.unit !== "all") {
+      MasterService.getSubUnits({ paginate: false, where: `unitId:${filters.unit}` })
+        .then((res) => {
+          const items = res.data?.items || [];
+          setSubUnits(items);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch subUnits:", err);
+          setSubUnits([]);
+        });
+    } else {
+      setSubUnits([]);
+      // Reset subUnit filter when unit is cleared
+      if (filters.subUnit !== "all") {
+        setFilters(prev => ({ ...prev, subUnit: "all" }));
+      }
+    }
+  }, [filters.unit]);
 
-    // Build the query
+  // Update query when debounced search or filters change
+  useEffect(() => {
     const searchParts: string[] = [];
-    if (searchQuery) searchParts.push(`name:${searchQuery}`);
-    if (newFilters.status !== "all")
-      searchParts.push(`statusCust:${newFilters.status === "active"}`);
-    if (newFilters.internet !== "all")
-      searchParts.push(`statusNet:${newFilters.internet === "online"}`);
-    if (newFilters.wilayah !== "all")
-      searchParts.push(`idWilayah:${newFilters.wilayah}`);
-
-    setQuery({ search: searchParts.join("+") });
-  };
-
-  const handleSearch = (val: string) => {
-    setSearchQuery(val);
-    const searchParts: string[] = [];
-    if (val) searchParts.push(`name:${val}`);
+    if (debouncedSearchQuery) searchParts.push(`name:${debouncedSearchQuery}`);
     if (filters.status !== "all")
       searchParts.push(`statusCust:${filters.status === "active"}`);
     if (filters.internet !== "all")
       searchParts.push(`statusNet:${filters.internet === "online"}`);
-    if (filters.wilayah !== "all")
-      searchParts.push(`idWilayah:${filters.wilayah}`);
+    if (filters.unit !== "all")
+      searchParts.push(`unitId:${filters.unit}`);
+    if (filters.subUnit !== "all")
+      searchParts.push(`subUnitId:${filters.subUnit}`);
 
-    setQuery({ search: searchParts.join("+") });
+    const searchParam = searchParts.join("+");
+    // Always update query to ensure refetch, even when cleared
+    setQuery(searchParam ? { search: searchParam } : { search: undefined });
+  }, [debouncedSearchQuery, filters, setQuery]);
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters({ ...filters, [key]: value });
   };
 
   const handleDetail = (customer: Customer) => {
@@ -157,7 +173,7 @@ export default function CustomerListPage() {
               placeholder="Cari"
               className="pl-10 w-full sm:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           {canExport && (
@@ -192,15 +208,27 @@ export default function CustomerListPage() {
           onSelect={(val) => handleFilterChange("internet", val)}
         />
         <FilterDropdown
-          label="Semua Wilayah"
-          activeValue={filters.wilayah}
+          label="Semua Unit"
+          activeValue={filters.unit}
           options={[
-            { label: "Semua Wilayah", value: "all" },
-            ...(Array.isArray(wilayahs)
-              ? wilayahs.map((w) => ({ label: w.name, value: w.id }))
+            { label: "Semua Unit", value: "all" },
+            ...(Array.isArray(units)
+              ? units.map((u) => ({ label: u.name, value: u.id }))
               : []),
           ]}
-          onSelect={(val) => handleFilterChange("wilayah", val)}
+          onSelect={(val) => handleFilterChange("unit", val)}
+        />
+        <FilterDropdown
+          label="Semua Sub-Unit"
+          activeValue={filters.subUnit}
+          options={[
+            { label: "Semua Sub-Unit", value: "all" },
+            ...(Array.isArray(subUnits)
+              ? subUnits.map((s) => ({ label: s.name, value: s.id }))
+              : []),
+          ]}
+          onSelect={(val) => handleFilterChange("subUnit", val)}
+          disabled={filters.unit === "all"}
         />
       </div>
 
@@ -264,6 +292,7 @@ interface FilterDropdownProps {
   options: FilterOption[];
   activeValue: string;
   onSelect: (value: string) => void;
+  disabled?: boolean;
 }
 
 const FilterDropdown = ({
@@ -271,6 +300,7 @@ const FilterDropdown = ({
   options,
   activeValue,
   onSelect,
+  disabled = false,
 }: FilterDropdownProps) => {
   const activeLabel =
     options.find((opt) => opt.value === activeValue)?.label || label;
@@ -280,10 +310,12 @@ const FilterDropdown = ({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
+          disabled={disabled}
           className={cn(
             "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
             activeValue !== "all" &&
-              "border-blue-500 text-blue-600 bg-blue-50/50",
+            "border-blue-500 text-blue-600 bg-blue-50/50",
+            disabled && "opacity-50 cursor-not-allowed"
           )}
         >
           <span>{activeLabel}</span>

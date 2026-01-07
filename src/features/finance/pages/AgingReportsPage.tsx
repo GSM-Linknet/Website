@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { TrendingDown, AlertCircle, Clock, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -7,6 +7,7 @@ import { useInvoices } from "../hooks/useInvoices";
 import type { Invoice } from "@/services/finance.service";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // ==================== Page Component ====================
 
@@ -74,13 +75,15 @@ export default function AgingReportsPage() {
     } = useInvoices({ where: "status:overdue", paginate: true });
 
     const [searchQuery, setSearchQuery] = useState("");
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-    const handleSearch = (val: string) => {
-        setSearchQuery(val);
+    // Update query when debounced search changes
+    useEffect(() => {
         const searchParts: string[] = ["status:overdue"];
-        if (val) searchParts.push(`customer.name:${val}`);
-        setQuery({ search: searchParts.join("+") });
-    };
+        if (debouncedSearchQuery) searchParts.push(`customer.name:${debouncedSearchQuery}`);
+        const searchParam = searchParts.join("+");
+        setQuery({ search: searchParam });
+    }, [debouncedSearchQuery, setQuery]);
 
     // Calculate summaries from current data
     const summaries = useMemo(() => {
@@ -143,7 +146,7 @@ export default function AgingReportsPage() {
                             placeholder="Cari nama pelanggan..."
                             className="pl-10 w-72 bg-slate-50 border-none rounded-xl focus:ring-blue-500/10 transition-all"
                             value={searchQuery}
-                            onChange={(e) => handleSearch(e.target.value)}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
                 </div>
