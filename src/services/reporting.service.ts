@@ -15,11 +15,12 @@ import type {
   TechnicianPerformance,
   SalesPerformanceReportData,
   ActivityLogReportData,
+  ActivityReportDetail,
 } from '@/features/reporting/types/report.types';
 import { API_ENDPOINTS } from '@/features/reporting/constants/report.constants';
 import { buildQueryParams, downloadBlob, generateExportFilename } from '@/features/reporting/utils/report.utils';
 
-class ReportService {
+class ReportingService {
   /**
    * Customer Reports
    */
@@ -208,7 +209,28 @@ class ReportService {
     });
     downloadBlob(blob, generateExportFilename('aktivitas', 'excel'));
   }
+
+  /**
+   * KA Unit Activity Reports
+   */
+  async getActivityReports(filters?: ReportFilters): Promise<ActivityReportDetail[]> {
+    const queryString = filters ? buildQueryParams(filters) : '';
+    const response = await apiClient.get<{data: ActivityReportDetail[]}>(`${API_ENDPOINTS.ACTIVITY_UNIT}?${queryString}`) as any;
+    return response.data;
+  }
+
+  async createActivityReport(data: Partial<ActivityReportDetail>): Promise<ActivityReportDetail> {
+    const response = await apiClient.post<{data: ActivityReportDetail}>(API_ENDPOINTS.ACTIVITY_UNIT, data) as any;
+    return response.data;
+  }
+
+  async addActivityFeedback(id: string, feedback: string): Promise<ActivityReportDetail> {
+    const response = await apiClient.patch<{data: ActivityReportDetail}>(`${API_ENDPOINTS.ACTIVITY_UNIT}/${id}/feedback`, { feedback }) as any;
+    return response.data;
+  }
 }
 
-export const reportService = new ReportService();
+export const reportService = new ReportingService();
+export const reportingService = reportService;
+export { ReportingService };
 export default reportService;

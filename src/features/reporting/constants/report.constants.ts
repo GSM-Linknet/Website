@@ -106,6 +106,7 @@ export const API_ENDPOINTS = {
   MASTER_PACKAGES: '/reporting/reports/master/packages',
   ACTIVITY_LOGS: '/reporting/reports/activity/logs',
   ACTIVITY_AUDIT: '/reporting/reports/activity/audit',
+  ACTIVITY_UNIT: '/reporting/reports/activity-unit',
 } as const;
 
 // Loading messages

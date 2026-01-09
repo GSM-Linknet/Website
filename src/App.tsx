@@ -1,6 +1,7 @@
 import { RouterProvider } from "react-router-dom";
 import { router } from "@/routes";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
 
 /**
  * App is the root entry point of the GSM Dashboard application.
@@ -12,6 +13,7 @@ function App() {
     <>
       <RouterProvider router={router} />
       <Toaster />
+      <SonnerToaster position="top-right" expand={true} richColors />
     </>
   );
 }

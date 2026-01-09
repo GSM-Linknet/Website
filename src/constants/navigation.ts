@@ -75,14 +75,14 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     items: [
       { title: "Laporan Pelanggan", href: "/reporting/customers", resource: "reporting.pelanggan" },
       { title: "Laporan Keuangan", href: "/reporting/financial", resource: "reporting.keuangan" },
-      { title: "Laporan Teknisi", href: "/reporting/technicians", resource: "reporting.teknisi" },
+      // { title: "Laporan Teknisi", href: "/reporting/technicians", resource: "reporting.teknisi" },
       { title: "Laporan Produksi", href: "/reporting/production", resource: "reporting.produksi" },
-      { title: "Laporan Sales", href: "/reporting/sales", resource: "reporting.sales" },
-      { title: "Laporan Master Data", href: "/reporting/master-data", resource: "reporting.master" },
-      { title: "Laporan Aktivitas", href: "/reporting/activity", resource: "reporting.activity" },
+      // { title: "Laporan Sales", href: "/reporting/sales", resource: "reporting.sales" },
+      // { title: "Laporan Master Data", href: "/reporting/master-data", resource: "reporting.master" },
+      // { title: "Laporan Aktivitas", href: "/reporting/activity", resource: "reporting.activity" },
      
       { title: "KA Unit Activity", href: "/reporting/unit", resource: "reporting.unit" },
-      { title: "Laporan Berkala", href: "/reporting/berkala", resource: "reporting.berkala" },
+      // { title: "Laporan Berkala", href: "/reporting/berkala", resource: "reporting.berkala" },
     ],
   },
   {
@@ -93,7 +93,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "Tagihan", href: "/keuangan/invoice", resource: "keuangan.invoice" },
       { title: "History Pembayaran", href: "/keuangan/history", resource: "keuangan.history" },
       { title: "Aging Reports", href: "/keuangan/aging", resource: "keuangan.aging" },
-      { title: "Saldo & Payout", href: "/keuangan/saldo", resource: "keuangan.saldo" },
+      // { title: "Saldo & Payout", href: "/keuangan/saldo", resource: "keuangan.saldo" },
       { title: "Disbursement", href: "/keuangan/payout", resource: "payout" },
     ],
   },

@@ -33,6 +33,12 @@ export type PermissionResource =
     | "reporting.sales-target"
     | "reporting.unit" 
     | "reporting.berkala"
+    | "reporting.pelanggan"
+    | "reporting.keuangan"
+    | "reporting.produksi"
+    | "reporting.teknisi"
+    | "reporting.master"
+    | "reporting.activity"
     // Keuangan
     | "keuangan.history" 
     | "keuangan.aging" 

@@ -19,6 +19,7 @@ import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationM
 import { cn } from "@/lib/utils";
 import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 import { useDebounce } from "@/hooks/useDebounce";
+import { UserService, type User } from "@/services/user.service";
 
 // ==================== Page Component ====================
 
@@ -58,9 +59,11 @@ export default function CustomerListPage() {
     internet: "all",
     unit: "all",
     subUnit: "all",
+    upline: "all",
   });
   const [units, setUnits] = useState<Unit[]>([]);
   const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
+  const [uplines, setUplines] = useState<User[]>([]);
 
   // Fetch units on mount
   useEffect(() => {
@@ -89,12 +92,37 @@ export default function CustomerListPage() {
         });
     } else {
       setSubUnits([]);
-      // Reset subUnit filter when unit is cleared
-      if (filters.subUnit !== "all") {
-        setFilters(prev => ({ ...prev, subUnit: "all" }));
-      }
+      // Reset subUnit and upline filter when unit is cleared
+      setFilters(prev => ({ ...prev, subUnit: "all", upline: "all" }));
     }
   }, [filters.unit]);
+
+  // Fetch uplines when unit or subUnit changes
+  useEffect(() => {
+    let search = "";
+    if (filters.subUnit !== "all") {
+      search = `subUnitId:${filters.subUnit}`;
+    } else if (filters.unit !== "all") {
+      search = `unitId:${filters.unit}`;
+    }
+
+    if (search) {
+      UserService.findAll({ paginate: false, where: search })
+        .then((res) => {
+          const items = res.items || [];
+          setUplines(items);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch uplines:", err);
+          setUplines([]);
+        });
+    } else {
+      setUplines([]);
+      if (filters.upline !== "all") {
+        setFilters(prev => ({ ...prev, upline: "all" }));
+      }
+    }
+  }, [filters.unit, filters.subUnit]);
 
   // Update query when debounced search or filters change
   useEffect(() => {
@@ -108,6 +136,8 @@ export default function CustomerListPage() {
       searchParts.push(`unitId:${filters.unit}`);
     if (filters.subUnit !== "all")
       searchParts.push(`subUnitId:${filters.subUnit}`);
+    if (filters.upline !== "all")
+      searchParts.push(`idUpline:${filters.upline}`);
 
     const searchParam = searchParts.join("+");
     // Always update query to ensure refetch, even when cleared
@@ -228,6 +258,18 @@ export default function CustomerListPage() {
               : []),
           ]}
           onSelect={(val) => handleFilterChange("subUnit", val)}
+          disabled={filters.unit === "all"}
+        />
+        <FilterDropdown
+          label="Semua Upline"
+          activeValue={filters.upline}
+          options={[
+            { label: "Semua Upline", value: "all" },
+            ...(Array.isArray(uplines)
+              ? uplines.map((u) => ({ label: u.name, value: u.id }))
+              : []),
+          ]}
+          onSelect={(val) => handleFilterChange("upline", val)}
           disabled={filters.unit === "all"}
         />
       </div>

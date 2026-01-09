@@ -257,6 +257,26 @@ export interface ActivityLogReportData {
   byAction: { action: string; count: number }[];
 }
 
+export interface ActivityReportDetail {
+  id: string;
+  userId: string;
+  unitId?: string;
+  subUnitId?: string;
+  date: string;
+  activity: string;
+  summary: string;
+  strategy: string;
+  resources: string;
+  issues: string;
+  feedback?: string;
+  feedbackBy?: string;
+  status: 'submitted' | 'reviewed';
+  createdAt: string;
+  updatedAt: string;
+  user: { name: string; role: string };
+  reviewer?: { name: string };
+}
+
 // Chart data types
 export interface ChartDataPoint {
   name: string;
