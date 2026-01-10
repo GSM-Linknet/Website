@@ -53,7 +53,6 @@ export function UserModal({
   initialData,
 }: UserModalProps) {
   const [formData, setFormData] = useState<Partial<UserType>>({
-    idUser: 0,
     name: "",
     email: "",
     password: "",
@@ -85,7 +84,6 @@ export function UserModal({
     if (isOpen) {
       if (initialData) {
         setFormData({
-          idUser: initialData.idUser,
           name: initialData.name,
           email: initialData.email,
           role: initialData.role,
@@ -97,7 +95,6 @@ export function UserModal({
         });
       } else {
         setFormData({
-          idUser: Math.floor(Math.random() * 100000), // Random temporary ID for creation
           name: "",
           email: "",
           password: "",

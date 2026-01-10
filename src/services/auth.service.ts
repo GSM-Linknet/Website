@@ -59,6 +59,7 @@ export interface User {
   name: string;
   role: UserRole;
   avatar?: string;
+  profile?: string;
   wilayahId?: string;
   cabangId?: string;
   unitId?: string;

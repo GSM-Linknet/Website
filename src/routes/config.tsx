@@ -83,6 +83,7 @@ const TechnicianReportPage = lazy(() => import("@/features/reporting/pages/Techn
 const ProductionReportPage = lazy(() => import("@/features/reporting/pages/ProductionReportPage"));
 const SalesReportPage = lazy(() => import("@/features/reporting/pages/SalesReportPage"));
 const ActivityReportPage = lazy(() => import("@/features/reporting/pages/ActivityReportPage"));
+const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -479,6 +480,14 @@ export const routes: RouteObject[] = [
         element: (
           <Suspense fallback={<PageLoader />}>
             <LogPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/profile",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProfilePage />
           </Suspense>
         ),
       },

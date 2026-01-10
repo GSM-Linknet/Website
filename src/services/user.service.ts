@@ -3,7 +3,6 @@ import type { BaseEntity, BaseQuery, PaginatedResponse } from "./master.service"
 import type { UserRole } from "./auth.service";
 
 export interface User extends BaseEntity {
-  idUser: number;
   name: string;
   email: string;
   password?: string;
