@@ -81,7 +81,8 @@ export default function CustomerRegistrationPage() {
     if (filters.wilayah !== "all") searchParts.push(`idWilayah:${filters.wilayah}`);
 
     const searchParam = searchParts.join("+");
-    setQuery(searchParam ? { search: searchParam } : { search: undefined });
+    const payload = searchParam ? { search: searchParam } : { search: undefined };
+    setQuery(payload);
   }, [debouncedSearchQuery, filters, setQuery]);
 
   const handleFilterChange = (key: string, value: string) => {
