@@ -76,6 +76,15 @@ const PeriodicReportPage = lazy(
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
 const LogPage = lazy(() => import("@/features/log/LogPage"));
+const SalesTargetPage = lazy(() => import("@/features/reporting/pages/SalesTargetPage"));
+const CustomerReportPage = lazy(() => import("@/features/reporting/pages/CustomerReportPage"));
+const FinancialReportPage = lazy(() => import("@/features/reporting/pages/FinancialReportPage"));
+const TechnicianReportPage = lazy(() => import("@/features/reporting/pages/TechnicianReportPage"));
+const ProductionReportPage = lazy(() => import("@/features/reporting/pages/ProductionReportPage"));
+const SalesReportPage = lazy(() => import("@/features/reporting/pages/SalesReportPage"));
+const ActivityReportPage = lazy(() => import("@/features/reporting/pages/ActivityReportPage"));
+const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage"));
+const MaintenancePage = lazy(() => import("@/pages/MaintenancePage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -96,6 +105,22 @@ const PageLoader = () => (
  * Centralized Route Configuration.
  */
 export const routes: RouteObject[] = [
+  // 0. Maintenance Route
+  {
+    path: "/maintenance",
+    element: (
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#F8F9FD]">
+            <Skeleton className="w-12 h-12 rounded-full animate-spin border-4 border-blue-500 border-t-transparent bg-transparent" />
+          </div>
+        }
+      >
+        <MaintenancePage />
+      </Suspense>
+    ),
+  },
+
   // 1. Auth Routes (No Sidebar/Navbar)
   {
     index: true,
@@ -165,6 +190,54 @@ export const routes: RouteObject[] = [
         path: "reporting",
         children: [
           {
+            path: "customers",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CustomerReportPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "financial",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <FinancialReportPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "technician",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <TechnicianReportPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "production",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ProductionReportPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "sales-performance",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <SalesReportPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "activity",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ActivityReportPage />
+              </Suspense>
+            ),
+          },
+          {
             path: "sales",
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -177,6 +250,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <UnitActivityPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "sales-target",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <SalesTargetPage />
               </Suspense>
             ),
           },
@@ -416,6 +497,14 @@ export const routes: RouteObject[] = [
         element: (
           <Suspense fallback={<PageLoader />}>
             <LogPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/profile",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProfilePage />
           </Suspense>
         ),
       },

@@ -6,6 +6,7 @@ import type { BaseQuery, PaginatedResponse, Unit, SubUnit } from "./master.servi
 export interface Customer {
   id: string;
   customerId?: string;
+  lnId?: string;
   name: string;
   email: string;
   phone: string;
@@ -35,6 +36,13 @@ export interface Customer {
   siteId?: string;
   isFreeAccount: boolean;
   billingDate: number;
+  
+  // New: Customer Status
+  customerStatus?: 'FREE_3_MONTHS' | 'FREE_6_MONTHS' | 'FREE_12_MONTHS' | 'ON_LEAVE_1_MONTH' | 'ACTIVE' | 'DISMANTLE' | 'TERMINATED';
+  freeStartDate?: string;
+  freeEndDate?: string;
+  onLeaveStartDate?: string;
+  onLeaveEndDate?: string;
   
   createdAt?: string;
   updatedAt?: string;

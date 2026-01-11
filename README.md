@@ -57,11 +57,11 @@ The system handles two primary "Info Ticket" categories:
 
 #### B. KA Unit View (Managerial Controls)
 
-- **Activity Form**: Daily/Weekly activity tracking.
-- **Analytical Resume**: Conclusions based on field data.
-- **Strategic Input**: New market entry or operational improvement strategies.
-- **Resource Needs**: Manpower, tools, or budget requirements.
-- **Constraint Management**: Identifying field obstacles (Kendala).
+- **Managerial Controls**:
+  - **Daily Activity Form**: Detailed input for activities, analysis, and strategies.
+  - **Resource Management**: Input for tool and manpower needs.
+  - **Feedback System**: Direct line for Admin/Super Admin to provide review and coaching.
+  - **History View**: Searchable list of all submitted reports with status indicators.
 
 ---
 

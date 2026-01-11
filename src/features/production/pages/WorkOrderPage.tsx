@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, FileText, Edit2, Trash2, User, Wrench, Calendar, Package2, Hammer, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -13,6 +13,7 @@ import { ProductionService } from "@/services/production.service";
 import type { WorkOrder } from "@/services/production.service";
 import moment from "moment";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // ==================== Page Component ====================
 
@@ -42,15 +43,17 @@ export default function WorkOrderPage() {
     const canDelete = AuthService.hasPermission(userRole, "produksi.wo", "delete");
 
     const [searchQuery, setSearchQuery] = useState("");
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
 
-    const handleSearch = (val: string) => {
-        setSearchQuery(val);
-        setQuery({ search: val });
-    };
+    // Update query when debounced search changes
+    useEffect(() => {
+        const searchParam = debouncedSearchQuery;
+        setQuery(searchParam ? { search: searchParam } : { search: undefined });
+    }, [debouncedSearchQuery, setQuery]);
 
     const handleEdit = (wo: WorkOrder) => {
         setSelectedWO(wo);
@@ -338,7 +341,7 @@ export default function WorkOrderPage() {
                             placeholder="Cari WO..."
                             className="pl-10 w-64 bg-slate-50 border-none rounded-xl"
                             value={searchQuery}
-                            onChange={(e) => handleSearch(e.target.value)}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
                 </div>

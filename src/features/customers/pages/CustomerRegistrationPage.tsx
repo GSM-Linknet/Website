@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,14 @@ import { useCustomers } from "../hooks/useCustomers";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import type { Customer } from "@/services/customer.service";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // ==================== Page Component ====================
 
 export default function CustomerRegistrationPage() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const userProfile = AuthService.getUser();
   const userRole = userProfile?.role || "USER";
@@ -70,28 +72,21 @@ export default function CustomerRegistrationPage() {
   });
 
 
-  const handleFilterChange = (key: string, value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-
-    // Build the query
+  // Update query when debounced search or filters change
+  useEffect(() => {
     const searchParts: string[] = [];
-    if (searchQuery) searchParts.push(`name:${searchQuery}`);
-    if (newFilters.status !== "all") searchParts.push(`statusCust:${newFilters.status === "verified"}`);
-    if (newFilters.internet !== "all") searchParts.push(`statusNet:${newFilters.internet === "online"}`);
-
-    setQuery({ search: searchParts.join("+") });
-  };
-
-  const handleSearch = (val: string) => {
-    setSearchQuery(val);
-    const searchParts: string[] = [];
-    if (val) searchParts.push(`name:${val}`);
+    if (debouncedSearchQuery) searchParts.push(`name:${debouncedSearchQuery}`);
     if (filters.status !== "all") searchParts.push(`statusCust:${filters.status === "verified"}`);
     if (filters.internet !== "all") searchParts.push(`statusNet:${filters.internet === "online"}`);
     if (filters.wilayah !== "all") searchParts.push(`idWilayah:${filters.wilayah}`);
 
-    setQuery({ search: searchParts.join("+") });
+    const searchParam = searchParts.join("+");
+    const payload = searchParam ? { search: searchParam } : { search: undefined };
+    setQuery(payload);
+  }, [debouncedSearchQuery, filters, setQuery]);
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters({ ...filters, [key]: value });
   };
 
   // Get current user for role-based status
@@ -345,7 +340,7 @@ export default function CustomerRegistrationPage() {
               placeholder="Cari"
               className="pl-10 w-full sm:w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           {canCreate && (

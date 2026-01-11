@@ -5,8 +5,7 @@ import {
   Wrench,
   Factory,
   BarChart3,
-  TrendingUp, 
-  Smartphone, 
+  TrendingUp,
   History,
   Settings
 } from "lucide-react";
@@ -61,6 +60,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: Factory,
     resource: "produksi",
     items: [
+       { title: "Sales Target", href: "/reporting/sales-target", resource: "reporting.sales-target" },
       // { title: "Input Prospek", href: "/produksi/prospek", resource: "produksi.prospek" },
       { title: "Peta Coverage", href: "/produksi/coverage-map", resource: "produksi.cakupan" },
       // { title: "Verifikasi Admin", href: "/produksi/verifikasi", resource: "produksi.verifikasi" },
@@ -73,9 +73,16 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: BarChart3,
     resource: "reporting",
     items: [
-      { title: "Performance Sales", href: "/reporting/sales", resource: "reporting.sales" },
+      { title: "Laporan Pelanggan", href: "/reporting/customers", resource: "reporting.pelanggan" },
+      { title: "Laporan Keuangan", href: "/reporting/financial", resource: "reporting.keuangan" },
+      // { title: "Laporan Teknisi", href: "/reporting/technicians", resource: "reporting.teknisi" },
+      { title: "Laporan Produksi", href: "/reporting/production", resource: "reporting.produksi" },
+      // { title: "Laporan Sales", href: "/reporting/sales", resource: "reporting.sales" },
+      // { title: "Laporan Master Data", href: "/reporting/master-data", resource: "reporting.master" },
+      // { title: "Laporan Aktivitas", href: "/reporting/activity", resource: "reporting.activity" },
+     
       { title: "KA Unit Activity", href: "/reporting/unit", resource: "reporting.unit" },
-      { title: "Laporan Berkala", href: "/reporting/berkala", resource: "reporting.berkala" },
+      // { title: "Laporan Berkala", href: "/reporting/berkala", resource: "reporting.berkala" },
     ],
   },
   {
@@ -86,7 +93,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "Tagihan", href: "/keuangan/invoice", resource: "keuangan.invoice" },
       { title: "History Pembayaran", href: "/keuangan/history", resource: "keuangan.history" },
       { title: "Aging Reports", href: "/keuangan/aging", resource: "keuangan.aging" },
-      { title: "Saldo & Payout", href: "/keuangan/saldo", resource: "keuangan.saldo" },
+      // { title: "Saldo & Payout", href: "/keuangan/saldo", resource: "keuangan.saldo" },
       { title: "Disbursement", href: "/keuangan/payout", resource: "payout" },
     ],
   },
@@ -99,12 +106,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "WhatsApp Gateway", href: "/settings/whatsapp", resource: "settings.whatsapp" },
     ],
   },
-  {
-    title: "Aplikasi",
-    icon: Smartphone,
-    href: "/aplikasi",
-    resource: "dashboard",
-  },
+ 
   {
     title: "Logs",
     icon: History,

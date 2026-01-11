@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { TrendingUp, Users, Target, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart } from "@/components/shared/Charts";
-import { ReportingService } from "@/services/reporting.service";
+import { reportService } from "@/services/reporting.service";
 
 export default function SupervisorReportPage() {
     const [stats, setStats] = useState({
@@ -16,7 +16,7 @@ export default function SupervisorReportPage() {
         const fetchData = async () => {
             try {
                 // Fetch report data
-                const response = await ReportingService.getSalesReports();
+                const response = await reportService.getSalesPerformance();
                 // Handle wrapped response: { status, message, data: { items, ... } }
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const apiResponse = response as any;

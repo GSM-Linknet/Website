@@ -210,7 +210,7 @@ export default function LogPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#101D42]">Audit Logs</h1>
           <p className="text-sm text-slate-500">
-            Riwayat aktivitas sistem (Disimpan selama 30 hari)
+            Riwayat aktivitas sistem (Disimpan selama 14 hari)
           </p>
         </div>
       </div>

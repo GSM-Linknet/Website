@@ -1,13 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Button } from "@/components/ui/button";
 import { useInvoices } from "../hooks/useInvoices";
-import { Plus, Receipt, Search } from "lucide-react";
+import { Plus, Receipt, Search, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CreateInvoiceModal } from "../components/CreateInvoiceModal";
 import { BulkGenerateModal } from "../components/BulkGenerateModal";
-import { formatCurrency } from "@/lib/utils";
+import { CreatePaymentModal } from "../components/CreatePaymentModal";
+import { formatCurrency, cn } from "@/lib/utils";
 import moment from "moment";
+import type { Invoice } from "@/services/finance.service";
+import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
+import { CustomerService, type Customer } from "@/services/customer.service";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function InvoicePage() {
     const {
@@ -20,14 +32,102 @@ export default function InvoicePage() {
         totalPages,
         setQuery,
     } = useInvoices();
+
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isBulkOpen, setIsBulkOpen] = useState(false);
-    const [search, setSearch] = useState("");
+    const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-    const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            setQuery({ q: search });
+    // Filters state
+    const [filters, setFilters] = useState({
+        status: "all",
+        unit: "all",
+        subUnit: "all",
+        upline: "all",
+        customer: "all",
+    });
+
+    const [units, setUnits] = useState<Unit[]>([]);
+    const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
+    const [uplines, setUplines] = useState<Customer[]>([]);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+
+    // Fetch units on mount
+    useEffect(() => {
+        MasterService.getUnits({ paginate: false })
+            .then((res) => {
+                const items = res.data?.items || [];
+                setUnits(items);
+            })
+            .catch((err) => {
+                console.error("Failed to fetch units:", err);
+                setUnits([]);
+            });
+    }, []);
+
+    // Fetch customers on mount
+    useEffect(() => {
+        CustomerService.getCustomers({ paginate: false })
+            .then((res) => {
+                const items = (res as any).data?.items || [];
+                setCustomers(items);
+
+                // Extract unique uplines
+                const uniqueUplines = items
+                    .filter((c: Customer) => c.upline)
+                    .map((c: Customer) => c.upline)
+                    .filter((u: any, index: number, self: any[]) =>
+                        index === self.findIndex((t: any) => t.id === u.id)
+                    );
+                setUplines(uniqueUplines);
+            })
+            .catch((err) => {
+                console.error("Failed to fetch customers:", err);
+                setCustomers([]);
+                setUplines([]);
+            });
+    }, []);
+
+    // Fetch subUnits when unit changes
+    useEffect(() => {
+        if (filters.unit !== "all") {
+            MasterService.getSubUnits({ paginate: false, where: `unitId:${filters.unit}` })
+                .then((res) => {
+                    const items = res.data?.items || [];
+                    setSubUnits(items);
+                })
+                .catch((err) => {
+                    console.error("Failed to fetch subUnits:", err);
+                    setSubUnits([]);
+                });
+        } else {
+            setSubUnits([]);
+            setFilters(prev => ({ ...prev, subUnit: "all" }));
         }
+    }, [filters.unit]);
+
+    // Update query when search or filters change
+    useEffect(() => {
+        const whereParts: string[] = [];
+
+        if (filters.status !== "all") whereParts.push(`status:${filters.status}`);
+        if (filters.unit !== "all") whereParts.push(`customer.unitId:${filters.unit}`);
+        if (filters.subUnit !== "all") whereParts.push(`customer.subUnitId:${filters.subUnit}`);
+        if (filters.upline !== "all") whereParts.push(`customer.idUpline:${filters.upline}`);
+        if (filters.customer !== "all") whereParts.push(`customerId:${filters.customer}`);
+
+        const queryParams: any = {};
+        if (debouncedSearchQuery) queryParams.search = `invoiceNumber:${debouncedSearchQuery}`;
+        if (whereParts.length > 0) queryParams.where = whereParts.join("+");
+
+        setQuery(Object.keys(queryParams).length > 0 ? queryParams : { search: undefined, where: undefined });
+    }, [debouncedSearchQuery, filters, setQuery]);
+
+
+    const handleFilterChange = (key: string, value: string) => {
+        setFilters({ ...filters, [key]: value });
     };
 
     const columns: any[] = [
@@ -39,6 +139,11 @@ export default function InvoicePage() {
             accessorKey: "customer.name",
             header: "Pelanggan",
             cell: (invoice: any) => invoice.customer?.name || invoice.customerId,
+        },
+        {
+            accessorKey: "upline",
+            header: "Upline",
+            cell: (invoice: any) => invoice.customer?.upline?.name || "-",
         },
         {
             accessorKey: "type",
@@ -96,7 +201,7 @@ export default function InvoicePage() {
         {
             header: "Link Bayar",
             cell: (invoice: any) =>
-                invoice.paymentUrl ? (
+                invoice.paymentUrl && invoice.status === "pending" ? (
                     <Button
                         variant="link"
                         className="text-blue-600 p-0 h-auto font-medium"
@@ -108,36 +213,62 @@ export default function InvoicePage() {
                     "-"
                 ),
         },
+        {
+            header: "Aksi",
+            cell: (invoice: any) => (
+                <Button
+                    size="sm"
+                    variant={invoice.status === "paid" ? "outline" : "default"}
+                    disabled={invoice.status === "paid"}
+                    className={invoice.status === "paid" ? "" : "bg-green-600 hover:bg-green-700 text-white"}
+                    onClick={() => {
+                        setSelectedInvoice(invoice);
+                        setIsPaymentOpen(true);
+                    }}
+                >
+                    {invoice.status === "paid" ? "Lunas" : "Bayar"}
+                </Button>
+            ),
+        },
     ];
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Tagihan</h1>
-                    <p className="text-muted-foreground">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-1.5">
+                    <h1 className="text-2xl font-extrabold text-[#101D42] tracking-tight sm:text-3xl">
+                        Tagihan
+                    </h1>
+                    <p className="text-sm font-medium text-slate-500 max-w-2xl leading-relaxed">
                         Kelola tagihan pelanggan (Registrasi & Bulanan)
                     </p>
                 </div>
-                <div className="flex gap-2 items-center">
-                    <div className="relative mr-2">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <input
-                            type="search"
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+                    <div className="relative group w-full sm:w-auto">
+                        <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
+                            size={18}
+                        />
+                        <Input
                             placeholder="Cari invoice..."
-                            className="bg-background rounded-md border border-input pl-8 h-9 text-sm focus:outline-none focus:ring-1 focus:ring-ring w-64"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={handleSearch}
+                            className="pl-10 w-full sm:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <Button variant="outline" onClick={() => setIsBulkOpen(true)}>
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsBulkOpen(true)}
+                        className="rounded-xl font-bold w-full sm:w-auto"
+                    >
                         <Receipt className="mr-2 h-4 w-4" />
                         Generate Bulanan
                     </Button>
                     <Button
                         onClick={() => setIsCreateOpen(true)}
-                        className="bg-[#101D42] text-white rounded-xl font-bold shadow-lg"
+                        className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold shadow-lg transition-all hover:scale-[1.02] w-full sm:w-auto"
                     >
                         <Plus className="mr-2 h-4 w-4" />
                         Buat Tagihan
@@ -145,7 +276,69 @@ export default function InvoicePage() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            {/* Filters Section */}
+            <div className="flex flex-wrap items-center gap-3">
+                <FilterDropdown
+                    label="Semua Status"
+                    activeValue={filters.status}
+                    options={[
+                        { label: "Semua Status", value: "all" },
+                        { label: "Pending", value: "pending" },
+                        { label: "Paid", value: "paid" },
+                        { label: "Overdue", value: "overdue" },
+                        { label: "Cancelled", value: "cancelled" },
+                    ]}
+                    onSelect={(val) => handleFilterChange("status", val)}
+                />
+                <FilterDropdown
+                    label="Semua Unit"
+                    activeValue={filters.unit}
+                    options={[
+                        { label: "Semua Unit", value: "all" },
+                        ...(Array.isArray(units)
+                            ? units.map((u) => ({ label: u.name, value: u.id }))
+                            : []),
+                    ]}
+                    onSelect={(val) => handleFilterChange("unit", val)}
+                />
+                <FilterDropdown
+                    label="Semua Sub-Unit"
+                    activeValue={filters.subUnit}
+                    options={[
+                        { label: "Semua Sub-Unit", value: "all" },
+                        ...(Array.isArray(subUnits)
+                            ? subUnits.map((s) => ({ label: s.name, value: s.id }))
+                            : []),
+                    ]}
+                    onSelect={(val) => handleFilterChange("subUnit", val)}
+                    disabled={filters.unit === "all"}
+                />
+                <FilterDropdown
+                    label="Semua Upline"
+                    activeValue={filters.upline}
+                    options={[
+                        { label: "Semua Upline", value: "all" },
+                        ...(Array.isArray(uplines)
+                            ? uplines.map((u) => ({ label: u.name, value: u.id }))
+                            : []),
+                    ]}
+                    onSelect={(val) => handleFilterChange("upline", val)}
+                />
+                <FilterDropdown
+                    label="Semua Customer"
+                    activeValue={filters.customer}
+                    options={[
+                        { label: "Semua Customer", value: "all" },
+                        ...(Array.isArray(customers)
+                            ? customers.map((c) => ({ label: c.name, value: c.id }))
+                            : []),
+                    ]}
+                    onSelect={(val) => handleFilterChange("customer", val)}
+                />
+            </div>
+
+            {/* Table Content */}
+            <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
                     data={invoices || []}
                     columns={columns}
@@ -170,6 +363,82 @@ export default function InvoicePage() {
                 onClose={() => setIsBulkOpen(false)}
                 onSuccess={refetch}
             />
+
+            <CreatePaymentModal
+                isOpen={isPaymentOpen}
+                onClose={() => {
+                    setIsPaymentOpen(false);
+                    setSelectedInvoice(null);
+                }}
+                invoice={selectedInvoice}
+                onSuccess={refetch}
+            />
         </div>
     );
 }
+
+// ==================== Helper Components ====================
+
+interface FilterOption {
+    label: string;
+    value: string;
+}
+
+interface FilterDropdownProps {
+    label: string;
+    options: FilterOption[];
+    activeValue: string;
+    onSelect: (value: string) => void;
+    disabled?: boolean;
+}
+
+const FilterDropdown = ({
+    label,
+    options,
+    activeValue,
+    onSelect,
+    disabled = false,
+}: FilterDropdownProps) => {
+    const activeLabel =
+        options.find((opt) => opt.value === activeValue)?.label || label;
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant="outline"
+                    disabled={disabled}
+                    className={cn(
+                        "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
+                        activeValue !== "all" &&
+                        "border-blue-500 text-blue-600 bg-blue-50/50",
+                        disabled && "opacity-50 cursor-not-allowed"
+                    )}
+                >
+                    <span>{activeLabel}</span>
+                    <ChevronDown
+                        size={14}
+                        className={cn(
+                            "text-slate-400",
+                            activeValue !== "all" && "text-blue-500",
+                        )}
+                    />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[180px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+                {options.map((option) => (
+                    <DropdownMenuItem
+                        key={option.value}
+                        className={cn(
+                            "rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700",
+                            activeValue === option.value && "bg-blue-50 text-blue-600",
+                        )}
+                        onClick={() => onSelect(option.value)}
+                    >
+                        {option.label}
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+};

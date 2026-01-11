@@ -19,6 +19,12 @@ const columns = [
         cell: (row: Payment) => row.invoice?.invoiceNumber || row.invoiceId
     },
     {
+        header: "PELANGGAN",
+        accessorKey: "customerName",
+        className: "text-slate-700",
+        cell: (row: Payment) => row.customerName || "-"
+    },
+    {
         header: "TANGGAL",
         accessorKey: "paidAt",
         className: "text-slate-500",
@@ -34,7 +40,39 @@ const columns = [
             </span>
         ),
     },
-    { header: "METODE", accessorKey: "method", className: "text-slate-500" },
+    {
+        header: "DISKON",
+        accessorKey: "discount",
+        cell: (row: Payment) => row.discount ? (
+            <span className="font-mono text-red-600">
+                -Rp {row.discount.toLocaleString("id-ID")}
+            </span>
+        ) : "-",
+    },
+    {
+        header: "DITERIMA",
+        accessorKey: "amountReceived",
+        cell: (row: Payment) => row.amountReceived ? (
+            <span className="font-mono font-bold text-green-600">
+                Rp {row.amountReceived.toLocaleString("id-ID")}
+            </span>
+        ) : "-",
+    },
+    {
+        header: "SISTEM BAYAR",
+        accessorKey: "paymentSystem",
+        cell: (row: Payment) => {
+            const systemLabels = {
+                'CASH_UNIT': 'Cash Unit',
+                'CASH_SALES': 'Cash Sales',
+                'BANK_TRANSFER_PT': 'Transfer PT',
+                'VIRTUAL_ACCOUNT': 'VA'
+            };
+            return row.paymentSystem ? systemLabels[row.paymentSystem] : row.method;
+        }
+    },
+    { header: "WILAYAH", accessorKey: "wilayah", className: "text-slate-500", cell: (row: Payment) => row.wilayah?.name || "-" },
+    { header: "UNIT", accessorKey: "unit", className: "text-slate-500", cell: (row: Payment) => row.unit?.name || "-" },
 ];
 
 // ==================== Page Component ====================

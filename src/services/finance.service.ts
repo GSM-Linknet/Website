@@ -33,6 +33,20 @@ export interface Payment {
   reference?: string;
   paidAt?: string;
   notes?: string;
+  
+  // New: Billing Parameters
+  wilayahId?: string;
+  unitId?: string;
+  customerName?: string;
+  discount?: number;
+  paymentSystem?: 'CASH_UNIT' | 'CASH_SALES' | 'BANK_TRANSFER_PT' | 'VIRTUAL_ACCOUNT';
+  amountReceived?: number;
+  isAutomatic?: boolean;
+  xenditCallbackData?: any;
+  
+  // Relations
+  wilayah?: { id: string; name: string; code: string };
+  unit?: { id: string; name: string; code: string };
 }
 
 const ENDPOINTS = {
