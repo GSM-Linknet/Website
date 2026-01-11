@@ -3,7 +3,7 @@ import { BarChart3, Download, Calendar, Filter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart } from "@/components/shared/Charts";
-import { ReportingService } from "@/services/reporting.service";
+import { reportService } from "@/services/reporting.service";
 
 export default function PeriodicReportPage() {
     // Mock data for charts
@@ -23,7 +23,7 @@ export default function PeriodicReportPage() {
             setLoading(true);
             try {
                 // Fetch reports. In real app, aggregate by monthly.
-                const response = await ReportingService.getSalesReports();
+                const response = await reportService.getSalesPerformance();
                 // Handle wrapped response: { status, message, data: { items, ... } }
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const apiResponse = response as any;

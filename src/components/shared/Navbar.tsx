@@ -5,7 +5,6 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     User as UserIcon,
-    Settings as SettingsIcon,
     LogOut
 } from "lucide-react";
 import {
@@ -94,7 +93,7 @@ export const Navbar = () => {
                                 </p>
                             </div>
                             <Avatar className="h-10 w-10 border-2 border-white shadow-sm transition-transform duration-200 group-hover:scale-105">
-                                <AvatarImage src={user?.avatar} />
+                                <AvatarImage src={user?.profile || user?.avatar} />
                                 <AvatarFallback className="bg-blue-500 text-white">
                                     {user ? getInitials(user.name) : "U"}
                                 </AvatarFallback>
@@ -112,13 +111,7 @@ export const Navbar = () => {
                             <UserIcon size={16} className="text-slate-400" />
                             Profil
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="rounded-xl cursor-pointer flex items-center gap-2"
-                            onClick={() => navigate("/settings/permissions")}
-                        >
-                            <SettingsIcon size={16} className="text-slate-400" />
-                            Pengaturan
-                        </DropdownMenuItem>
+
                         <DropdownMenuSeparator className="bg-slate-50" />
                         <DropdownMenuItem
                             className="text-red-600 rounded-xl cursor-pointer font-medium hover:bg-red-50 focus:bg-red-50 focus:text-red-600 flex items-center gap-2"

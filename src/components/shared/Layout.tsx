@@ -7,22 +7,38 @@ import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { AuthService } from "@/services/auth.service";
 import { ImpersonateBanner } from "./ImpersonateBanner";
+import { MaintenanceService } from "@/services/maintenance.service";
+import { useLocation, useNavigate } from "react-router-dom";
 
 /**
  * LayoutContent manages the dynamic arrangement of Sidebar, Navbar, and Page Content.
  */
 const LayoutContent = ({ children }: { children: React.ReactNode }) => {
     const { isCollapsed, isMobileOpen, closeMobile } = useSidebar();
+    const location = useLocation();
+    const navigate = useNavigate();
 
     useEffect(() => {
+        const checkMaintenance = async () => {
+            // Don't check if already on maintenance page
+            if (location.pathname === "/maintenance") return;
+
+            const isMaintenanceActive = await MaintenanceService.getStatus();
+            if (MaintenanceService.isRedirectRequired(isMaintenanceActive)) {
+                navigate("/maintenance");
+            }
+        };
+
         const checkPermissions = async () => {
             const hasPermissions = localStorage.getItem("app_permissions");
             if (!hasPermissions && AuthService.getUser()) {
                 await AuthService.initPermissions();
             }
         };
+
+        checkMaintenance();
         checkPermissions();
-    }, []);
+    }, [location.pathname, navigate]);
 
     return (
         <div className="flex h-screen bg-[#F8F9FD] overflow-hidden">

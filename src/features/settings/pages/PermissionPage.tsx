@@ -82,8 +82,15 @@ const MODULE_GROUPS: {
             icon: BarChart3,
             resources: [
                 { key: "reporting.sales", label: "Performance Sales" },
+                { key: "reporting.sales-target", label: "Sales Target Management" },
                 { key: "reporting.unit", label: "KA Unit Activity" },
-                { key: "reporting.berkala", label: "Laporan Berkala" }
+                { key: "reporting.berkala", label: "Laporan Berkala" },
+                { key: "reporting.pelanggan", label: "Laporan Pelanggan" },
+                { key: "reporting.keuangan", label: "Laporan Keuangan" },
+                { key: "reporting.produksi", label: "Laporan Produksi" },
+                { key: "reporting.teknisi", label: "Laporan Teknisi" },
+                { key: "reporting.master", label: "Laporan Master Data" },
+                { key: "reporting.activity", label: "Laporan Aktivitas" }
             ]
         },
         {

@@ -9,7 +9,7 @@ import type { BaseQuery } from "@/services/master.service";
  */
 export function useCustomers(initialQuery?: BaseQuery) {
   const fetchResult = useFetch<Customer>(
-    (query) => CustomerService.getCustomers(query),
+    (query) => CustomerService.getCustomers({...query, order: "createdAt:desc"}),
     { query: initialQuery, autoFetch: true }
   );
 

@@ -30,8 +30,15 @@ export type PermissionResource =
     | "produksi.cakupan"
     // Reporting
     | "reporting.sales" 
+    | "reporting.sales-target"
     | "reporting.unit" 
     | "reporting.berkala"
+    | "reporting.pelanggan"
+    | "reporting.keuangan"
+    | "reporting.produksi"
+    | "reporting.teknisi"
+    | "reporting.master"
+    | "reporting.activity"
     // Keuangan
     | "keuangan.history" 
     | "keuangan.aging" 
@@ -52,6 +59,7 @@ export interface User {
   name: string;
   role: UserRole;
   avatar?: string;
+  profile?: string;
   wilayahId?: string;
   cabangId?: string;
   unitId?: string;
@@ -101,6 +109,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "produksi.verifikasi": ["view", "create", "edit", "delete", "verify"],
       "produksi.wo": ["view", "create", "edit", "delete"],
       "reporting.sales": ["view", "export"],
+      "reporting.sales-target": ["view", "create", "edit", "delete", "export"],
       "reporting.unit": ["view", "export"],
       "reporting.berkala": ["view", "export"],
       "keuangan.history": ["view", "export"],
@@ -130,6 +139,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "produksi.verifikasi": ["view", "verify"],
       "produksi.wo": ["view", "create", "edit"],
       "reporting.sales": ["view", "export"],
+      "reporting.sales-target": ["view", "create", "edit", "delete", "export"],
       "reporting.unit": ["view", "export"],
       "reporting.berkala": ["view", "export"],
       "keuangan.history": ["view"],
@@ -151,6 +161,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "produksi.verifikasi": ["view"],
       "produksi.wo": ["view", "create", "edit"],
       "reporting.sales": ["view"],
+      "reporting.sales-target": ["view", "create", "edit", "delete"],
       "reporting.unit": ["view"],
   },
   "ADMIN_UNIT": {
@@ -181,6 +192,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "produksi.verifikasi": ["view"],
       "produksi.wo": ["view", "create", "edit"],
       "reporting.sales": ["view", "create", "edit"],
+      "reporting.sales-target": ["view", "create", "edit", "delete"],
       "reporting.unit": ["view", "create", "edit"],
       "reporting.berkala": [],
       "keuangan.history": [],

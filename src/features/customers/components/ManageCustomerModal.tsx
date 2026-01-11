@@ -83,6 +83,12 @@ export function ManageCustomerModal({
                 statusNet: customer.statusNet,
                 isFreeAccount: customer.isFreeAccount,
                 billingDate: customer.billingDate || 1,
+                lnId: customer.lnId || '',
+                customerStatus: customer.customerStatus,
+                freeStartDate: customer.freeStartDate,
+                freeEndDate: customer.freeEndDate,
+                onLeaveStartDate: customer.onLeaveStartDate,
+                onLeaveEndDate: customer.onLeaveEndDate,
             });
         }
     }, [customer]);
@@ -207,6 +213,18 @@ export function ManageCustomerModal({
                                             />
                                         </div>
                                     )}
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                            <Hash className="w-3.5 h-3.5" />
+                                            ID LN (Livin Network)
+                                        </Label>
+                                        <Input
+                                            value={formData.lnId || ""}
+                                            onChange={(e) => setFormData({ ...formData, lnId: e.target.value })}
+                                            className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors font-mono"
+                                            placeholder="Masukkan ID LN"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <div className="space-y-2">
@@ -268,6 +286,76 @@ export function ManageCustomerModal({
                                     </Select>
                                 </div>
                             </div>
+
+                            {/* Customer Status */}
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status Pelanggan Detail</Label>
+                                <Select
+                                    value={formData.customerStatus || ''}
+                                    onValueChange={(val) => setFormData({ ...formData, customerStatus: val as any })}
+                                >
+                                    <SelectTrigger className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors">
+                                        <SelectValue placeholder="Pilih Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ACTIVE">Aktif</SelectItem>
+                                        <SelectItem value="FREE_3_MONTHS">Gratis 3 Bulan</SelectItem>
+                                        <SelectItem value="FREE_6_MONTHS">Gratis 6 Bulan</SelectItem>
+                                        <SelectItem value="FREE_12_MONTHS">Gratis 12 Bulan</SelectItem>
+                                        <SelectItem value="ON_LEAVE_1_MONTH">Libur 1 Bulan</SelectItem>
+                                        <SelectItem value="DISMANTLE">Dismantle</SelectItem>
+                                        <SelectItem value="TERMINATED">Keluar</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Conditional Date Pickers for FREE statuses */}
+                            {formData.customerStatus?.startsWith('FREE_') && (
+                                <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-blue-700">Tanggal Mulai Gratis</Label>
+                                        <Input
+                                            type="date"
+                                            value={formData.freeStartDate?.split('T')[0] || ''}
+                                            onChange={(e) => setFormData({ ...formData, freeStartDate: e.target.value })}
+                                            className="h-10 bg-white border-blue-200"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-blue-700">Tanggal Selesai (Auto)</Label>
+                                        <Input
+                                            type="date"
+                                            value={formData.freeEndDate?.split('T')[0] || ''}
+                                            readOnly
+                                            className="h-10 bg-slate-100 text-slate-500 border-blue-200"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Conditional Date Pickers for ON_LEAVE status */}
+                            {formData.customerStatus === 'ON_LEAVE_1_MONTH' && (
+                                <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 border border-amber-100 rounded-lg">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-amber-700">Tanggal Mulai Libur</Label>
+                                        <Input
+                                            type="date"
+                                            value={formData.onLeaveStartDate?.split('T')[0] || ''}
+                                            onChange={(e) => setFormData({ ...formData, onLeaveStartDate: e.target.value })}
+                                            className="h-10 bg-white border-amber-200"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-amber-700">Tanggal Selesai (Auto)</Label>
+                                        <Input
+                                            type="date"
+                                            value={formData.onLeaveEndDate?.split('T')[0] || ''}
+                                            readOnly
+                                            className="h-10 bg-slate-100 text-slate-500 border-amber-200"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="flex flex-col gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
                                 <div className="flex items-center justify-between">

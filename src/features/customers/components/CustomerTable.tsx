@@ -45,12 +45,17 @@ export const CustomerTable = ({
   onDelete,
 }: CustomerTableProps) => {
   const columns = [
-    
+
     {
       header: "ID PELANGGAN",
       accessorKey: "customerId",
       className: "min-w-[100px] font-mono text-xs font-bold text-slate-500",
       cell: (row: Customer) => row.customerId || "-",
+    },
+    {
+      header: "ID LN",
+      accessorKey: "lnId",
+      className: "text-slate-500 font-medium text-[12px]",
     },
     {
       header: "NAMA",
@@ -85,9 +90,22 @@ export const CustomerTable = ({
       ),
     },
     {
+      header: "UPLINE",
+      accessorKey: "upline",
+      className: " max-w-[150px] truncate",
+      cell: (row: Customer) => (
+        <span
+          title={row.upline?.name}
+          className="text-xs text-slate-600 truncate block max-w-[150px]"
+        >
+          {row.upline?.name || "-"}
+        </span>
+      ),
+    },
+    {
       header: "ALAMAT",
       accessorKey: "address",
-      className: "text-center max-w-[150px] truncate",
+      className: "max-w-[150px] truncate",
       cell: (row: Customer) => (
         <span
           title={row.address}
@@ -97,6 +115,7 @@ export const CustomerTable = ({
         </span>
       ),
     },
+
     {
       header: "INTERNET",
       accessorKey: "statusNet",
@@ -123,6 +142,7 @@ export const CustomerTable = ({
       accessorKey: "ODPCode",
       className: "text-slate-500 font-medium text-[12px]",
     },
+    
     {
       header: "EMAIL",
       accessorKey: "email",
@@ -138,18 +158,48 @@ export const CustomerTable = ({
     {
       header: "STATUS",
       accessorKey: "statusCust",
-      cell: (row: Customer) => (
-        <Badge
-          className={cn(
-            "rounded-md text-[11px] font-bold px-3 py-1 border-none",
-            row.statusCust
-              ? "bg-emerald-500 text-white"
-              : "bg-slate-200 text-slate-600",
-          )}
-        >
-          {row.statusCust ? "Aktif" : "Non-Aktif"}
-        </Badge>
-      ),
+      cell: (row: Customer) => {
+        // Show detailed customerStatus if available
+        if (row.customerStatus) {
+          const statusConfig = {
+            'FREE_3_MONTHS': { label: 'Gratis 3 Bln', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+            'FREE_6_MONTHS': { label: 'Gratis 6 Bln', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+            'FREE_12_MONTHS': { label: 'Gratis 12 Bln', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+            'ON_LEAVE_1_MONTH': { label: 'Libur 1 Bln', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+            'ACTIVE': { label: 'Aktif', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
+            'DISMANTLE': { label: 'Dismantle', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
+            'TERMINATED': { label: 'Keluar', bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
+          };
+
+          const config = statusConfig[row.customerStatus];
+          return (
+            <Badge
+              className={cn(
+                "rounded-md text-[11px] font-bold px-3 py-1 border",
+                config.bg,
+                config.text,
+                config.border
+              )}
+            >
+              {config.label}
+            </Badge>
+          );
+        }
+
+        // Fallback to old status display
+        return (
+          <Badge
+            className={cn(
+              "rounded-md text-[11px] font-bold px-3 py-1 border-none",
+              row.statusCust
+                ? "bg-emerald-500 text-white"
+                : "bg-slate-200 text-slate-600",
+            )}
+          >
+            {row.statusCust ? "Aktif" : "Non-Aktif"}
+          </Badge>
+        );
+      },
     },
     {
       header: "TERDAFTAR",

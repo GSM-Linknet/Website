@@ -1,9 +1,25 @@
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { MaintenanceService } from "@/services/maintenance.service";
 import { LoginForm } from "../components/LoginForm";
 
 /**
  * LoginPage provides a high-fidelity, expert-level authentication entry point.
  */
 export default function LoginPage() {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const checkMaintenance = async () => {
+            const isMaintenanceActive = await MaintenanceService.getStatus();
+            if (MaintenanceService.isRedirectRequired(isMaintenanceActive)) {
+                navigate("/maintenance");
+            }
+        };
+        checkMaintenance();
+    }, [location.pathname, navigate]);
+
     return (
         <div className="min-h-screen w-full flex bg-[#F8F9FD] overflow-hidden">
             {/* Left side: Content & Branding */}

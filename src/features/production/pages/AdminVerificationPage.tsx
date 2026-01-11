@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, UserCheck, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useProspects } from "../hooks/useProspects";
 import type { Prospect } from "@/services/production.service";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function AdminVerificationPage() {
     const {
@@ -19,11 +20,13 @@ export default function AdminVerificationPage() {
     } = useProspects();
 
     const [searchQuery, setSearchQuery] = useState("");
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-    const handleSearch = (val: string) => {
-        setSearchQuery(val);
-        setQuery({ search: val });
-    };
+    // Update query when debounced search changes
+    useEffect(() => {
+        const searchParam = debouncedSearchQuery;
+        setQuery(searchParam ? { search: searchParam } : { search: undefined });
+    }, [debouncedSearchQuery, setQuery]);
 
     const columns = [
         { header: "NAMA CAPEL", accessorKey: "name", className: "font-bold text-[#101D42]" },
@@ -83,7 +86,7 @@ export default function AdminVerificationPage() {
                         placeholder="Cari capel..."
                         className="pl-10 w-64 bg-white rounded-xl"
                         value={searchQuery}
-                        onChange={(e) => handleSearch(e.target.value)}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
             </div>
