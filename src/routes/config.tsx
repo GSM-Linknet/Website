@@ -84,6 +84,7 @@ const ProductionReportPage = lazy(() => import("@/features/reporting/pages/Produ
 const SalesReportPage = lazy(() => import("@/features/reporting/pages/SalesReportPage"));
 const ActivityReportPage = lazy(() => import("@/features/reporting/pages/ActivityReportPage"));
 const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage"));
+const MaintenancePage = lazy(() => import("@/pages/MaintenancePage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -104,6 +105,22 @@ const PageLoader = () => (
  * Centralized Route Configuration.
  */
 export const routes: RouteObject[] = [
+  // 0. Maintenance Route
+  {
+    path: "/maintenance",
+    element: (
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#F8F9FD]">
+            <Skeleton className="w-12 h-12 rounded-full animate-spin border-4 border-blue-500 border-t-transparent bg-transparent" />
+          </div>
+        }
+      >
+        <MaintenancePage />
+      </Suspense>
+    ),
+  },
+
   // 1. Auth Routes (No Sidebar/Navbar)
   {
     index: true,
