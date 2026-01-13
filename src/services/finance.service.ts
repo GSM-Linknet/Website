@@ -81,6 +81,14 @@ export const FinanceService = {
     return apiClient.post(`${ENDPOINTS.INVOICE}/generate-bulk`, { period, unitId });
   },
 
+  regeneratePaymentLink: async (id: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/regenerate-payment-link/${id}`);
+  },
+
+  downloadInvoicePdf: (id: string) => {
+    window.open(`${import.meta.env.VITE_API_URL}${ENDPOINTS.INVOICE}/download-pdf/${id}`, '_blank');
+  },
+
   // Payments
   getPayments: async (query: BaseQuery = {}) => {
     return apiClient.get<PaginatedResponse<Payment>>(`${ENDPOINTS.PAYMENT}/find-all`, { params: query });
