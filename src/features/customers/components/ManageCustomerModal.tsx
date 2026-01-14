@@ -84,6 +84,7 @@ export function ManageCustomerModal({
                 isFreeAccount: customer.isFreeAccount,
                 billingDate: customer.billingDate || 1,
                 lnId: customer.lnId || '',
+                siteId: customer.siteId || '',
                 customerStatus: customer.customerStatus,
                 freeStartDate: customer.freeStartDate,
                 freeEndDate: customer.freeEndDate,
@@ -119,40 +120,44 @@ export function ManageCustomerModal({
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[700px] p-0 gap-0 overflow-hidden bg-white max-h-[90vh] flex flex-col">
-                <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-white sticky top-0 z-10">
-                    <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                            <User className="w-5 h-5 text-blue-600" />
+                <DialogHeader className="px-8 py-7 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50/50 sticky top-0 z-10">
+                    <div className="flex items-center gap-5">
+                        <div className="flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200 animate-in zoom-in duration-500">
+                            <User className="w-7 h-7 text-white" />
                         </div>
-                        Kelola Pelanggan
-                    </DialogTitle>
-                    <DialogDescription className="text-slate-500">
-                        Update informasi dan status layanan pelanggan
-                    </DialogDescription>
+                        <div className="space-y-1">
+                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                                Kelola Pelanggan
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-500 font-medium text-sm">
+                                Perbarui informasi profil dan status layanan secara real-time
+                            </DialogDescription>
+                        </div>
+                    </div>
                 </DialogHeader>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                    <div className="px-6 border-b border-slate-100 bg-slate-50/50">
-                        <TabsList className="h-12 bg-transparent p-0 gap-6">
+                    <div className="px-8 py-3 bg-white border-b border-slate-100/80">
+                        <TabsList className="flex items-center w-full bg-slate-100/80 p-1 rounded-xl h-auto gap-1">
                             <TabsTrigger
                                 value="personal"
-                                className="h-full px-0 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none bg-transparent font-medium text-slate-500 hover:text-slate-700 transition-all flex items-center gap-2"
+                                className="cursor-pointer flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider text-slate-500 transition-all duration-300 flex items-center justify-center gap-2"
                             >
-                                <User className="w-4 h-4" />
+                                <User className="w-3.5 h-3.5" />
                                 Personal
                             </TabsTrigger>
                             <TabsTrigger
                                 value="service"
-                                className="h-full px-0 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none bg-transparent font-medium text-slate-500 hover:text-slate-700 transition-all flex items-center gap-2"
+                                className="cursor-pointer flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider text-slate-500 transition-all duration-300 flex items-center justify-center gap-2"
                             >
-                                <Package className="w-4 h-4" />
+                                <Package className="w-3.5 h-3.5" />
                                 Layanan & Status
                             </TabsTrigger>
                             <TabsTrigger
                                 value="location"
-                                className="h-full px-0 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none bg-transparent font-medium text-slate-500 hover:text-slate-700 transition-all flex items-center gap-2"
+                                className="cursor-pointer flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider text-slate-500 transition-all duration-300 flex items-center justify-center gap-2"
                             >
-                                <MapPin className="w-4 h-4" />
+                                <MapPin className="w-3.5 h-3.5" />
                                 Lokasi
                             </TabsTrigger>
                         </TabsList>
@@ -285,6 +290,19 @@ export function ManageCustomerModal({
                                         </SelectContent>
                                     </Select>
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Hash className="w-3.5 h-3.5" />
+                                    Site ID
+                                </Label>
+                                <Input
+                                    value={formData.siteId || ""}
+                                    onChange={(e) => setFormData({ ...formData, siteId: e.target.value })}
+                                    className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors font-mono"
+                                    placeholder="SITE-XXX"
+                                />
                             </div>
 
                             {/* Customer Status */}
@@ -455,11 +473,20 @@ export function ManageCustomerModal({
                         </TabsContent>
                     </div>
 
-                    <DialogFooter className="p-6 border-t border-slate-100 bg-white sticky bottom-0 z-10">
-                        <Button variant="outline" onClick={onClose} disabled={loading} className="h-10 px-6 rounded-lg font-medium">
+                    <DialogFooter className="px-8 py-6 border-t border-slate-100 bg-slate-50/30 sticky bottom-0 z-10 flex items-center justify-end gap-3">
+                        <Button
+                            variant="ghost"
+                            onClick={onClose}
+                            disabled={loading}
+                            className="h-11 px-8 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-all"
+                        >
                             Batal
                         </Button>
-                        <Button onClick={handleSubmit} disabled={loading} className="h-10 px-6 bg-[#101D42] hover:bg-[#1a2d61] text-white rounded-lg font-medium min-w-[120px]">
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            className="h-11 px-10 bg-[#101D42] hover:bg-[#1a2d61] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 transition-all transform hover:scale-[1.02] active:scale-[0.98] min-w-[160px]"
+                        >
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -470,8 +497,8 @@ export function ManageCustomerModal({
                             )}
                         </Button>
                     </DialogFooter>
-                </Tabs>
-            </DialogContent>
-        </Dialog>
+                </Tabs >
+            </DialogContent >
+        </Dialog >
     );
 }

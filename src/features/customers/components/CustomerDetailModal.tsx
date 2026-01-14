@@ -255,7 +255,7 @@ export function CustomerDetailModal({
 
         {/* Footer Actions */}
         <DialogFooter className="p-6 border-t border-slate-100 bg-white gap-2">
-          {canVerify &&  onVerify && (
+          {canVerify &&  onVerify && !customer.siteId && (
             <div className="flex flex-col w-full gap-4">
               {/* Quota Warning Section */}
               {(customer.unit || customer.subUnit) && (

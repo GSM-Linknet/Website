@@ -143,6 +143,13 @@ Administrators can manage active customers with the following features:
 - **Commercial**: Upgrade Packets, Add-on TV Services.
 - **Ecosystem**: Information on UMKM (SME) Products.
 
+### 💰 Disbursement Approval (Super Admin Only)
+
+The Disbursement (Payout) approval process has been hardened:
+
+- **Visibility**: The "Approve" and "Reject" actions in the Disbursement menu are now exclusively visible to users with the `SUPER_ADMIN` role.
+- **Workflow**: Non-Super Admin users can still view and propose payouts (based on permissions), but the final financial clearance must come from a Super Admin.
+
 ---
 
 ## 🛠️ Technology Stack
