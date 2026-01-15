@@ -85,6 +85,7 @@ const SalesReportPage = lazy(() => import("@/features/reporting/pages/SalesRepor
 const ActivityReportPage = lazy(() => import("@/features/reporting/pages/ActivityReportPage"));
 const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage"));
 const MaintenancePage = lazy(() => import("@/pages/MaintenancePage"));
+const PublicPaymentPage = lazy(() => import("@/features/finance/pages/PublicPaymentPage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -117,6 +118,22 @@ export const routes: RouteObject[] = [
         }
       >
         <MaintenancePage />
+      </Suspense>
+    ),
+  },
+
+  // 0.1 Public Payment Route
+  {
+    path: "/pay/:id",
+    element: (
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#F8F9FD]">
+            <Skeleton className="w-12 h-12 rounded-full animate-spin border-4 border-blue-500 border-t-transparent bg-transparent" />
+          </div>
+        }
+      >
+        <PublicPaymentPage />
       </Suspense>
     ),
   },

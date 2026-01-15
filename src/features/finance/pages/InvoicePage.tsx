@@ -263,7 +263,7 @@ export default function InvoicePage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem
-                                onClick={() => FinanceService.downloadInvoicePdf(invoice.id)}
+                                onClick={() => FinanceService.downloadInvoicePdf(invoice.id, invoice.invoiceNumber)}
                                 className="cursor-pointer"
                             >
                                 <Download className="mr-2 h-4 w-4" />

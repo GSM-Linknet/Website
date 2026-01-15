@@ -85,8 +85,24 @@ export const FinanceService = {
     return apiClient.post(`${ENDPOINTS.INVOICE}/regenerate-payment-link/${id}`);
   },
 
-  downloadInvoicePdf: (id: string) => {
-    window.open(`${import.meta.env.VITE_API_URL}${ENDPOINTS.INVOICE}/download-pdf/${id}`, '_blank');
+  downloadInvoicePdf: async (invoiceId: string, invoiceNumber: string) => {
+    const response = await apiClient.get(`/keuangan/invoice/download-pdf/${invoiceId}`, {
+      responseType: 'blob',
+    });
+
+    // Create a blob URL and trigger download
+    const blob = new Blob([response as any], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Invoice_${invoiceNumber}.pdf`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  },
+
+  // Xendit Balance
+  getXenditBalance: async () => {
+    return apiClient.get('/xendit/balance');
   },
 
   // Payments

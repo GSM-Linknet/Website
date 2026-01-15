@@ -123,6 +123,8 @@ Within the Customer Portal, users can track their progress through a real-time s
 4. **No Urut Hari Ini** ✓ (Status: On the Move)
 5. **Done Pemasangan** ✓ (Status: Active)
 6. **Info Pembayaran & Tagihan** (Status: Billing)
+   - Customers receive an internal link to a detailed payment page.
+   - Xendit payment links are generated on-demand when the customer initiates payment.
 
 ### 🛠️ Subscription Management Features
 
