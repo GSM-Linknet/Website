@@ -42,6 +42,7 @@ const AgingReportsPage = lazy(
   () => import("@/features/finance/pages/AgingReportsPage"),
 );
 const PayoutPage = lazy(() => import("@/features/finance/pages/PayoutPage"));
+const CommissionPage = lazy(() => import("@/features/finance/pages/CommissionPage"));
 const WilayahPage = lazy(() => import("@/features/master/pages/WilayahPage"));
 const AreaPage = lazy(() => import("@/features/master/pages/AreaPage"));
 const CabangPage = lazy(() => import("@/features/master/pages/CabangPage"));
@@ -69,6 +70,9 @@ const PermissionPage = lazy(
 );
 const WhatsAppSettingsPage = lazy(
   () => import("@/features/settings/pages/WhatsAppSettingsPage"),
+);
+const CommissionSettingsPage = lazy(
+  () => import("@/features/settings/pages/CommissionSettingsPage"),
 );
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
@@ -485,6 +489,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "commission",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CommissionPage />
+              </Suspense>
+            ),
+          },
+          {
             path: "batch-payment",
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -514,6 +526,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <WhatsAppSettingsPage />
+              </Suspense>
+            )
+          },
+          {
+            path: "commission",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CommissionSettingsPage />
               </Suspense>
             )
           }

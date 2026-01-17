@@ -35,9 +35,9 @@ class ReportingService {
     const response = await apiClient.get<Blob>(
       `${API_ENDPOINTS.CUSTOMER}/export/excel?${queryString}`,
       { responseType: 'blob' }
-    ) as any;
+    );
     
-    const blob = new Blob([response.data as BlobPart], {
+    const blob = new Blob([response], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
     downloadBlob(blob, generateExportFilename('pelanggan', 'excel'));
@@ -48,9 +48,9 @@ class ReportingService {
     const response = await apiClient.get<Blob>(
       `${API_ENDPOINTS.CUSTOMER}/export/pdf?${queryString}`,
       { responseType: 'blob' }
-    ) as any;
+    );
     
-    const blob = new Blob([response.data as BlobPart], { type: 'application/pdf' });
+    const blob = new Blob([response], { type: 'application/pdf' });
     downloadBlob(blob, generateExportFilename('pelanggan', 'pdf'));
   }
 
@@ -86,9 +86,9 @@ class ReportingService {
     const response = await apiClient.get<Blob>(
       `/reporting/reports/financial/export/excel?${queryString}`,
       { responseType: 'blob' }
-    ) as any;
+    );
     
-    const blob = new Blob([response.data as BlobPart], {
+    const blob = new Blob([response], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
     downloadBlob(blob, generateExportFilename(`keuangan-${type}`, 'excel'));
@@ -99,9 +99,9 @@ class ReportingService {
     const response = await apiClient.get<Blob>(
       `/reporting/reports/financial/export/pdf?${queryString}`,
       { responseType: 'blob' }
-    ) as any;
+    );
     
-    const blob = new Blob([response.data as BlobPart], { type: 'application/pdf' });
+    const blob = new Blob([response], { type: 'application/pdf' });
     downloadBlob(blob, generateExportFilename(`keuangan-${type}`, 'pdf'));
   }
 
@@ -125,9 +125,9 @@ class ReportingService {
     const response = await apiClient.get<Blob>(
       `/reporting/reports/technicians/export/excel?${queryString}`,
       { responseType: 'blob' }
-    ) as any;
+    );
     
-    const blob = new Blob([response.data as BlobPart], {
+    const blob = new Blob([response], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
     downloadBlob(blob, generateExportFilename('teknisi', 'excel'));
@@ -138,9 +138,9 @@ class ReportingService {
     const response = await apiClient.get<Blob>(
       `/reporting/reports/technicians/export/pdf?${queryString}`,
       { responseType: 'blob' }
-    ) as any;
+    );
     
-    const blob = new Blob([response.data as BlobPart], { type: 'application/pdf' });
+    const blob = new Blob([response], { type: 'application/pdf' });
     downloadBlob(blob, generateExportFilename('teknisi', 'pdf'));
   }
 
@@ -158,9 +158,9 @@ class ReportingService {
     const response = await apiClient.get<Blob>(
       `/reporting/reports/production/export/excel?${queryString}`,
       { responseType: 'blob' }
-    ) as any;
+    );
     
-    const blob = new Blob([response.data as BlobPart], {
+    const blob = new Blob([response], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
     downloadBlob(blob, generateExportFilename('produksi', 'excel'));
@@ -180,9 +180,9 @@ class ReportingService {
     const response = await apiClient.get<Blob>(
       `/reporting/reports/sales/export/excel?${queryString}`,
       { responseType: 'blob' }
-    ) as any;
+    );
     
-    const blob = new Blob([response.data as BlobPart], {
+    const blob = new Blob([response], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
     downloadBlob(blob, generateExportFilename('sales', 'excel'));
@@ -202,9 +202,9 @@ class ReportingService {
     const response = await apiClient.get<Blob>(
       `/reporting/reports/activity/export/excel?${queryString}`,
       { responseType: 'blob' }
-    ) as any;
+    );
     
-    const blob = new Blob([response.data as BlobPart], {
+    const blob = new Blob([response], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
     downloadBlob(blob, generateExportFilename('aktivitas', 'excel'));

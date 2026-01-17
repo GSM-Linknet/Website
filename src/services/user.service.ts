@@ -12,10 +12,12 @@ export interface User extends BaseEntity {
   cabangId?: string | null;
   unitId?: string | null;
   subUnitId?: string | null;
+  managerId?: string | null;
   wilayah?: { name: string };
   cabang?: { name: string };
   unit?: { name: string };
   subUnit?: { name: string };
+  manager?: { name: string };
 }
 
 const ENDPOINT = "/user";

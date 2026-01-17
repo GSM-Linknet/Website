@@ -102,9 +102,9 @@ apiInstance.interceptors.request.use(
  */
 apiInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Don't unwrap blob responses - return the full response
+    // For blob responses, return just the data (the Blob itself)
     if (response.config.responseType === 'blob') {
-      return response;
+      return response.data;
     }
     return response.data;
   },

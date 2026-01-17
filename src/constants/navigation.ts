@@ -75,9 +75,10 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     items: [
       { title: "Laporan Pelanggan", href: "/reporting/customers", resource: "reporting.pelanggan" },
       { title: "Laporan Keuangan", href: "/reporting/financial", resource: "reporting.keuangan" },
+      { title: "Laporan Komisi", href: "/keuangan/commission", resource: "keuangan.invoice" }, // Using invoice permission for now
+      { title: "Laporan Produksi", href: "/reporting/production", resource: "reporting.produksi" },
       { title: "Expense Usage", href: "/reporting/expense-usage", resource: "reporting.expense" },
       { title: "Sales Target", href: "/reporting/sales-target", resource: "reporting.sales-target" },
-      { title: "Laporan Produksi", href: "/reporting/production", resource: "reporting.produksi" },
       { title: "KA Unit Activity", href: "/reporting/unit", resource: "reporting.unit" },
     ],
   },
@@ -89,6 +90,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "Tagihan", href: "/keuangan/invoice", resource: "keuangan.invoice" },
       { title: "History Pembayaran", href: "/keuangan/history", resource: "keuangan.history" },
       { title: "Pembayaran Batch", href: "/keuangan/batch-payment", resource: "keuangan.batch-payment" },
+    
       { title: "Saldo", href: "/keuangan/saldo", resource: "keuangan.saldo" },
       { title: "Disbursement", href: "/keuangan/payout", resource: "payout" },
     ],
@@ -100,6 +102,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     items: [
       { title: "Hak Akses", href: "/settings/permissions", resource: "settings.permissions" },
       { title: "WhatsApp Gateway", href: "/settings/whatsapp", resource: "settings.whatsapp" },
+      { title: "Pengaturan Komisi", href: "/settings/commission", resource: "settings.system" },
     ],
   },
  
