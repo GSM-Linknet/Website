@@ -1,4 +1,4 @@
-import { apiClient } from "./api-client";
+import { apiClient, type ResponseData } from "./api-client";
 import Cookies from "js-cookie";
 
 export type UserRole = "SUPER_ADMIN" | "ADMIN_PUSAT" | "ADMIN_CABANG" | "ADMIN_UNIT" | "SUPERVISOR" | "SALES" | "TECHNICIAN" | "USER";
@@ -36,6 +36,7 @@ export type PermissionResource =
     | "reporting.pelanggan"
     | "reporting.keuangan"
     | "reporting.produksi"
+    | "reporting.expense"
     | "reporting.teknisi"
     | "reporting.master"
     | "reporting.activity"
@@ -44,6 +45,7 @@ export type PermissionResource =
     | "keuangan.aging" 
     | "keuangan.saldo"
     | "keuangan.invoice"
+    | "keuangan.batch-payment"
     // Settings
     | "settings.permissions"
     | "settings.whatsapp"
@@ -242,8 +244,14 @@ export const AuthService = {
    */
   async login(credentials: { email: string; password: string }): Promise<LoginResponse> {
     try {
-      const response = await apiClient.post<{ data: LoginResponse }>("/auth/login", credentials);
-      const { user, accessToken, refreshToken } = (response as { data: LoginResponse }).data;
+      const response = await apiClient.post<ResponseData<LoginResponse>>("/auth/login", credentials);
+      const { status, success, data, message } = response;
+      
+      if (status === false || success === false) {
+        throw new Error(message || "Login failed");
+      }
+
+      const { user, accessToken, refreshToken } = data;
       
       Cookies.set("auth_token", accessToken, { expires: 1 }); // 1 day
       Cookies.set("refresh_token", refreshToken, { expires: 7 }); // 7 days

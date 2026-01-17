@@ -86,6 +86,8 @@ const ActivityReportPage = lazy(() => import("@/features/reporting/pages/Activit
 const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage"));
 const MaintenancePage = lazy(() => import("@/pages/MaintenancePage"));
 const PublicPaymentPage = lazy(() => import("@/features/finance/pages/PublicPaymentPage"));
+const BatchPaymentPage = lazy(() => import("@/features/finance/pages/BatchPaymentPage"));
+const ExpenseUsagePage = lazy(() => import("@/features/reporting/pages/ExpenseUsagePage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -286,6 +288,14 @@ export const routes: RouteObject[] = [
               </Suspense>
             ),
           },
+          {
+            path: "expense-usage",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ExpenseUsagePage />
+              </Suspense>
+            ),
+          },
         ],
       },
       {
@@ -471,6 +481,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <PayoutPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "batch-payment",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <BatchPaymentPage />
               </Suspense>
             ),
           },

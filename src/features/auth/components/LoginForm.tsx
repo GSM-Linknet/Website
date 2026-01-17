@@ -4,6 +4,7 @@ import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AuthService } from "@/services/auth.service";
+import { toast } from "sonner";
 
 /**
  * LoginForm provides a premium login experience with validation and GSM branding.
@@ -20,10 +21,24 @@ export const LoginForm = () => {
 
         try {
             await AuthService.login(credentials);
+            toast.success("Login berhasil! Selamat datang kembali.");
             // Logic for storing token would go here
             navigate("/dashboard");
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Login failed:", error);
+            let errorMessage = "Email atau password salah. Silahkan coba lagi.";
+
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+
+            // Check if it's an API error with nested message
+            const apiError = error as { data?: { message?: string } };
+            if (apiError.data?.message) {
+                errorMessage = apiError.data.message;
+            }
+
+            toast.error(errorMessage);
         } finally {
             setIsLoading(false);
         }

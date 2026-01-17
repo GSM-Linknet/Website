@@ -10,11 +10,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Building2, Hash, MapPin } from "lucide-react";
+import { Building2, Hash, MapPin, Wallet } from "lucide-react";
 import { useCabang } from "../hooks/useCabang";
 import { useWilayah } from "../hooks/useWilayah";
 import { useArea } from "../hooks/useArea";
 import type { Unit } from "@/services/master.service";
+import { AuthService } from "@/services/auth.service";
+import { formatCurrency } from "@/lib/utils";
 
 interface UnitModalProps {
     isOpen: boolean;
@@ -36,6 +38,7 @@ export function UnitModal({
         code: "",
         cabangId: "",
         quota: 0,
+        expenseQuota: 0,
         wilayahIds: [] as string[],
         areaIds: [] as string[],
     });
@@ -43,6 +46,9 @@ export function UnitModal({
     const { data: cabangs, loading: loadingCabang } = useCabang({ paginate: false });
     const { data: wilayahs, loading: loadingWilayah } = useWilayah({ limit: 100 });
     const { data: areas, loading: loadingArea } = useArea({ limit: 100 });
+
+    const userProfile = AuthService.getUser();
+    const isSuperAdmin = userProfile?.role === "SUPER_ADMIN";
     const isEdit = !!initialData;
 
     useEffect(() => {
@@ -56,6 +62,7 @@ export function UnitModal({
                     code: initialData.code || "",
                     cabangId: initialData.cabangId || "",
                     quota: initialData.quota || 0,
+                    expenseQuota: (initialData as any).expenseQuota || 0,
                     wilayahIds,
                     areaIds,
                 });
@@ -65,6 +72,7 @@ export function UnitModal({
                     code: "",
                     cabangId: "",
                     quota: 0,
+                    expenseQuota: 0,
                     wilayahIds: [],
                     areaIds: [],
                 });
@@ -210,6 +218,45 @@ export function UnitModal({
                         min={0}
                     />
                 </div>
+
+                {/* Expense Quota Field - Super Admin Only */}
+                {isSuperAdmin && (
+                    <div className="space-y-2 bg-amber-50/50 p-4 rounded-xl border border-amber-200/50">
+                        <Label
+                            htmlFor="expenseQuota"
+                            className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2"
+                        >
+                            <Wallet size={14} className="text-amber-600" />
+                            Expense Quota (Rp) - Super Admin Only
+                        </Label>
+                        <Input
+                            id="expenseQuota"
+                            type="number"
+                            placeholder="Masukkan quota pengeluaran (Rupiah)"
+                            value={formData.expenseQuota}
+                            onChange={(e) => setFormData({ ...formData, expenseQuota: parseFloat(e.target.value) || 0 })}
+                            className="rounded-xl border-amber-200 focus:ring-amber-500/20 focus:border-amber-500 h-11 bg-white"
+                            disabled={isLoading}
+                            min={0}
+                        />
+                        {isEdit && initialData && (initialData as any).expenseQuotaUsed !== undefined && (
+                            <div className="text-xs space-y-1 pt-2">
+                                <div className="flex justify-between text-slate-600">
+                                    <span>Quota Terpakai:</span>
+                                    <span className="font-bold text-orange-600">
+                                        {formatCurrency((initialData as any).expenseQuotaUsed || 0)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-slate-600">
+                                    <span>Sisa Quota:</span>
+                                    <span className="font-bold text-green-600">
+                                        {formatCurrency(((initialData as any).expenseQuota || 0) - ((initialData as any).expenseQuotaUsed || 0))}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Wilayah Multi-Select */}
                 <div className="space-y-2">

@@ -140,7 +140,7 @@ export default function InvoicePage() {
         if (filters.customer !== "all") whereParts.push(`customerId:${filters.customer}`);
 
         const queryParams: any = {};
-        if (debouncedSearchQuery) queryParams.search = `invoiceNumber:${debouncedSearchQuery}`;
+        if (debouncedSearchQuery) queryParams.search = `customer.name:${debouncedSearchQuery}`;
         if (whereParts.length > 0) queryParams.where = whereParts.join("+");
 
         setQuery(Object.keys(queryParams).length > 0 ? queryParams : { search: undefined, where: undefined });
@@ -348,7 +348,7 @@ export default function InvoicePage() {
                             size={18}
                         />
                         <Input
-                            placeholder="Cari invoice..."
+                            placeholder="Cari nama pelanggan..."
                             className="pl-10 w-full sm:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
