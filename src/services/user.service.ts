@@ -36,4 +36,10 @@ export const UserService = {
   delete: async (id: string) => {
     return apiClient.delete<void>(`${ENDPOINT}/delete/${id}`);
   },
+  suspendUser: async (id: string) => {
+    return apiClient.patch<User>(`${ENDPOINT}/${id}/suspend`, {});
+  },
+  unsuspendUser: async (id: string) => {
+    return apiClient.patch<User>(`${ENDPOINT}/${id}/unsuspend`, {});
+  },
 };

@@ -31,6 +31,7 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
         address: "",
         posNumber: "",
         ODPCode: "",
+        siteId: "",
         idPackages: "",
         latUser: 0,
         longUser: 0,
@@ -50,6 +51,7 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                 address: initialData.address || "",
                 posNumber: String(initialData.posNumber) || "",
                 ODPCode: initialData.ODPCode || "",
+                siteId: initialData.siteId || "",
                 idPackages: initialData.idPackages || "",
                 latUser: initialData.latUser || 0,
                 longUser: initialData.longUser || 0,
@@ -66,6 +68,7 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                 address: "",
                 posNumber: "",
                 ODPCode: "",
+                siteId: "",
                 idPackages: "",
                 latUser: 0,
                 longUser: 0,
@@ -86,6 +89,7 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
             address: formData.address,
             posNumber: formData.posNumber || undefined,
             ODPCode: formData.ODPCode,
+            siteId: formData.siteId || undefined,
             idPackages: formData.idPackages || undefined,
             latUser: formData.latUser,
             longUser: formData.longUser,
@@ -223,7 +227,6 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                                     </Select>
                                 </div>
                             </div>
-
                             <div className="space-y-2">
                                 <Label className="text-slate-600 font-medium flex gap-2 items-center"><Hash size={14} /> Kode ODP</Label>
                                 <Input
@@ -231,6 +234,16 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                                     placeholder="ODP-CJR-01"
                                     value={formData.ODPCode}
                                     onChange={e => setFormData({ ...formData, ODPCode: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-slate-600 font-medium flex gap-2 items-center"><Hash size={14} /> Site ID</Label>
+                                <Input
+                                    className="h-11 rounded-lg border-slate-200 bg-white font-mono"
+                                    placeholder="SITE-XXX"
+                                    value={formData.siteId}
+                                    onChange={e => setFormData({ ...formData, siteId: e.target.value })}
                                 />
                             </div>
 
@@ -307,7 +320,7 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                         </div>
                     </DialogFooter>
                 </Tabs>
-            </DialogContent>
-        </Dialog>
+            </DialogContent >
+        </Dialog >
     );
 }

@@ -123,6 +123,8 @@ Within the Customer Portal, users can track their progress through a real-time s
 4. **No Urut Hari Ini** ✓ (Status: On the Move)
 5. **Done Pemasangan** ✓ (Status: Active)
 6. **Info Pembayaran & Tagihan** (Status: Billing)
+   - Customers receive an internal link to a detailed payment page.
+   - Xendit payment links are generated on-demand when the customer initiates payment.
 
 ### 🛠️ Subscription Management Features
 
@@ -143,6 +145,13 @@ Administrators can manage active customers with the following features:
 - **Commercial**: Upgrade Packets, Add-on TV Services.
 - **Ecosystem**: Information on UMKM (SME) Products.
 
+### 💰 Disbursement Approval (Super Admin Only)
+
+The Disbursement (Payout) approval process has been hardened:
+
+- **Visibility**: The "Approve" and "Reject" actions in the Disbursement menu are now exclusively visible to users with the `SUPER_ADMIN` role.
+- **Workflow**: Non-Super Admin users can still view and propose payouts (based on permissions), but the final financial clearance must come from a Super Admin.
+
 ---
 
 ## 🛠️ Technology Stack
@@ -154,10 +163,21 @@ Administrators can manage active customers with the following features:
 
 ### 📦 Setup & Dependencies
 
-To use the new Toast notification system, ensure `@radix-ui/react-toast` is installed:
+The system utilizes **Sonner** for high-fidelity toast notifications (configured in `App.tsx` with `richColors`).
 
-```bash
-npm install @radix-ui/react-toast
+To trigger notifications, use the `toast` utility:
+
+```typescript
+import { toast } from "sonner";
+
+toast.success("Success message");
+toast.error("Error message");
 ```
 
-The system uses `useToast` hook from `@/hooks` and `<Toaster />` from `@/components/ui/toaster`.
+### 🔐 Authentication & Error Handling
+
+The login system has been hardened to prevent unauthorized access even when the API returns a success HTTP status but an internal failure flag:
+
+- **Validation**: `AuthService.login` validates the `status` flag in the API response.
+- **Feedback**: `LoginForm` provides real-time feedback via toasts for both successful entries and descriptive error messages from the backend.
+- **Redirection**: Unauthorized users are strictly prevented from entering the dashboard upon login failure.

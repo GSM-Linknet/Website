@@ -18,6 +18,17 @@ export class ApiError extends Error {
 }
 
 /**
+ * Standard API response structure
+ */
+export interface ResponseData<T> {
+  status?: boolean;
+  success?: boolean;
+  data: T;
+  message?: string;
+  meta?: any;
+}
+
+/**
  * Configure standard Axios instance with production-ready patterns.
  */
 export const apiInstance = axios.create({
@@ -103,7 +114,9 @@ apiInstance.interceptors.response.use(
     };
 
     // Handle 401 Unauthorized - Attempt token refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isAuthLogin = originalRequest.url?.includes("/auth/login");
+    
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthLogin) {
       if (isRefreshing) {
         // Queue the request while refresh is in progress
         return new Promise((resolve, reject) => {
@@ -130,7 +143,7 @@ apiInstance.interceptors.response.use(
         Cookies.remove("auth_token");
         Cookies.remove("refresh_token");
         localStorage.removeItem("user_profile");
-        window.location.href = "/login";
+        window.location.href = "/";
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
