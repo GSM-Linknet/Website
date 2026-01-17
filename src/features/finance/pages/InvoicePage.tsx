@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Button } from "@/components/ui/button";
 import { useInvoices } from "../hooks/useInvoices";
-import { Plus, Receipt, Search, ChevronDown } from "lucide-react";
+import { Plus, Receipt, Search, ChevronDown, Trash2, RefreshCw, MoreVertical, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,12 +11,24 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CreateInvoiceModal } from "../components/CreateInvoiceModal";
 import { BulkGenerateModal } from "../components/BulkGenerateModal";
 import { CreatePaymentModal } from "../components/CreatePaymentModal";
 import { formatCurrency, cn } from "@/lib/utils";
 import moment from "moment";
+import { toast } from "sonner";
 import type { Invoice } from "@/services/finance.service";
+import { FinanceService } from "@/services/finance.service";
 import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 import { CustomerService, type Customer } from "@/services/customer.service";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -39,6 +51,15 @@ export default function InvoicePage() {
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+    // Alert Dialog state
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertConfig, setAlertConfig] = useState<{
+        title: string;
+        description: string;
+        onConfirm: () => void;
+        variant?: "destructive" | "default";
+    }>({ title: "", description: "", onConfirm: () => { } });
 
     // Filters state
     const [filters, setFilters] = useState({
@@ -119,7 +140,7 @@ export default function InvoicePage() {
         if (filters.customer !== "all") whereParts.push(`customerId:${filters.customer}`);
 
         const queryParams: any = {};
-        if (debouncedSearchQuery) queryParams.search = `invoiceNumber:${debouncedSearchQuery}`;
+        if (debouncedSearchQuery) queryParams.search = `customer.name:${debouncedSearchQuery}`;
         if (whereParts.length > 0) queryParams.where = whereParts.join("+");
 
         setQuery(Object.keys(queryParams).length > 0 ? queryParams : { search: undefined, where: undefined });
@@ -216,18 +237,93 @@ export default function InvoicePage() {
         {
             header: "Aksi",
             cell: (invoice: any) => (
-                <Button
-                    size="sm"
-                    variant={invoice.status === "paid" ? "outline" : "default"}
-                    disabled={invoice.status === "paid"}
-                    className={invoice.status === "paid" ? "" : "bg-green-600 hover:bg-green-700 text-white"}
-                    onClick={() => {
-                        setSelectedInvoice(invoice);
-                        setIsPaymentOpen(true);
-                    }}
-                >
-                    {invoice.status === "paid" ? "Lunas" : "Bayar"}
-                </Button>
+                <div className="flex items-center gap-2">
+                    {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+                        <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => {
+                                setSelectedInvoice(invoice);
+                                setIsPaymentOpen(true);
+                            }}
+                        >
+                            Bayar
+                        </Button>
+                    )}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-9 w-9 p-0"
+                            >
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                                onClick={() => FinanceService.downloadInvoicePdf(invoice.id, invoice.invoiceNumber)}
+                                className="cursor-pointer"
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Download PDF
+                            </DropdownMenuItem>
+                            {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        setAlertConfig({
+                                            title: "Generate Ulang Link Pembayaran",
+                                            description: "Apakah Anda yakin ingin membuat link pembayaran baru untuk invoice ini?",
+                                            variant: "default",
+                                            onConfirm: async () => {
+                                                try {
+                                                    await FinanceService.regeneratePaymentLink(invoice.id);
+                                                    await refetch();
+                                                    toast.success("Link pembayaran berhasil digenerate ulang");
+                                                } catch (error) {
+                                                    console.error(error);
+                                                    toast.error("Gagal generate ulang link pembayaran");
+                                                }
+                                            }
+                                        });
+                                        setAlertOpen(true);
+                                    }}
+                                    className="cursor-pointer"
+                                >
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Generate Ulang Link
+                                </DropdownMenuItem>
+                            )}
+                            {invoice.status !== "paid" && (
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        setAlertConfig({
+                                            title: "Hapus Invoice",
+                                            description: `Apakah Anda yakin ingin menghapus invoice ${invoice.invoiceNumber}? Tindakan ini tidak dapat dibatalkan.`,
+                                            variant: "destructive",
+                                            onConfirm: async () => {
+                                                try {
+                                                    await FinanceService.deleteInvoice(invoice.id);
+                                                    await refetch();
+                                                    toast.success("Invoice berhasil dihapus");
+                                                } catch (error) {
+                                                    console.error(error);
+                                                    toast.error("Gagal menghapus invoice");
+                                                }
+                                            }
+                                        });
+                                        setAlertOpen(true);
+                                    }}
+                                    className="cursor-pointer text-red-600 focus:text-red-600"
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Hapus Invoice
+                                </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             ),
         },
     ];
@@ -252,7 +348,7 @@ export default function InvoicePage() {
                             size={18}
                         />
                         <Input
-                            placeholder="Cari invoice..."
+                            placeholder="Cari nama pelanggan..."
                             className="pl-10 w-full sm:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -373,6 +469,29 @@ export default function InvoicePage() {
                 invoice={selectedInvoice}
                 onSuccess={refetch}
             />
+
+            <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{alertConfig.title}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {alertConfig.description}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                alertConfig.onConfirm();
+                                setAlertOpen(false);
+                            }}
+                            className={alertConfig.variant === "destructive" ? "bg-red-600 hover:bg-red-700" : ""}
+                        >
+                            {alertConfig.variant === "destructive" ? "Hapus" : "Konfirmasi"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

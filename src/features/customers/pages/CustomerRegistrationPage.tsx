@@ -274,7 +274,7 @@ export default function CustomerRegistrationPage() {
                 <Eye size={14} className="mr-2" />
                 Lihat Detail
               </DropdownMenuItem>
-              {canVerify && (
+              {canVerify && !row.siteId && (
                 <>
                   <DropdownMenuItem
                     className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"

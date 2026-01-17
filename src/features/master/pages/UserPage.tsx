@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Plus, Users, Edit2, Trash2, ShieldCheck, LogIn, Loader2 } from "lucide-react";
+import { Plus, Users, Edit2, Trash2, ShieldCheck, LogIn, Loader2, Ban, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { ImpersonateConfirmDialog } from "../components/ImpersonateConfirmDialog";
@@ -9,6 +9,7 @@ import { useUser } from "../hooks/useUser";
 import { useToast } from "@/hooks/useToast";
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/services/user.service";
+import { UserService } from "@/services/user.service";
 import { AuthService } from "@/services/auth.service";
 import { SearchInput } from "@/components/shared/SearchInput";
 
@@ -51,6 +52,7 @@ export default function UserPage() {
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [userToImpersonate, setUserToImpersonate] = useState<User | null>(null);
     const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
+    const [suspendingId, setSuspendingId] = useState<string | null>(null);
 
     // Handlers
     const handleAdd = () => {
@@ -130,6 +132,49 @@ export default function UserPage() {
     const handleSearch = useCallback((val: string) => {
         setQuery({ search: val ? `name:${val}` : undefined });
     }, [setQuery]);
+
+    const handleSuspend = async (row: User) => {
+        setSuspendingId(row.id);
+        try {
+            await UserService.suspendUser(row.id);
+            toast({
+                title: "User Disuspend",
+                description: `${row.name} tidak dapat login lagi.`,
+                variant: "default"
+            });
+            // Refresh data
+            window.location.reload();
+        } catch (error) {
+            toast({
+                title: "Gagal Suspend",
+                description: error instanceof Error ? error.message : "Terjadi kesalahan",
+                variant: "destructive"
+            });
+        } finally {
+            setSuspendingId(null);
+        }
+    };
+
+    const handleUnsuspend = async (row: User) => {
+        setSuspendingId(row.id);
+        try {
+            await UserService.unsuspendUser(row.id);
+            toast({
+                title: "User Diaktifkan Kembali",
+                description: `${row.name} sudah bisa login lagi.`,
+            });
+            // Refresh data
+            window.location.reload();
+        } catch (error) {
+            toast({
+                title: "Gagal Mengaktifkan",
+                description: error instanceof Error ? error.message : "Terjadi kesalahan",
+                variant: "destructive"
+            });
+        } finally {
+            setSuspendingId(null);
+        }
+    };
 
     const getRoleBadgeColor = (role: string) => {
         switch (role) {
@@ -229,6 +274,39 @@ export default function UserPage() {
                                 <Edit2 size={14} />
                             </Button>
                         )}
+                        {canEdit && row.role !== 'SUPER_ADMIN' && (
+                            row.status ? (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full text-orange-600 hover:bg-orange-50"
+                                    onClick={() => handleSuspend(row)}
+                                    disabled={!!suspendingId}
+                                    title="Suspend user"
+                                >
+                                    {suspendingId === row.id ? (
+                                        <Loader2 size={14} className="animate-spin" />
+                                    ) : (
+                                        <Ban size={14} />
+                                    )}
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full text-green-600 hover:bg-green-50"
+                                    onClick={() => handleUnsuspend(row)}
+                                    disabled={!!suspendingId}
+                                    title="Aktifkan kembali"
+                                >
+                                    {suspendingId === row.id ? (
+                                        <Loader2 size={14} className="animate-spin" />
+                                    ) : (
+                                        <CheckCircle size={14} />
+                                    )}
+                                </Button>
+                            )
+                        )}
                         {canDelete && (
                             <Button
                                 variant="ghost"
@@ -244,7 +322,7 @@ export default function UserPage() {
                 );
             },
         },
-    ], [deleting, canEdit, canDelete, canImpersonate, impersonatingId, userProfile]);
+    ], [deleting, canEdit, canDelete, canImpersonate, impersonatingId, suspendingId, userProfile]);
 
     return (
         <div className="space-y-6">

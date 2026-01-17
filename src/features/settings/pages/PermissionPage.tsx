@@ -100,6 +100,7 @@ const MODULE_GROUPS: {
             resources: [
                 { key: "keuangan.invoice", label: "Tagihan" },
                 { key: "keuangan.history", label: "History Pembayaran" },
+                { key: "keuangan.batch-payment", label: "Pembayaran Batch" },
                 { key: "keuangan.aging", label: "Aging Reports" },
                 { key: "keuangan.saldo", label: "Saldo & Payout" },
                 { key: "payout", label: "Disbursement" }

@@ -61,7 +61,7 @@ export default function PayoutPage() {
         }
     };
 
-    const canApprove = AuthService.hasPermission(currentUser?.role || "", "payout", "approve" as any);
+    const canApprove = currentUser?.role === "SUPER_ADMIN";
 
     const columns: any[] = [
         {
