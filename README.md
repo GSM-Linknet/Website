@@ -181,3 +181,23 @@ The login system has been hardened to prevent unauthorized access even when the 
 - **Validation**: `AuthService.login` validates the `status` flag in the API response.
 - **Feedback**: `LoginForm` provides real-time feedback via toasts for both successful entries and descriptive error messages from the backend.
 - **Redirection**: Unauthorized users are strictly prevented from entering the dashboard upon login failure.
+
+---
+
+## 🧪 Testing
+
+Project ini menggunakan **Vitest** dan **React Testing Library**.
+
+```bash
+# Menjalankan seluruh test
+npm test
+
+# Menjalankan test dengan UI (browser)
+npm run test:ui
+
+# Menjalankan test dalam mode 'run' (sekali jalan)
+npm run test:run
+
+# Menjalankan test dengan laporan coverage
+npm run test:coverage
+```

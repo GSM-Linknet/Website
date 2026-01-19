@@ -18,7 +18,10 @@ import {
   Building2,
   Building,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
+import { useUser } from "../hooks/useUser";
 import { useWilayah } from "../hooks/useWilayah";
 import { useCabang } from "../hooks/useCabang";
 import { useUnit } from "../hooks/useUnit";
@@ -61,11 +64,25 @@ export function UserModal({
     cabangId: "",
     unitId: "",
     subUnitId: "",
+    managerId: "",
   });
+
+  // Role hierarchy levels (lower number = higher power/level)
+  const ROLE_LEVELS: Record<UserRole, number> = {
+    SUPER_ADMIN: 0,
+    ADMIN_PUSAT: 1,
+    ADMIN_CABANG: 2,
+    ADMIN_UNIT: 3,
+    SUPERVISOR: 4,
+    SALES: 5,
+    TECHNICIAN: 5,
+    USER: 6,
+  };
 
   const isEdit = !!initialData;
 
   // Data fetching for selections
+  const { data: users } = useUser({ paginate: false });
   const { data: wilayahs } = useWilayah({ paginate: false });
   const { data: cabangs } = useCabang({
     paginate: false,
@@ -91,6 +108,7 @@ export function UserModal({
           cabangId: initialData.cabangId || "",
           unitId: initialData.unitId || "",
           subUnitId: initialData.subUnitId || "",
+          managerId: initialData.managerId || "",
           password: "", // Don't populate password on edit
         });
       } else {
@@ -103,6 +121,7 @@ export function UserModal({
           cabangId: "",
           unitId: "",
           subUnitId: "",
+          managerId: "",
         });
       }
     }
@@ -362,6 +381,27 @@ export function UserModal({
             </Select>
           </div>
         )}
+
+        {/* Manager Field */}
+        <div className="space-y-2">
+          <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+            <ShieldCheck size={14} className="text-blue-500" /> Atasan Langsung
+          </Label>
+          <SearchableSelect
+            options={users
+              .filter((u: UserType) => {
+                if (u.id === initialData?.id) return false;
+                const targetRoleLevel = ROLE_LEVELS[formData.role as UserRole] ?? 99;
+                const potentialManagerLevel = ROLE_LEVELS[u.role as UserRole] ?? 99;
+                return potentialManagerLevel < targetRoleLevel;
+              })
+            }
+            value={formData.managerId}
+            onValueChange={(val) => setFormData({ ...formData, managerId: val })}
+            placeholder="Pilih Atasan (Opsional)"
+            searchPlaceholder="Cari nama atasan..."
+          />
+        </div>
       </div>
     </BaseModal>
   );

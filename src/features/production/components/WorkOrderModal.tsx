@@ -26,6 +26,7 @@ import { useUnit } from "@/features/master/hooks/useUnit";
 import { useSubUnit } from "@/features/master/hooks/useSubUnit";
 import type { WorkOrder } from "@/services/production.service";
 import { cn } from "@/lib/utils";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
 
 interface WorkOrderModalProps {
     isOpen: boolean;
@@ -309,23 +310,13 @@ export function WorkOrderModal({
                                 <User size={12} className="text-blue-500" />
                                 Target Pelanggan
                             </Label>
-                            <Select
+                            <SearchableSelect
+                                options={customers || []}
                                 value={formData.customerId}
-                                onValueChange={(v) =>
-                                    setFormData({ ...formData, customerId: v })
-                                }
-                            >
-                                <SelectTrigger className="rounded-xl bg-white border-slate-200">
-                                    <SelectValue placeholder="Pilih Pelanggan" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {customers?.map((customer: any) => (
-                                        <SelectItem key={customer.id} value={customer.id}>
-                                            {customer.name} - {customer.phone}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                onValueChange={(v) => setFormData({ ...formData, customerId: v })}
+                                placeholder="Pilih Pelanggan"
+                                searchPlaceholder="Cari nama pelanggan..."
+                            />
                         </div>
 
                         <div className="space-y-2">
@@ -333,24 +324,16 @@ export function WorkOrderModal({
                                 <Wrench size={12} className="text-blue-500" />
                                 Penanggung Jawab (Teknisi)
                             </Label>
-                            <Select
+                            <SearchableSelect
+                                options={technicians?.map(t => ({ id: t.id, name: t.user?.name || t.id })) || []}
                                 value={formData.technicianId}
                                 onValueChange={(v) => {
                                     const newStatus = formData.status === "pending" ? "assigned" : formData.status;
                                     setFormData({ ...formData, technicianId: v, status: newStatus });
                                 }}
-                            >
-                                <SelectTrigger className="rounded-xl bg-white border-slate-200">
-                                    <SelectValue placeholder="Pilih Teknisi" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {technicians?.map((tech: any) => (
-                                        <SelectItem key={tech.id} value={tech.id}>
-                                            {tech.user?.name || tech.id}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                placeholder="Pilih Teknisi"
+                                searchPlaceholder="Cari nama teknisi..."
+                            />
                         </div>
                     </div>
 

@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BasePagination } from "./BasePagination";
 
-interface Column<T> {
+export interface Column<T> {
   header: string;
   accessorKey: keyof T | string;
-  cell?: (item: T) => React.ReactNode;
+  cell?: (item: T, meta?: any) => React.ReactNode;
   className?: string;
 }
 
@@ -30,6 +30,7 @@ interface BaseTableProps<T> {
   totalItems?: number;
   onPageChange?: (page: number) => void;
   limit?: number;
+  meta?: any;
 }
 
 /**
@@ -47,6 +48,7 @@ export function BaseTable<T>({
   totalItems,
   onPageChange,
   limit,
+  meta,
 }: BaseTableProps<T>) {
   const showPagination =
     page !== undefined &&
@@ -112,10 +114,10 @@ export function BaseTable<T>({
                         )}
                       >
                         {column.cell
-                          ? column.cell(item)
+                          ? column.cell(item, meta)
                           : (item[
-                              column.accessorKey as keyof T
-                            ] as React.ReactNode)}
+                            column.accessorKey as keyof T
+                          ] as React.ReactNode)}
                       </TableCell>
                     ))}
                   </TableRow>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   Plus,
   User,
@@ -30,16 +30,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LocationPicker } from "@/components/shared/LocationPicker";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePackage } from "@/features/master/hooks/usePackage";
+import { useUser } from "@/features/master/hooks/useUser";
 import { useToast } from "@/hooks/useToast";
 import { AuthService } from "@/services/auth.service";
 import { ApiError } from "@/services/api-client";
@@ -66,6 +62,10 @@ export function AddCustomerDialog({
   const [activeTab, setActiveTab] = useState("personal");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const { data: packages } = usePackage({ paginate: false });
+  const { data: users } = useUser({ paginate: false });
+
+  const currentUser = useMemo(() => AuthService.getUser(), []);
+  const isSalesOrSpv = currentUser?.role === "SALES" || currentUser?.role === "SUPERVISOR";
 
   const [formData, setFormData] = useState({
     status: initialStatus,
@@ -78,9 +78,17 @@ export function AddCustomerDialog({
     postalCode: "",
     odpCode: "",
     internetPackage: "",
+    idUpline: "",
     customerLocation: null as { lat: number; lng: number } | null,
     odpLocation: null as { lat: number; lng: number } | null,
   });
+
+  // Automatically set idUpline for SALES and SUPERVISOR
+  useEffect(() => {
+    if (isSalesOrSpv && currentUser?.id && formData.idUpline !== currentUser.id) {
+      setFormData(prev => ({ ...prev, idUpline: currentUser.id }));
+    }
+  }, [isSalesOrSpv, currentUser, formData.idUpline]);
 
   // File states with previews
   const [ktpFile, setKtpFile] = useState<FilePreview>({
@@ -184,6 +192,7 @@ export function AddCustomerDialog({
       postalCode: "",
       odpCode: "",
       internetPackage: "",
+      idUpline: isSalesOrSpv && currentUser?.id ? currentUser.id : "",
       customerLocation: null,
       odpLocation: null,
     });
@@ -196,31 +205,6 @@ export function AddCustomerDialog({
     setActiveTab("personal");
   };
 
-  useEffect(() => {
-    if (open && !formData.customerLocation) {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setFormData((prev) => ({
-              ...prev,
-              customerLocation: {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-              },
-            }));
-          },
-          (error) => {
-            console.error("Error getting location:", error);
-            toast({
-              title: "Gagal mendapatkan lokasi",
-              description: "Pastikan izin lokasi diaktifkan di browser Anda.",
-              variant: "destructive",
-            });
-          },
-        );
-      }
-    }
-  }, [open, formData.customerLocation, toast]);
 
   const handleSubmit = async () => {
     setValidationErrors([]);
@@ -254,7 +238,11 @@ export function AddCustomerDialog({
     formDataPayload.append("longODP", String(formData.odpLocation?.lng ?? 0));
     if (formData.internetPackage)
       formDataPayload.append("idPackages", formData.internetPackage);
-    if (currentUser?.id) formDataPayload.append("idUpline", currentUser.id);
+
+    // Set idUpline based on role logic
+    const finalUplineId = isSalesOrSpv ? (currentUser?.id ?? "") : formData.idUpline;
+    if (finalUplineId) formDataPayload.append("idUpline", finalUplineId);
+
     formDataPayload.append("statusCust", "false");
     formDataPayload.append("statusNet", "false");
 
@@ -457,6 +445,26 @@ export function AddCustomerDialog({
               className="mt-0 space-y-6 animate-in hover:none fade-in slide-in-from-left-4 duration-300 outline-none"
             >
               <div className="space-y-4">
+
+                <div className="space-y-2">
+                  {!isSalesOrSpv && (
+                    <div className="space-y-2">
+                      <Label className="text-slate-600 font-medium flex gap-2 items-center">
+                        <User size={14} /> Pilih Upline
+                      </Label>
+                      <SearchableSelect
+                        options={users
+                          .filter(u => u.role === "SALES" || u.role === "SUPERVISOR")
+                          .map(u => ({ id: u.id, name: u.name, role: u.role }))
+                        }
+                        value={formData.idUpline}
+                        onValueChange={(v) => setFormData({ ...formData, idUpline: v })}
+                        placeholder="Pilih Upline (Sales / Supervisor)"
+                        searchPlaceholder="Cari nama sales..."
+                      />
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-2">
                   <Label className="text-slate-600 font-medium">
                     Nama Lengkap
@@ -514,9 +522,6 @@ export function AddCustomerDialog({
                       }
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-slate-600 font-medium flex gap-2 items-center">
                       <CreditCard size={14} /> No. KTP
@@ -531,14 +536,18 @@ export function AddCustomerDialog({
                       }
                     />
                   </div>
-                  <FileUploader
-                    label="Foto KTP"
-                    value={ktpFile}
-                    onChange={(e) => handleFileChange(e, setKtpFile)}
-                    onClear={() => clearFile(setKtpFile)}
-                  />
                 </div>
 
+                {/* If selection is shown, move KTP file uploader to new row or next to it */}
+                  <div className="w-full">
+                    <FileUploader
+                      label="Foto KTP"
+                      value={ktpFile}
+                      onChange={(e) => handleFileChange(e, setKtpFile)}
+                      onClear={() => clearFile(setKtpFile)}
+                    />
+                  </div>
+              
                 <div className="space-y-2">
                   <Label className="text-slate-600 font-medium flex gap-2 items-center">
                     <MapPin size={14} /> Alamat Pemasangan

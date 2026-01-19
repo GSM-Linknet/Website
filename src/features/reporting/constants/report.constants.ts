@@ -93,6 +93,7 @@ export const API_ENDPOINTS = {
   FINANCIAL_AGING: '/reporting/reports/financial/aging',
   FINANCIAL_PAYOUT: '/reporting/reports/financial/payout',
   FINANCIAL_PROFITABILITY: '/reporting/reports/financial/profitability',
+  FINANCIAL_SUMMARY: '/reporting/reports/financial/summary',
   TECHNICIAN_PERFORMANCE: '/reporting/reports/technicians/performance',
   TECHNICIAN_WORKORDERS: '/reporting/reports/technicians/workorders',
   TECHNICIAN_TOOLS: '/reporting/reports/technicians/tools',

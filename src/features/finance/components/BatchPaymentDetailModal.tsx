@@ -141,7 +141,7 @@ export function BatchPaymentDetailModal({
             </div>
 
             {/* Financial Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
@@ -156,16 +156,30 @@ export function BatchPaymentDetailModal({
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
+              <div className="bg-white p-6 rounded-[1.5rem] border border-emerald-100 shadow-sm transition-all hover:shadow-md">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
                     <Hash size={18} />
                   </div>
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Total Setor
+                    Total Komisi
                   </span>
                 </div>
                 <div className="text-2xl font-black text-emerald-600 tracking-tight">
+                  {formatCurrency(batch.totalCommission || 0)}
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                    <Wallet size={18} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Total Setor
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-blue-600 tracking-tight">
                   {formatCurrency(batch.totalSetor)}
                 </div>
               </div>
