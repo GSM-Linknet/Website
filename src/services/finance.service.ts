@@ -1,6 +1,6 @@
 
 import { apiClient } from "./api-client";
-import type { BaseQuery, PaginatedResponse } from "./master.service";
+import type { BaseQuery, PaginatedResponse, ApiResponse } from "./master.service";
 
 export interface Invoice {
   id: string;
@@ -44,14 +44,36 @@ export interface Payment {
   isAutomatic?: boolean;
   xenditCallbackData?: any;
   
-  // Relations
   wilayah?: { id: string; name: string; code: string };
   unit?: { id: string; name: string; code: string };
 }
 
+export interface CommissionLedger {
+  id: string;
+  userId: string;
+  user?: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  amount: number;
+  percentage: number;
+  status: 'PENDING' | 'PAID' | 'CANCELLED';
+  type: 'SALES' | 'SPV' | 'UNIT' | 'ADMIN';
+  invoiceId?: string;
+  invoice?: {
+    id: string;
+    invoiceNumber: string;
+    amount: number;
+  };
+  description?: string;
+  createdAt: string;
+}
+
 const ENDPOINTS = {
     INVOICE: "/keuangan/invoice",
-    PAYMENT: "/keuangan/payment"
+    PAYMENT: "/keuangan/payment",
+    COMMISSION: "/keuangan/commission"
 };
 
 export const FinanceService = {
@@ -86,17 +108,19 @@ export const FinanceService = {
   },
 
   downloadInvoicePdf: async (invoiceId: string, invoiceNumber: string) => {
-    const response = await apiClient.get(`/keuangan/invoice/download-pdf/${invoiceId}`, {
+    const response = await apiClient.get<Blob>(`/keuangan/invoice/download-pdf/${invoiceId}`, {
       responseType: 'blob',
     });
 
     // Create a blob URL and trigger download
-    const blob = new Blob([response as any], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
+    // response is already a Blob thanks to api-client standardization
+    const url = window.URL.createObjectURL(response);
     const link = document.createElement('a');
     link.href = url;
     link.download = `Invoice_${invoiceNumber}.pdf`;
+    document.body.appendChild(link); // For better browser compatibility
     link.click();
+    document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
 
@@ -114,5 +138,23 @@ export const FinanceService = {
   },
   deletePayment: async (id: string): Promise<void> => {
     await apiClient.delete(`${ENDPOINTS.PAYMENT}/delete/${id}`);
+  },
+
+  // Commissions
+  getCommissions: async (query: BaseQuery = {}) => {
+    return apiClient.get<ApiResponse<PaginatedResponse<CommissionLedger>>>(`${ENDPOINTS.COMMISSION}/find-all`, { params: query });
+  },
+  getCommissionSummary: async () => {
+    return apiClient.get<{
+      data: {
+        totalPending: number;
+        totalPaid: number;
+        totalCancelled: number;
+        activeCustomers: number;
+      }
+    }>(`${ENDPOINTS.COMMISSION}/summary`);
+  },
+  updateCommissionStatus: async (id: string, status: 'PAID' | 'CANCELLED' | 'PENDING') => {
+    return apiClient.patch(`${ENDPOINTS.COMMISSION}/status/${id}`, { status });
   }
 };

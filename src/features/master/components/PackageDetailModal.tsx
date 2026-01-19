@@ -71,18 +71,25 @@ export function PackageDetailModal({
                     </div>
                 </div>
 
+                {/* Komisi Registrasi */}
                 <div className="space-y-3">
                     <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                        <div className="w-1 h-3 bg-blue-500 rounded-full" /> Konfigurasi Komisi
+                        <div className="w-1 h-3 bg-green-500 rounded-full" /> Komisi Registrasi (Persentase)
                     </h4>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        <DetailItem icon={CircleDollarSign} label="Sales Income" value={formatRupiah(data.salesIncome)} />
-                        <DetailItem icon={Percent} label="Komisi SP" value={formatPercent(data.spCommission)} />
-                        <DetailItem icon={Percent} label="Komisi Admin" value={formatPercent(data.adminCommission)} />
-                        <DetailItem icon={Percent} label="Komisi Unit" value={formatPercent(data.unitCommission)} />
-                        <DetailItem icon={Percent} label="Komisi SPV" value={formatPercent(data.spvCommission)} />
+                    <div className="grid grid-cols-2 gap-3">
                         <DetailItem icon={Percent} label="Komisi Sales" value={formatPercent(data.salesCommission)} />
-                        <DetailItem icon={Percent} label="Komisi Lain" value={formatPercent(data.otherCommission)} />
+                        <DetailItem icon={Percent} label="Komisi SPV" value={formatPercent(data.spvCommission)} />
+                    </div>
+                </div>
+
+                {/* Komisi Rutin */}
+                <div className="space-y-3">
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                        <div className="w-1 h-3 bg-blue-500 rounded-full" /> Komisi Rutin (Fixed Price)
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                        <DetailItem icon={CircleDollarSign} label="Sales Income" value={formatRupiah(data.salesIncome)} />
+                        <DetailItem icon={CircleDollarSign} label="SPV Income" value={formatRupiah(data.spvIncome)} />
                     </div>
                 </div>
 

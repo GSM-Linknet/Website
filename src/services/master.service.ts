@@ -68,6 +68,7 @@ export interface Package extends BaseEntity {
   duration?: number; // Days
   costBandwidth?: number;
   salesIncome?: number;
+  spvIncome?: number;
   spCommission?: number;
   adminCommission?: number;
   unitCommission?: number;

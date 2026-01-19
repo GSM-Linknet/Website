@@ -86,7 +86,7 @@ export function CreateBatchPaymentModal({
     }, [invoices, debouncedSearch]);
 
     const selisih = useMemo(() =>
-        summary ? summary.totalInvoice - Number(totalSetor || 0) : 0
+        summary ? (summary.netAmount ?? summary.totalInvoice) - Number(totalSetor || 0) : 0
         , [summary, totalSetor]);
 
     const isQuotaExceeded = selisih > quotaAvailable;
@@ -287,7 +287,7 @@ export function CreateBatchPaymentModal({
                 </div>
                 <div className="relative grid grid-cols-2 gap-8">
                     <div className="space-y-1">
-                        <div className="text-[10px] uppercase tracking-widest text-blue-200/60 font-bold">Estimasi Total Tagihan</div>
+                        <div className="text-[10px] uppercase tracking-widest text-blue-200/60 font-bold">Total Tagihan</div>
                         <div className="text-3xl font-black tracking-tight">{formatCurrency(summary.totalInvoice)}</div>
                     </div>
                     <div className="text-right space-y-1">
@@ -299,11 +299,48 @@ export function CreateBatchPaymentModal({
                 </div>
             </div>
 
+            {/* Commission Breakdown */}
+            {summary.totalCommission > 0 && (
+                <div className="bg-emerald-50 border-2 border-emerald-200 rounded-[1.5rem] p-5 space-y-4">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+                        <TrendingUp className="h-4 w-4" />
+                        Estimasi Potongan Komisi
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Komisi Sales</div>
+                            <div className="text-lg font-black text-slate-800">{formatCurrency(summary.salesCommission)}</div>
+                        </div>
+                        <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Komisi SPV</div>
+                            <div className="text-lg font-black text-slate-800">{formatCurrency(summary.spvCommission)}</div>
+                        </div>
+                        <div className="bg-emerald-600 rounded-xl p-4 text-white">
+                            <div className="text-[10px] text-emerald-100 uppercase tracking-wider font-bold">Total Komisi</div>
+                            <div className="text-lg font-black">{formatCurrency(summary.totalCommission)}</div>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between bg-white rounded-xl p-4 border border-emerald-200">
+                        <div className="text-sm font-bold text-slate-600">Sisa Setoran Setelah Komisi</div>
+                        <div className="text-xl font-black text-emerald-600">{formatCurrency(summary.netAmount)}</div>
+                    </div>
+                </div>
+            )}
+
             {/* Input Section */}
             <div className="space-y-4">
                 <div className="flex items-center gap-2 px-1">
                     <Wallet2 className="h-4 w-4 text-blue-600" />
                     <Label htmlFor="totalSetor" className="text-xs font-black text-slate-800 uppercase tracking-widest">Nominal Setoran Tunai</Label>
+                    {summary.totalCommission > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setTotalSetor(String(summary.netAmount))}
+                            className="ml-auto text-[10px] font-bold text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                        >
+                            Gunakan Sisa Setoran ({formatCurrency(summary.netAmount)})
+                        </button>
+                    )}
                 </div>
                 <div className="relative group">
                     <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-2 pr-4 border-r border-slate-100">
@@ -396,16 +433,16 @@ export function CreateBatchPaymentModal({
                             <div className="text-xl font-black text-white">{formatCurrency(summary.totalInvoice)}</div>
                         </div>
                         <div className="space-y-1 text-right">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Setoran Tunai</div>
-                            <div className="text-xl font-black text-emerald-400">{formatCurrency(Number(totalSetor))}</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Komisi</div>
+                            <div className="text-xl font-black text-emerald-400">{formatCurrency(summary.totalCommission)}</div>
                         </div>
                         <div className="space-y-1">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selisih (Pengeluaran)</div>
-                            <div className="text-xl font-black text-orange-400">{formatCurrency(selisih)}</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Setoran Tunai</div>
+                            <div className="text-xl font-black text-blue-400">{formatCurrency(Number(totalSetor))}</div>
                         </div>
                         <div className="space-y-1 text-right">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Pelanggan</div>
-                            <div className="text-xl font-black text-blue-400">{summary.totalCustomers} <span className="text-xs font-medium text-slate-500">Orang</span></div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selisih (Pengeluaran)</div>
+                            <div className="text-xl font-black text-orange-400">{formatCurrency(selisih)}</div>
                         </div>
                     </div>
                 </div>

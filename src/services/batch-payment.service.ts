@@ -8,6 +8,7 @@ export interface BatchPayment {
   subUnitId?: string;
   totalInvoice: number;
   totalSetor: number;
+  totalCommission?: number;
   selisih: number;
   status: 'PENDING' | 'PROCESSING' | 'PAID' | 'FAILED' | 'CANCELLED';
   paymentUrl?: string;
