@@ -12,21 +12,22 @@ export interface Customer {
   phone: string;
   phone2?: string;
   idUpline: string;
-  ktpNumber: string; // String type to match backend
-  ktpFile: string;
+  isLegacy: boolean; // Legacy customer flag
+  ktpNumber?: string; // Optional for legacy (String type to match backend)
+  ktpFile?: string;   // Optional for legacy
   address: string;
-  // Location
-  latUser: number;
-  longUser: number;
-  // ODP
-  posNumber: string; // String type to match backend
-  ODPCode: string;
-  latODP: number;
-  longODP: number;
-  // Images
-  frontHome: string;
-  sideHome: string;
-  ODPImage: string;
+  // Location (optional for legacy)
+  latUser?: number;
+  longUser?: number;
+  // ODP (optional for legacy)
+  posNumber?: string;
+  ODPCode?: string;
+  latODP?: number;
+  longODP?: number;
+  // Images (optional for legacy)
+  frontHome?: string;
+  sideHome?: string;
+  ODPImage?: string;
   CaImage?: string;
   attachment?: string;
   
@@ -54,10 +55,31 @@ export interface Customer {
   subUnit?: SubUnit;
 }
 
+// Input type for legacy customer creation
+export interface LegacyCustomerInput {
+  name: string;
+  email: string;
+  address: string;
+  idPackages: string;
+  idUpline: string;
+  phone?: string;
+  customerId?: string; // Can import existing ID
+  lnId?: string;       // Can import existing LN ID
+  billingDate?: number;
+  customerStatus?: string;
+}
+
+// Query interface for customer list (isLegacy uses standard where param)
+export interface CustomerQuery extends BaseQuery {
+  where?: string;  // e.g., "isLegacy:true+unitId:xxx"
+  unitId?: string;
+  subUnitId?: string;
+}
+
 const ENDPOINT = "/pelanggan/customer";
 
 export const CustomerService = {
-  getCustomers: async (query: BaseQuery = {}) => {
+  getCustomers: async (query: CustomerQuery = {}) => {
     return apiClient.get<PaginatedResponse<Customer>>(`${ENDPOINT}/find-all`, { params: query });
   },
   getCustomer: async (id: string) => {
@@ -73,6 +95,9 @@ export const CustomerService = {
       } : undefined
     );
   },
+  createLegacyCustomer: async (data: LegacyCustomerInput) => {
+    return apiClient.post<Customer>(`${ENDPOINT}/create-legacy`, data);
+  },
   updateCustomer: async (id: string, data: Partial<Customer>) => {
     return apiClient.patch<Customer>(`${ENDPOINT}/update/${id}`, data);
   },
@@ -84,5 +109,9 @@ export const CustomerService = {
   },
   rejectCustomer: async (id: string, reason?: string) => {
     return apiClient.post(`${ENDPOINT}/reject/${id}`, { reason });
+  },
+  toggleLegacyStatus: async (id: string) => {
+    return apiClient.patch<Customer>(`${ENDPOINT}/toggle-legacy/${id}`);
   }
 };
+

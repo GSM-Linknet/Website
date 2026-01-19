@@ -10,6 +10,7 @@ export interface ReportFilters {
   subUnitId?: string;
   status?: string;
   type?: string;
+  isLegacy?: 'all' | 'new' | 'legacy';
 }
 
 export interface CustomerSummary {

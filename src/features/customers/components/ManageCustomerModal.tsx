@@ -27,6 +27,8 @@ import {
     Calendar,
     Loader2,
     Hash,
+    History,
+    RefreshCw,
 } from "lucide-react";
 import type { Customer } from "@/services/customer.service";
 import { usePackage } from "@/features/master/hooks/usePackage";
@@ -77,6 +79,9 @@ export function ManageCustomerModal({
 
     const currentUser = useMemo(() => AuthService.getUser(), []);
     const isSalesOrSpv = currentUser?.role === "SALES" || currentUser?.role === "SUPERVISOR";
+    const canEditLegacy = useMemo(() =>
+        AuthService.hasPermission(currentUser?.role || "", "pelanggan.legacy", "edit"),
+        [currentUser]);
 
     useEffect(() => {
         if (customer) {
@@ -118,6 +123,32 @@ export function ManageCustomerModal({
             toast({
                 title: "Gagal",
                 description: error.response?.data?.message || "Gagal memperbarui data",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleToggleLegacy = async () => {
+        if (!customer) return;
+
+        const actionText = customer.isLegacy ? "Konversi ke Customer Baru" : "Konversi ke Customer Legacy";
+        if (!confirm(`Apakah Anda yakin ingin melakukan ${actionText}?`)) return;
+
+        try {
+            setLoading(true);
+            await CustomerService.toggleLegacyStatus(customer.id);
+            toast({
+                title: "Berhasil",
+                description: `Berhasil mengubah status customer menjadi ${customer.isLegacy ? "Baru" : "Legacy"}`,
+            });
+            onSuccess();
+            onClose();
+        } catch (error: any) {
+            toast({
+                title: "Gagal",
+                description: error.response?.data?.message || "Gagal mengubah status legacy",
                 variant: "destructive",
             });
         } finally {
@@ -229,7 +260,7 @@ export function ManageCustomerModal({
                                     <div className="space-y-2">
                                         <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                             <Hash className="w-3.5 h-3.5" />
-                                            ID LN (Livin Network)
+                                            ID LN
                                         </Label>
                                         <Input
                                             value={formData.lnId || ""}
@@ -500,29 +531,60 @@ export function ManageCustomerModal({
                         </TabsContent>
                     </div>
 
-                    <DialogFooter className="px-8 py-6 border-t border-slate-100 bg-slate-50/30 sticky bottom-0 z-10 flex items-center justify-end gap-3">
-                        <Button
-                            variant="ghost"
-                            onClick={onClose}
-                            disabled={loading}
-                            className="h-11 px-8 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-all"
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            onClick={handleSubmit}
-                            disabled={loading}
-                            className="h-11 px-10 bg-[#101D42] hover:bg-[#1a2d61] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 transition-all transform hover:scale-[1.02] active:scale-[0.98] min-w-[160px]"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Menyimpan...
-                                </>
-                            ) : (
-                                "Simpan Perubahan"
+                    <DialogFooter className="px-8 py-6 border-t border-slate-100 bg-slate-50/30 sticky bottom-0 z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                            {canEditLegacy && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleToggleLegacy}
+                                    disabled={loading}
+                                    className={cn(
+                                        "h-9 px-4 rounded-xl font-bold transition-all flex items-center gap-2",
+                                        customer.isLegacy
+                                            ? "border-blue-200 text-blue-600 hover:bg-blue-50"
+                                            : "border-amber-200 text-amber-600 hover:bg-amber-50"
+                                    )}
+                                >
+                                    {customer.isLegacy ? (
+                                        <>
+                                            <RefreshCw className="w-4 h-4" />
+                                            Jadikan Customer Baru
+                                        </>
+                                    ) : (
+                                        <>
+                                            <History className="w-4 h-4" />
+                                            Jadikan Customer Legacy
+                                        </>
+                                    )}
+                                </Button>
                             )}
-                        </Button>
+                        </div>
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <Button
+                                variant="ghost"
+                                onClick={onClose}
+                                disabled={loading}
+                                className="h-11 px-8 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-all flex-1 sm:flex-none"
+                            >
+                                Batal
+                            </Button>
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={loading}
+                                className="h-11 px-10 bg-[#101D42] hover:bg-[#1a2d61] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 transition-all transform hover:scale-[1.02] active:scale-[0.98] min-w-[160px] flex-1 sm:flex-none"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Menyimpan...
+                                    </>
+                                ) : (
+                                    "Simpan Perubahan"
+                                )}
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </Tabs >
             </DialogContent >

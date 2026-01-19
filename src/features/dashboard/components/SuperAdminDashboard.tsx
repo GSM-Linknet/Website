@@ -21,15 +21,17 @@ export function SuperAdminDashboard() {
     const [revenueData, setRevenueData] = useState<any[]>([]);
     const [customerGrowthData, setCustomerGrowthData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
+                setLoading(true);
                 const [overview, revenue, growth] = await Promise.all([
-                    DashboardService.getOverview(),
-                    DashboardService.getRevenueTrend(),
-                    DashboardService.getCustomerGrowth()
+                    DashboardService.getOverview(legacyFilter),
+                    DashboardService.getRevenueTrend(legacyFilter),
+                    DashboardService.getCustomerGrowth(legacyFilter)
                 ]);
                 setMetrics(overview);
                 setRevenueData(revenue);
@@ -41,7 +43,7 @@ export function SuperAdminDashboard() {
             }
         };
         fetchData();
-    }, []);
+    }, [legacyFilter]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("id-ID", {
@@ -55,6 +57,13 @@ export function SuperAdminDashboard() {
     const workOrderStatusData = [
         { name: "Completed", value: (metrics?.workOrders.total || 0) - (metrics?.workOrders.pending || 0) },
         { name: "Pending", value: metrics?.workOrders.pending || 0 }
+    ];
+
+    // Legacy filter tabs
+    const legacyTabs = [
+        { value: 'all' as const, label: 'Semua' },
+        { value: 'new' as const, label: 'Baru' },
+        { value: 'legacy' as const, label: 'Legacy' },
     ];
 
 
@@ -92,6 +101,21 @@ export function SuperAdminDashboard() {
                     </p>
                 </div>
 
+                {/* Legacy Filter Tabs */}
+                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+                    {legacyTabs.map((tab) => (
+                        <button
+                            key={tab.value}
+                            onClick={() => setLegacyFilter(tab.value)}
+                            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${legacyFilter === tab.value
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-slate-500 hover:text-slate-700"
+                                }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Top KPI Cards */}

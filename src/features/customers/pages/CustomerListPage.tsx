@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Download, ChevronDown } from "lucide-react";
+import { Search,  ChevronDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { UserService, type User } from "@/services/user.service";
+import { AddLegacyCustomerDialog } from "../components/AddLegacyCustomerDialog";
 
 // ==================== Page Component ====================
 
@@ -27,9 +28,8 @@ export default function CustomerListPage() {
   const { toast } = useToast();
   const userProfile = AuthService.getUser();
   const userRole = userProfile?.role || "USER";
-  const resource = "pelanggan.kelola";
 
-  const canExport = AuthService.hasPermission(userRole, resource, "export");
+  const canCreateLegacy = AuthService.hasPermission(userRole, "pelanggan.legacy", "create");
 
   const {
     data: customers,
@@ -64,6 +64,10 @@ export default function CustomerListPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
   const [uplines, setUplines] = useState<User[]>([]);
+
+  // Legacy filter state: 'all' | 'new' | 'legacy'
+  const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
+  const [isAddLegacyOpen, setIsAddLegacyOpen] = useState(false);
 
   // Fetch units on mount
   useEffect(() => {
@@ -126,23 +130,41 @@ export default function CustomerListPage() {
 
   // Update query when debounced search or filters change
   useEffect(() => {
+    const whereParts: string[] = [];
     const searchParts: string[] = [];
-    if (debouncedSearchQuery) searchParts.push(`name:${debouncedSearchQuery}`);
-    if (filters.status !== "all")
-      searchParts.push(`statusCust:${filters.status === "active"}`);
-    if (filters.internet !== "all")
-      searchParts.push(`statusNet:${filters.internet === "online"}`);
-    if (filters.unit !== "all")
-      searchParts.push(`unitId:${filters.unit}`);
-    if (filters.subUnit !== "all")
-      searchParts.push(`subUnitId:${filters.subUnit}`);
-    if (filters.upline !== "all")
-      searchParts.push(`idUpline:${filters.upline}`);
 
+    // Search fields (uses OR logic via search param)
+    if (debouncedSearchQuery) searchParts.push(`name:${debouncedSearchQuery}`);
+
+    // Filter fields (uses AND logic via where param)
+    if (filters.status !== "all")
+      whereParts.push(`statusCust:${filters.status === "active"}`);
+    if (filters.internet !== "all")
+      whereParts.push(`statusNet:${filters.internet === "online"}`);
+    if (filters.unit !== "all")
+      whereParts.push(`unitId:${filters.unit}`);
+    if (filters.subUnit !== "all")
+      whereParts.push(`subUnitId:${filters.subUnit}`);
+    if (filters.upline !== "all")
+      whereParts.push(`idUpline:${filters.upline}`);
+
+    // Legacy filter using global where format
+    if (legacyFilter === "legacy") {
+      whereParts.push("isLegacy:true");
+    } else if (legacyFilter === "new") {
+      whereParts.push("isLegacy:false");
+    }
+    // 'all' = no filter
+
+    const whereParam = whereParts.join("+");
     const searchParam = searchParts.join("+");
-    // Always update query to ensure refetch, even when cleared
-    setQuery(searchParam ? { search: searchParam } : { search: undefined });
-  }, [debouncedSearchQuery, filters, setQuery]);
+
+    // Always update query to ensure refetch
+    setQuery({
+      where: whereParam || undefined,
+      search: searchParam || undefined,
+    });
+  }, [debouncedSearchQuery, filters, legacyFilter, setQuery]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters({ ...filters, [key]: value });
@@ -206,13 +228,42 @@ export default function CustomerListPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {canExport && (
-            <Button className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-6 shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02] w-full sm:w-auto">
-              <Download size={18} className="mr-2" />
-              Unduh VCF
+         
+          {canCreateLegacy && (
+            <Button
+              onClick={() => setIsAddLegacyOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold px-6 shadow-lg shadow-emerald-900/10 transition-all hover:scale-[1.02] w-full sm:w-auto"
+            >
+              <Plus size={18} className="mr-2" />
+              Tambah Legacy
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Legacy Filter Tabs */}
+      <div className="flex border-b border-slate-200">
+        {[
+          { label: 'Semua Customer', value: 'all' as const },
+          { label: 'Customer Baru', value: 'new' as const },
+          { label: 'Customer Legacy', value: 'legacy' as const },
+        ].map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setLegacyFilter(tab.value)}
+            className={cn(
+              "px-6 py-3 text-sm font-semibold transition-all relative cursor-pointer",
+              legacyFilter === tab.value
+                ? "text-blue-600 bg-blue-50 rounded-lg"
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            {tab.label}
+            {legacyFilter === tab.value && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Filters Section */}
@@ -317,6 +368,15 @@ export default function CustomerListPage() {
         onConfirm={confirmDelete}
         itemName={selectedCustomer?.name}
         isLoading={deleting}
+      />
+
+      <AddLegacyCustomerDialog
+        isOpen={isAddLegacyOpen}
+        onClose={() => setIsAddLegacyOpen(false)}
+        onSuccess={() => {
+          setIsAddLegacyOpen(false);
+          refresh();
+        }}
       />
     </div>
   );

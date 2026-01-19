@@ -32,6 +32,7 @@ import {
 export default function CustomerReportPage() {
     const [reportData, setReportData] = useState<CustomerReportData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
@@ -40,12 +41,16 @@ export default function CustomerReportPage() {
     // Fetch report data
     useEffect(() => {
         fetchReportData();
-    }, [filters]);
+    }, [filters, legacyFilter]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            const data = await reportService.getCustomerReport(filters);
+            const reportFilters = {
+                ...filters,
+                isLegacy: legacyFilter
+            };
+            const data = await reportService.getCustomerReport(reportFilters);
             setReportData(data);
         } catch (error) {
             console.error("Failed to fetch customer report:", error);
@@ -60,12 +65,19 @@ export default function CustomerReportPage() {
     }, []);
 
     const handleExportExcel = async () => {
-        await reportService.exportCustomerReportExcel(filters);
+        await reportService.exportCustomerReportExcel({ ...filters, isLegacy: legacyFilter });
     };
 
     const handleExportPDF = async () => {
-        await reportService.exportCustomerReportPDF(filters);
+        await reportService.exportCustomerReportPDF({ ...filters, isLegacy: legacyFilter });
     };
+
+    // Legacy filter tabs
+    const legacyTabs = [
+        { value: 'all' as const, label: 'Semua Customer' },
+        { value: 'new' as const, label: 'Customer Baru' },
+        { value: 'legacy' as const, label: 'Customer Legacy' },
+    ];
 
     // Table columns configuration
     const columns = [
@@ -188,11 +200,28 @@ export default function CustomerReportPage() {
 
                 {/* Filters */}
                 <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Calendar className="w-5 h-5 text-gray-600" />
-                        <h3 className="text-lg font-semibold text-gray-800">
-                            Filter Periode
-                        </h3>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-gray-600" />
+                            <h3 className="text-lg font-semibold text-gray-800">
+                                Filter Periode
+                            </h3>
+                        </div>
+                        {/* Legacy Filter Tabs */}
+                        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+                            {legacyTabs.map((tab) => (
+                                <button
+                                    key={tab.value}
+                                    onClick={() => setLegacyFilter(tab.value)}
+                                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${legacyFilter === tab.value
+                                            ? "bg-white text-blue-600 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700"
+                                        }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <DateRangeFilter
                         onFilterChange={handleDateRangeChange}

@@ -1,13 +1,12 @@
 import { useFetch } from "@/hooks/useFetch";
 import { useCrud } from "@/hooks/useCrud";
 import { CustomerService } from "@/services/customer.service";
-import type { Customer } from "@/services/customer.service";
-import type { BaseQuery } from "@/services/master.service";
+import type { Customer, CustomerQuery } from "@/services/customer.service";
 
 /**
- * Hook for managing Customer data.
+ * Hook for managing Customer data with legacy filter support.
  */
-export function useCustomers(initialQuery?: BaseQuery) {
+export function useCustomers(initialQuery?: CustomerQuery) {
   const fetchResult = useFetch<Customer>(
     (query) => CustomerService.getCustomers({...query, order: "createdAt:desc"}),
     { query: initialQuery, autoFetch: true }

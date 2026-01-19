@@ -43,6 +43,7 @@ export default function FinancialReportPage() {
     const [activeTab, setActiveTab] = useState<TabType>("invoice");
     const [reportData, setReportData] = useState<FinancialData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
@@ -51,29 +52,33 @@ export default function FinancialReportPage() {
     useEffect(() => {
         setReportData(null); // Clear data when tab or filters change to prevent type mismatch crashes
         fetchReportData();
-    }, [filters, activeTab]);
+    }, [filters, activeTab, legacyFilter]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            let data: FinancialData;
+            const reportFilters = {
+                ...filters,
+                isLegacy: legacyFilter
+            };
 
+            let data: FinancialData;
             switch (activeTab) {
                 case "payment":
-                    data = await reportService.getPaymentReport(filters);
+                    data = await reportService.getPaymentReport(reportFilters);
                     break;
                 case "revenue":
-                    data = await reportService.getRevenueReport(filters);
+                    data = await reportService.getRevenueReport(reportFilters);
                     break;
                 case "aging":
-                    data = await reportService.getAgingReport(filters);
+                    data = await reportService.getAgingReport(reportFilters);
                     break;
                 case "summary":
-                    data = await reportService.getFinancialSummaryReport(filters);
+                    data = await reportService.getFinancialSummaryReport(reportFilters);
                     break;
                 case "invoice":
                 default:
-                    data = await reportService.getInvoiceReport(filters);
+                    data = await reportService.getInvoiceReport(reportFilters);
                     break;
             }
 
@@ -91,11 +96,11 @@ export default function FinancialReportPage() {
     }, []);
 
     const handleExportExcel = async () => {
-        await reportService.exportFinancialReportExcel(activeTab, filters);
+        await reportService.exportFinancialReportExcel(activeTab, { ...filters, isLegacy: legacyFilter });
     };
 
     const handleExportPDF = async () => {
-        await reportService.exportFinancialReportPDF(activeTab, filters);
+        await reportService.exportFinancialReportPDF(activeTab, { ...filters, isLegacy: legacyFilter });
     };
 
     const tabs = [
@@ -279,7 +284,7 @@ export default function FinancialReportPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20 -m-8 p-8">
             <div className="max-w-[1600px] mx-auto space-y-6">
-                {/* Header */}
+                {/* Header with Gradient */}
                 <div className="relative overflow-hidden bg-gradient-to-r from-green-600 via-emerald-600 to-teal-700 rounded-2xl shadow-xl p-8">
                     <div className="absolute inset-0 bg-black/10"></div>
                     <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl"></div>
@@ -305,9 +310,9 @@ export default function FinancialReportPage() {
                     </div>
                 </div>
 
-                {/* Tabs */}
+                {/* Main Tabs */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-2">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap md:flex-nowrap gap-2">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             return (
@@ -327,17 +332,41 @@ export default function FinancialReportPage() {
                     </div>
                 </div>
 
-                {/* Filters */}
+                {/* Filters Row */}
                 <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Calendar className="w-5 h-5 text-gray-600" />
-                        <h3 className="text-lg font-semibold text-gray-800">
-                            Filter Periode
-                        </h3>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-gray-600" />
+                            <h3 className="text-lg font-semibold text-gray-800">
+                                Filter Periode
+                            </h3>
+                        </div>
+
+                        {/* Legacy Filter Tabs Integrated */}
+                        <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+                            {[
+                                { value: 'all' as const, label: 'Semua Customer' },
+                                { value: 'new' as const, label: 'Customer Baru' },
+                                { value: 'legacy' as const, label: 'Customer Legacy' },
+                            ].map((tab) => (
+                                <button
+                                    key={tab.value}
+                                    onClick={() => setLegacyFilter(tab.value)}
+                                    className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${legacyFilter === tab.value
+                                        ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
+                                        : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                                        }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <DateRangeFilter
-                        onFilterChange={handleDateRangeChange}
-                    />
+                    <div className="pt-2">
+                        <DateRangeFilter
+                            onFilterChange={handleDateRangeChange}
+                        />
+                    </div>
                 </div>
 
                 {loading ? (
