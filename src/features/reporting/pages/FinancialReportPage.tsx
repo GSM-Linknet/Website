@@ -7,6 +7,8 @@ import {
     CreditCard,
     BarChart3,
     Clock,
+    PieChart,
+    Percent,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -34,8 +36,8 @@ import {
     ERROR_MESSAGES,
 } from "../constants/report.constants";
 
-type TabType = "invoice" | "payment" | "revenue" | "aging";
-type FinancialData = InvoiceReportData | PaymentReportData | RevenueReportData | AgingReportData;
+type TabType = "invoice" | "payment" | "revenue" | "aging" | "summary";
+type FinancialData = InvoiceReportData | PaymentReportData | RevenueReportData | AgingReportData | any;
 
 export default function FinancialReportPage() {
     const [activeTab, setActiveTab] = useState<TabType>("invoice");
@@ -65,6 +67,9 @@ export default function FinancialReportPage() {
                     break;
                 case "aging":
                     data = await reportService.getAgingReport(filters);
+                    break;
+                case "summary":
+                    data = await reportService.getFinancialSummaryReport(filters);
                     break;
                 case "invoice":
                 default:
@@ -98,6 +103,7 @@ export default function FinancialReportPage() {
         { id: "payment" as TabType, label: "Pembayaran", icon: CreditCard },
         { id: "revenue" as TabType, label: "Revenue", icon: BarChart3 },
         { id: "aging" as TabType, label: "Aging", icon: Clock },
+        { id: "summary" as TabType, label: "Ringkasan", icon: PieChart },
     ];
 
     const getColumns = () => {
@@ -123,6 +129,15 @@ export default function FinancialReportPage() {
                     { key: "amount", header: "Jumlah", render: (v: number) => formatCurrency(v), width: "150px" },
                     { key: "dueDate", header: "Jatuh Tempo", render: (v: string) => formatDate(v), width: "130px" },
                     { key: "daysOverdue", header: "Hari Lewat", width: "100px", render: (v: number) => <span className="text-red-600 font-bold">{v} Hari</span> },
+                ];
+            case "summary":
+                return [
+                    { key: "userName", header: "Nama", width: "200px" },
+                    { key: "type", header: "ROLE", width: "100px" },
+                    { key: "category", header: "Kategori", width: "120px" },
+                    { key: "amount", header: "Jumlah", render: (v: number) => formatCurrency(v), width: "150px" },
+                    { key: "status", header: "Status", render: (v: string) => <StatusBadge status={v} />, width: "120px" },
+                    { key: "invoiceNumber", header: "Invoice", width: "150px" },
                 ];
             default:
                 return [
@@ -184,6 +199,8 @@ export default function FinancialReportPage() {
                 return (reportData as AgingReportData).invoices || [];
             case "invoice":
                 return (reportData as InvoiceReportData).invoices || [];
+            case "summary":
+                return reportData?.breakdown?.commissionDetails || [];
             default:
                 return [];
         }
@@ -240,6 +257,18 @@ export default function FinancialReportPage() {
                     <ReportCard title="Invoice Overdue" value={s.totalInvoices || 0} icon={FileText} variant="warning" format="number" />
                     <ReportCard title="30-60 Hari" value={s.agingBuckets?.days30 || 0} icon={BarChart3} variant="warning" format="currency" />
                     <ReportCard title="> 90 Hari" value={s.agingBuckets?.days90 || 0} icon={BarChart3} variant="danger" format="currency" />
+                </>
+            );
+        }
+
+        if (activeTab === "summary" && reportData?.summary) {
+            const s = reportData.summary;
+            return (
+                <>
+                    <ReportCard title="Total Pendapatan" value={s.totalRevenue || 0} icon={DollarSign} variant="success" format="currency" />
+                    <ReportCard title="Total Diskon" value={s.totalDiscount || 0} icon={Percent} variant="warning" format="currency" />
+                    <ReportCard title="Total Komisi" value={s.totalCommission || 0} icon={TrendingUp} variant="info" format="currency" />
+                    <ReportCard title="Net Income" value={s.netIncome || 0} icon={BarChart3} variant="success" format="currency" />
                 </>
             );
         }

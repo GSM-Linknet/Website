@@ -184,12 +184,13 @@ export function CreatePaymentModal({
                                 type="number"
                                 value={formData.amount}
                                 onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                                className="h-10 bg-white border-slate-300"
+                                className="h-10 bg-white border-slate-300 "
                                 placeholder="0"
+                                readOnly
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-sm font-semibold text-slate-700">Diskon</Label>
+                            <Label className="text-sm font-semibold text-slate-700">Diskon ( Rp )</Label>
                             <Input
                                 type="number"
                                 value={formData.discount}

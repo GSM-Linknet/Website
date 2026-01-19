@@ -41,7 +41,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     items: [
       { title: "Pendaftaran Baru", href: "/pelanggan/pendaftaran", resource: "pelanggan.pendaftaran" },
       { title: "Kelola Pelanggan", href: "/pelanggan/kelola", resource: "pelanggan.kelola" },
-      { title: "Layanan Mandiri", href: "/pelanggan/layanan", resource: "pelanggan.layanan" },
+      // { title: "Layanan Mandiri", href: "/pelanggan/layanan", resource: "pelanggan.layanan" },
     ],
   },
   {

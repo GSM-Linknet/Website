@@ -81,6 +81,12 @@ class ReportingService {
     return response.data;
   }
 
+  async getFinancialSummaryReport(filters?: ReportFilters): Promise<any> {
+    const queryString = filters ? buildQueryParams(filters) : '';
+    const response = await apiClient.get<{data: any}>(`${API_ENDPOINTS.FINANCIAL_SUMMARY}?${queryString}`) as any;
+    return response.data;
+  }
+
   async exportFinancialReportExcel(type: string, filters?: ReportFilters): Promise<void> {
     const queryString = filters ? buildQueryParams({ ...filters, type }) : `type=${type}`;
     const response = await apiClient.get<Blob>(

@@ -33,6 +33,7 @@ export function PackageModal({
         duration: 30, // Default to 30 days
         costBandwidth: 0,
         salesIncome: 0,
+        spvIncome: 0,
         spCommission: 0,
         adminCommission: 0,
         unitCommission: 0,
@@ -57,6 +58,7 @@ export function PackageModal({
                     duration: initialData.duration || 30,
                     costBandwidth: initialData.costBandwidth || 0,
                     salesIncome: initialData.salesIncome || 0,
+                    spvIncome: initialData.spvIncome || 0,
                     spCommission: initialData.spCommission || 0,
                     adminCommission: initialData.adminCommission || 0,
                     unitCommission: initialData.unitCommission || 0,
@@ -75,6 +77,7 @@ export function PackageModal({
                     duration: 30,
                     costBandwidth: 0,
                     salesIncome: 0,
+                    spvIncome: 0,
                     spCommission: 0,
                     adminCommission: 0,
                     unitCommission: 0,
@@ -99,8 +102,8 @@ export function PackageModal({
             return;
         }
 
-        if (totalCommission !== 100) {
-            alert(`Total komisi harus 100%. Saat ini: ${totalCommission}%`);
+        if (totalCommission > 100) {
+            alert(`Total komisi tidak boleh lebih dari 100%. Saat ini: ${totalCommission}%`);
             return;
         }
 
@@ -242,7 +245,7 @@ export function PackageModal({
                         disabled={isLoading}
                     />
                 </div>
-                <div className="space-y-1">
+                {/* <div className="space-y-1">
                     <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
                         Sales Income (Rp)
                     </Label>
@@ -252,53 +255,21 @@ export function PackageModal({
                         value={formData.salesIncome}
                         onChange={(e) => setFormData({ ...formData, salesIncome: parseInt(e.target.value) || 0 })}
                     />
-                </div>
+                </div> */}
 
                 <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-100">
                     <div className="flex justify-between items-center">
-                        <h4 className="font-bold text-slate-700 text-sm">Pengaturan Komisi</h4>
+                        <div className="space-y-1">
+                            <h4 className="font-bold text-slate-700 text-sm">Pengaturan Komisi</h4>
+
+                        </div>
                         <div className={`px-3 py-1 rounded-full text-[11px] font-bold border ${totalCommission === 100 ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
                             Total: {totalCommission}% {totalCommission === 100 ? '✓' : '⚠'}
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
 
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Super Admin (%)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.spCommission}
-                                onChange={(e) => setFormData({ ...formData, spCommission: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Admin (%)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.adminCommission}
-                                onChange={(e) => setFormData({ ...formData, adminCommission: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Unit (%)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.unitCommission}
-                                onChange={(e) => setFormData({ ...formData, unitCommission: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
+
                         <div className="space-y-1">
                             <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
                                 SPV (%)
@@ -323,16 +294,39 @@ export function PackageModal({
                                 onChange={(e) => setFormData({ ...formData, salesCommission: parseInt(e.target.value) || 0 })}
                             />
                         </div>
+
+                    </div>
+                </div>
+
+                {/* Recurring Commission Section */}
+                <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-100">
+                    <div className="space-y-1">
+                        <h4 className="font-bold text-slate-700 text-sm">Komisi Rutin (Fixed Price)</h4>
+                        <p className="text-xs text-slate-400">Komisi tetap per pembayaran bulanan (dalam Rupiah)</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Lain (%)
+                                Sales Income (Rp)
                             </Label>
                             <Input
                                 type="number"
                                 placeholder="0"
                                 className="h-9 rounded-lg text-sm"
-                                value={formData.otherCommission}
-                                onChange={(e) => setFormData({ ...formData, otherCommission: parseInt(e.target.value) || 0 })}
+                                value={formData.salesIncome}
+                                onChange={(e) => setFormData({ ...formData, salesIncome: parseInt(e.target.value) || 0 })}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
+                                SPV Income (Rp)
+                            </Label>
+                            <Input
+                                type="number"
+                                placeholder="0"
+                                className="h-9 rounded-lg text-sm"
+                                value={formData.spvIncome}
+                                onChange={(e) => setFormData({ ...formData, spvIncome: parseInt(e.target.value) || 0 })}
                             />
                         </div>
                     </div>

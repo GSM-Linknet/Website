@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     Dialog,
     DialogContent,
@@ -30,8 +30,11 @@ import {
 } from "lucide-react";
 import type { Customer } from "@/services/customer.service";
 import { usePackage } from "@/features/master/hooks/usePackage";
+import { useUser } from "@/features/master/hooks/useUser";
 import { useToast } from "@/hooks/useToast";
 import { CustomerService } from "@/services/customer.service";
+import { AuthService } from "@/services/auth.service";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { cn } from "@/lib/utils";
 
 const CustomToggle = ({ checked, onChange }: { checked: boolean, onChange: (val: boolean) => void }) => (
@@ -67,9 +70,13 @@ export function ManageCustomerModal({
 }: ManageCustomerModalProps) {
     const { toast } = useToast();
     const { data: packages } = usePackage({ paginate: false });
+    const { data: users } = useUser({ paginate: false });
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<Customer>>({});
     const [activeTab, setActiveTab] = useState("personal");
+
+    const currentUser = useMemo(() => AuthService.getUser(), []);
+    const isSalesOrSpv = currentUser?.role === "SALES" || currentUser?.role === "SUPERVISOR";
 
     useEffect(() => {
         if (customer) {
@@ -90,6 +97,7 @@ export function ManageCustomerModal({
                 freeEndDate: customer.freeEndDate,
                 onLeaveStartDate: customer.onLeaveStartDate,
                 onLeaveEndDate: customer.onLeaveEndDate,
+                idUpline: customer.idUpline,
             });
         }
     }, [customer]);
@@ -291,6 +299,25 @@ export function ManageCustomerModal({
                                     </Select>
                                 </div>
                             </div>
+
+                            {!isSalesOrSpv && (
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <User className="w-3.5 h-3.5" />
+                                        Upline (Sales / SPV)
+                                    </Label>
+                                    <SearchableSelect
+                                        options={users
+                                            .filter(u => u.role === "SALES" || u.role === "SUPERVISOR")
+                                            .map(u => ({ id: u.id, name: u.name, role: u.role }))
+                                        }
+                                        value={formData.idUpline || ""}
+                                        onValueChange={(val) => setFormData({ ...formData, idUpline: val })}
+                                        placeholder="Ganti Upline"
+                                        searchPlaceholder="Cari nama sales..."
+                                    />
+                                </div>
+                            )}
 
                             <div className="space-y-2">
                                 <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
