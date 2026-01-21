@@ -82,6 +82,18 @@ export const CustomerTable = ({
                 </Badge>
               )}
             </div>
+            <div className="flex flex-wrap gap-1 mt-1.5 mb-1">
+              {row.labels?.map((label) => (
+                <Badge
+                  key={label.id}
+                  variant="outline"
+                  className="text-[9px] px-2 h-4.5 font-bold border-none text-white shadow-sm"
+                  style={{ backgroundColor: label.color || '#E2E8F0' }}
+                >
+                  {label.name.toUpperCase()}
+                </Badge>
+              ))}
+            </div>
             <span className="text-[11px] text-slate-400 font-medium">
               {row.phone}
             </span>
@@ -142,7 +154,7 @@ export const CustomerTable = ({
       accessorKey: "ODPCode",
       className: "text-slate-500 font-medium text-[12px]",
     },
-    
+
     {
       header: "EMAIL",
       accessorKey: "email",

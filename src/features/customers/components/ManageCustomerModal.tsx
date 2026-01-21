@@ -29,6 +29,8 @@ import {
     Hash,
     History,
     RefreshCw,
+    Tag,
+    Check,
 } from "lucide-react";
 import type { Customer } from "@/services/customer.service";
 import { usePackage } from "@/features/master/hooks/usePackage";
@@ -74,14 +76,21 @@ export function ManageCustomerModal({
     const { data: packages } = usePackage({ paginate: false });
     const { data: users } = useUser({ paginate: false });
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState<Partial<Customer>>({});
+    const [formData, setFormData] = useState<any>({});
     const [activeTab, setActiveTab] = useState("personal");
+    const [labels, setLabels] = useState<any[]>([]);
 
     const currentUser = useMemo(() => AuthService.getUser(), []);
     const isSalesOrSpv = currentUser?.role === "SALES" || currentUser?.role === "SUPERVISOR";
     const canEditLegacy = useMemo(() =>
         AuthService.hasPermission(currentUser?.role || "", "pelanggan.legacy", "edit"),
         [currentUser]);
+
+    useEffect(() => {
+        CustomerService.getLabels()
+            .then(res => setLabels(res.data || []))
+            .catch(console.error);
+    }, []);
 
     useEffect(() => {
         if (customer) {
@@ -103,6 +112,7 @@ export function ManageCustomerModal({
                 onLeaveStartDate: customer.onLeaveStartDate,
                 onLeaveEndDate: customer.onLeaveEndDate,
                 idUpline: customer.idUpline,
+                labelIds: customer.labels?.map(l => l.id) || [],
             });
         }
     }, [customer]);
@@ -465,6 +475,74 @@ export function ManageCustomerModal({
                                         checked={formData.isFreeAccount || false}
                                         onChange={(val) => setFormData({ ...formData, isFreeAccount: val })}
                                     />
+                                </div>
+                            </div>
+
+                            {/* Labels Management */}
+                            <div className="space-y-4">
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Tag className="w-3.5 h-3.5" />
+                                    Label Klasifikasi Pelanggan
+                                </Label>
+                                <div className="grid grid-cols-2 gap-3 p-1">
+                                    {labels.map((label) => {
+                                        const isSelected = formData.labelIds?.includes(label.id);
+                                        return (
+                                            <div
+                                                key={label.id}
+                                                onClick={() => {
+                                                    const current = formData.labelIds || [];
+                                                    const next = current.includes(label.id)
+                                                        ? current.filter((id: string) => id !== label.id)
+                                                        : [...current, label.id];
+                                                    setFormData({ ...formData, labelIds: next });
+                                                }}
+                                                className={cn(
+                                                    "group relative flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-300 border-2",
+                                                    isSelected
+                                                        ? "bg-white shadow-md shadow-slate-200/50"
+                                                        : "bg-slate-50 border-transparent hover:bg-white hover:border-slate-200 hover:shadow-sm"
+                                                )}
+                                                style={{
+                                                    borderColor: isSelected ? label.color : undefined
+                                                }}
+                                            >
+                                                <div
+                                                    className={cn(
+                                                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110",
+                                                        isSelected ? "text-white" : "bg-white shadow-inner"
+                                                    )}
+                                                    style={{ backgroundColor: isSelected ? label.color : undefined }}
+                                                >
+                                                    {isSelected ? <Check size={18} strokeWidth={3} /> : <Tag size={18} className="text-slate-400" />}
+                                                </div>
+                                                <div className="flex flex-col min-w-0 pr-2">
+                                                    <span className={cn(
+                                                        "text-[13px] font-bold truncate transition-colors",
+                                                        isSelected ? "text-slate-900" : "text-slate-600"
+                                                    )}>
+                                                        {label.name}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">
+                                                        {isSelected ? "Terpilih" : "Klik untuk pilih"}
+                                                    </span>
+                                                </div>
+                                                {/* Color accent bar */}
+                                                {!isSelected && (
+                                                    <div
+                                                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1/2 rounded-r-full"
+                                                        style={{ backgroundColor: label.color }}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {labels.length === 0 && (
+                                        <div className="col-span-2 flex flex-col items-center justify-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                            <Tag className="w-8 h-8 text-slate-300 mb-2" />
+                                            <p className="text-xs text-slate-400 font-bold">Tidak ada label tersedia</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </TabsContent>

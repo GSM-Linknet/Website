@@ -1,8 +1,14 @@
 
 import { apiClient } from "./api-client";
-import type { BaseQuery, PaginatedResponse, Unit, SubUnit } from "./master.service";
+import type { BaseQuery, PaginatedResponse, Unit, SubUnit, ApiResponse } from "./master.service";
 
 // Interfaces based on Prisma Schema
+export interface Label {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 export interface Customer {
   id: string;
   customerId?: string;
@@ -53,6 +59,7 @@ export interface Customer {
   paket?: { name?: string };
   unit?: Unit;
   subUnit?: SubUnit;
+  labels?: Label[];
 }
 
 // Input type for legacy customer creation
@@ -74,6 +81,7 @@ export interface CustomerQuery extends BaseQuery {
   where?: string;  // e.g., "isLegacy:true+unitId:xxx"
   unitId?: string;
   subUnitId?: string;
+  labelIds?: string | string[];
 }
 
 const ENDPOINT = "/pelanggan/customer";
@@ -112,6 +120,12 @@ export const CustomerService = {
   },
   toggleLegacyStatus: async (id: string) => {
     return apiClient.patch<Customer>(`${ENDPOINT}/toggle-legacy/${id}`);
-  }
+  },
+  getLabels: async () => {
+    return apiClient.get<ApiResponse<Label[]>>("/pelanggan/label");
+  },
+  seedLabels: async () => {
+    return apiClient.post<{ message: string }>("/pelanggan/label/seed");
+  },
 };
 

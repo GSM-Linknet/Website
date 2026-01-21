@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search,  ChevronDown, Plus } from "lucide-react";
+import { Search, ChevronDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,7 +13,7 @@ import { useCustomers } from "../hooks/useCustomers";
 import { AuthService } from "@/services/auth.service";
 import { CustomerDetailModal } from "../components/CustomerDetailModal";
 import { ManageCustomerModal } from "../components/ManageCustomerModal";
-import type { Customer } from "@/services/customer.service";
+import { CustomerService, type Customer } from "@/services/customer.service";
 import { useToast } from "@/hooks/useToast";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,8 @@ export default function CustomerListPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
   const [uplines, setUplines] = useState<User[]>([]);
+  const [labels, setLabels] = useState<any[]>([]);
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   // Legacy filter state: 'all' | 'new' | 'legacy'
   const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
@@ -80,6 +82,11 @@ export default function CustomerListPage() {
         console.error("Failed to fetch units:", err);
         setUnits([]);
       });
+
+    // Fetch labels
+    CustomerService.getLabels()
+      .then((res: any) => setLabels(res.data || []))
+      .catch((err: any) => console.error("Failed to fetch labels:", err));
   }, []);
 
   // Fetch subUnits when unit changes
@@ -163,8 +170,9 @@ export default function CustomerListPage() {
     setQuery({
       where: whereParam || undefined,
       search: searchParam || undefined,
+      labelIds: selectedLabels.length > 0 ? selectedLabels : undefined,
     });
-  }, [debouncedSearchQuery, filters, legacyFilter, setQuery]);
+  }, [debouncedSearchQuery, filters, legacyFilter, selectedLabels, setQuery]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters({ ...filters, [key]: value });
@@ -228,7 +236,7 @@ export default function CustomerListPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-         
+
           {canCreateLegacy && (
             <Button
               onClick={() => setIsAddLegacyOpen(true)}
@@ -322,6 +330,17 @@ export default function CustomerListPage() {
           ]}
           onSelect={(val) => handleFilterChange("upline", val)}
           disabled={filters.unit === "all"}
+        />
+
+        <LabelFilterDropdown
+          labels={labels}
+          selectedIds={selectedLabels}
+          onSelect={(id) => {
+            setSelectedLabels(prev =>
+              prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+            );
+          }}
+          onClear={() => setSelectedLabels([])}
         />
       </div>
 
@@ -443,6 +462,71 @@ const FilterDropdown = ({
             {option.label}
           </DropdownMenuItem>
         ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+interface LabelFilterDropdownProps {
+  labels: any[];
+  selectedIds: string[];
+  onSelect: (id: string) => void;
+  onClear: () => void;
+}
+
+const LabelFilterDropdown = ({ labels, selectedIds, onSelect, onClear }: LabelFilterDropdownProps) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
+            selectedIds.length > 0 && "border-blue-500 text-blue-600 bg-blue-50/50"
+          )}
+        >
+          <span>
+            {selectedIds.length === 0
+              ? "Semua Label"
+              : selectedIds.length === 1
+                ? labels.find((l) => l.id === selectedIds[0])?.name || "1 Label"
+                : `${selectedIds.length} Label`}
+          </span>
+          <ChevronDown size={14} className={cn("text-slate-400", selectedIds.length > 0 && "text-blue-500")} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-[200px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+        <div className="max-h-[300px] overflow-y-auto">
+          {labels.map((label) => (
+            <div
+              key={label.id}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors",
+                selectedIds.includes(label.id) && "bg-blue-50"
+              )}
+              onClick={() => onSelect(label.id)}
+            >
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: label.color || "#E2E8F0" }}
+              />
+              <span className={cn("text-sm font-medium", selectedIds.includes(label.id) ? "text-blue-600" : "text-slate-700")}>
+                {label.name}
+              </span>
+            </div>
+          ))}
+        </div>
+        {selectedIds.length > 0 && (
+          <>
+            <div className="h-px bg-slate-100 my-1" />
+            <DropdownMenuItem
+              className="text-center justify-center text-xs font-bold text-rose-600 rounded-lg cursor-pointer"
+              onClick={onClear}
+            >
+              Hapus Semua Filter
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
