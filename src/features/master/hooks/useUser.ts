@@ -7,7 +7,8 @@ import type { BaseQuery } from "@/services/master.service";
 /**
  * Hook for managing User data.
  */
-export function useUser(initialQuery?: BaseQuery) {
+export function useUser(initialQuery?: BaseQuery, options: { onError?: (err: Error) => void } = {}) {
+  const { onError } = options;
   const fetchResult = useFetch<User>(
     (query) => UserService.findAll(query),
     { query: initialQuery, autoFetch: true }
@@ -23,6 +24,7 @@ export function useUser(initialQuery?: BaseQuery) {
       onCreateSuccess: fetchResult.refetch,
       onUpdateSuccess: fetchResult.refetch,
       onDeleteSuccess: fetchResult.refetch,
+      onError
     }
   );
 
