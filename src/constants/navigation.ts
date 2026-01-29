@@ -90,8 +90,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "Tagihan", href: "/keuangan/invoice", resource: "keuangan.invoice" },
       { title: "History Pembayaran", href: "/keuangan/history", resource: "keuangan.history" },
       { title: "Pembayaran Batch", href: "/keuangan/batch-payment", resource: "keuangan.batch-payment" },
-    
-      { title: "Saldo", href: "/keuangan/saldo", resource: "keuangan.saldo" },
+      { title: "Revenue Share", href: "/keuangan/revenue-share", resource: "keuangan.revenue-share" },
+      { title: "Pengeluaran Unit", href: "/keuangan/unit-expense", resource: "keuangan.unit-expense" },
+      { title: "Saldo Unit", href: "/keuangan/unit-balance", resource: "keuangan.unit-balance" },
+      { title: "Jurnal Harian", href: "/keuangan/daily-journal", resource: "keuangan.daily-journal" },
+      { title: "Saldo Xendit", href: "/keuangan/saldo", resource: "keuangan.saldo" },
       { title: "Disbursement", href: "/keuangan/payout", resource: "payout" },
     ],
   },
@@ -102,6 +105,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     items: [
       { title: "Hak Akses", href: "/settings/permissions", resource: "settings.permissions" },
       { title: "WhatsApp Gateway", href: "/settings/whatsapp", resource: "settings.whatsapp" },
+      { title: "Monitor WA", href: "/settings/whatsapp-monitor", resource: "settings.whatsapp" },
       { title: "Pengaturan Komisi", href: "/settings/commission", resource: "settings.system" },
     ],
   },
