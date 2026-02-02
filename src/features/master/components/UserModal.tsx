@@ -28,6 +28,7 @@ import { useUnit } from "../hooks/useUnit";
 import { useSubUnit } from "../hooks/useSubUnit";
 import type { User as UserType } from "@/services/user.service";
 import type { UserRole } from "@/services/auth.service";
+import { AuthService } from "@/services/auth.service";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ interface UserModalProps {
   initialData?: UserType | null;
 }
 
-const ROLES: { value: UserRole; label: string }[] = [
+const ALL_ROLES: { value: UserRole; label: string }[] = [
   { value: "SUPER_ADMIN", label: "Super Admin" },
   { value: "ADMIN_PUSAT", label: "Admin Pusat" },
   { value: "ADMIN_CABANG", label: "Admin Cabang" },
@@ -80,6 +81,16 @@ export function UserModal({
   };
 
   const isEdit = !!initialData;
+
+  // Get current user to filter available roles
+  const currentUser = AuthService.getUser();
+  const currentUserLevel = ROLE_LEVELS[currentUser?.role as UserRole] ?? 99;
+
+  // Filter roles: only show same level or below (higher number = lower rank)
+  const availableRoles = ALL_ROLES.filter((role) => {
+    const roleLevel = ROLE_LEVELS[role.value] ?? 99;
+    return roleLevel >= currentUserLevel;
+  });
 
   // Data fetching for selections
   const { data: users } = useUser({ paginate: false });
@@ -258,13 +269,16 @@ export function UserModal({
               <SelectValue placeholder="Pilih Role" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
-              {ROLES.map((role) => (
+              {availableRoles.map((role) => (
                 <SelectItem key={role.value} value={role.value}>
                   {role.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <p className="text-xs text-slate-500">
+            Anda hanya bisa assign role <strong>{currentUser?.role}</strong> atau lebih rendah
+          </p>
         </div>
 
         {/* Hierarchy Selects */}
