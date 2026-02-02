@@ -6,6 +6,7 @@ import { useWilayah } from "../hooks/useWilayah";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { WilayahModal } from "../components/WilayahModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { ForeignKeyErrorDialog } from "@/components/shared/ForeignKeyErrorDialog";
 import { SearchInput } from "@/components/shared/SearchInput";
 import type { Wilayah } from "@/services/master.service";
 import { AuthService } from "@/services/auth.service";
@@ -41,7 +42,9 @@ export default function WilayahPage() {
 
     const createDisclosure = useDisclosure();
     const deleteDisclosure = useDisclosure();
+    const errorDisclosure = useDisclosure();
     const [selectedWilayah, setSelectedWilayah] = useState<Wilayah | null>(null);
+    const [deleteError, setDeleteError] = useState<string>("");
 
     // Handlers
     const handleEdit = (wilayah: Wilayah) => {
@@ -61,10 +64,22 @@ export default function WilayahPage() {
 
     const handleConfirmDelete = async () => {
         if (!selectedWilayah) return;
-        const success = await remove(selectedWilayah.id);
-        if (success) {
+        try {
+            const success = await remove(selectedWilayah.id);
+            if (success) {
+                deleteDisclosure.onClose();
+                setSelectedWilayah(null);
+            }
+        } catch (error: any) {
+            let errorMessage = "Tidak dapat menghapus Wilayah ini karena masih terkait dengan data lain.";
+            if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            }
+            setDeleteError(errorMessage);
             deleteDisclosure.onClose();
-            setSelectedWilayah(null);
+            errorDisclosure.onOpen();
         }
     };
 
@@ -149,6 +164,17 @@ export default function WilayahPage() {
                 onConfirm={handleConfirmDelete}
                 itemName={selectedWilayah?.name}
                 isLoading={deleting}
+            />
+
+            <ForeignKeyErrorDialog
+                isOpen={errorDisclosure.isOpen}
+                onClose={() => {
+                    errorDisclosure.onClose();
+                    setDeleteError("");
+                    setSelectedWilayah(null);
+                }}
+                errorMessage={deleteError}
+                entityName="Wilayah"
             />
 
             {/* Header */}

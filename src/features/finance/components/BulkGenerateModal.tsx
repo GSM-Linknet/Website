@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { BaseModal } from "@/components/shared/BaseModal";
+import { InvoiceErrorDialog } from "@/components/shared/InvoiceErrorDialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +22,8 @@ export function BulkGenerateModal({ isOpen, onClose, onSuccess }: BulkGenerateMo
     const [period, setPeriod] = useState<string>(moment().format("YYYY-MM"));
     const [unitId, setUnitId] = useState<string>("all");
     const [loading, setLoading] = useState(false);
+    const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
     const { toast } = useToast();
     const user = AuthService.getUser();
     const isAdminUnit = user?.role === "ADMIN_UNIT";
@@ -44,7 +47,7 @@ export function BulkGenerateModal({ isOpen, onClose, onSuccess }: BulkGenerateMo
             const targetUnitId = unitId === "all" ? undefined : unitId;
 
             const response = await FinanceService.generateBulk(selectedDate, targetUnitId);
-            const result = (response as any).data; // Assuming response structure
+            const result = (response as any).data;
 
             toast({
                 title: "Berhasil",
@@ -54,61 +57,96 @@ export function BulkGenerateModal({ isOpen, onClose, onSuccess }: BulkGenerateMo
             onClose();
         } catch (error: any) {
             console.error("Bulk generate error", error);
-            toast({
-                title: "Gagal",
-                description: error.response?.data?.message || "Failed to generate invoices",
-                variant: "destructive"
-            });
+            // Check multiple possible error fields from backend
+            const errMsg =
+                error.response?.data?.error ||
+                error.response?.data?.message ||
+                error.message ||
+                "Failed to generate invoices";
+
+            console.log("Error message:", errMsg); // Debug
+            console.log("Full error response:", error.response?.data); // Debug
+
+            // Check if it's a duplicate error - more flexible matching
+            const isDuplicate =
+                errMsg.toLowerCase().includes("sudah ada") ||
+                errMsg.toLowerCase().includes("already exists") ||
+                errMsg.toLowerCase().includes("duplicate") ||
+                errMsg.toLowerCase().includes("tagihan");
+
+            if (isDuplicate) {
+                console.log("Opening error dialog");
+                setErrorMessage(errMsg);
+                setErrorDialogOpen(true);
+            } else {
+                toast({
+                    title: "Gagal",
+                    description: errMsg,
+                    variant: "destructive"
+                });
+            }
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <BaseModal
-            isOpen={isOpen}
-            onClose={onClose}
-            title="Generate Tagihan Bulanan"
-            description="Buat invoice masal untuk pelanggan aktif"
-            icon={Receipt}
-            primaryActionLabel="Generate Invoice"
-            primaryActionOnClick={handleGenerate}
-            primaryActionLoading={loading}
-            size="md"
-        >
-            <div className="grid gap-4">
-                <div className="grid gap-2">
-                    <Label>Periode Tagihan</Label>
-                    <Input
-                        type="month"
-                        value={period}
-                        onChange={(e) => setPeriod(e.target.value)}
-                        className="h-11"
-                    />
-                </div>
+        <>
+            <BaseModal
+                isOpen={isOpen}
+                onClose={onClose}
+                title="Generate Tagihan Bulanan"
+                description="Buat invoice masal untuk pelanggan aktif"
+                icon={Receipt}
+                primaryActionLabel="Generate Invoice"
+                primaryActionOnClick={handleGenerate}
+                primaryActionLoading={loading}
+                size="md"
+            >
+                <div className="grid gap-4">
+                    <div className="grid gap-2">
+                        <Label>Periode Tagihan</Label>
+                        <Input
+                            type="month"
+                            value={period}
+                            onChange={(e) => setPeriod(e.target.value)}
+                            className="h-11"
+                        />
+                    </div>
 
-                <div className="grid gap-2">
-                    <Label>Unit (Opsional)</Label>
-                    <Select value={unitId} onValueChange={setUnitId} disabled={isAdminUnit}>
-                        <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Semua Unit" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Unit</SelectItem>
-                            {units?.map((unit: any) => (
-                                <SelectItem key={unit.id} value={unit.id}>{unit.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                    <div className="grid gap-2">
+                        <Label>Unit (Opsional)</Label>
+                        <Select value={unitId} onValueChange={setUnitId} disabled={isAdminUnit}>
+                            <SelectTrigger className="h-11">
+                                <SelectValue placeholder="Semua Unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Unit</SelectItem>
+                                {units?.map((unit: any) => (
+                                    <SelectItem key={unit.id} value={unit.id}>{unit.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-sm text-amber-800 flex gap-3 items-start">
-                    <Receipt className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                    <p>
-                        Invoice akan di-generate untuk semua pelanggan aktif yang belum memiliki tagihan pada periode ini.
-                    </p>
+                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-sm text-amber-800 flex gap-3 items-start">
+                        <Receipt className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <p>
+                            Invoice akan di-generate untuk semua pelanggan aktif yang belum memiliki tagihan pada periode ini.
+                        </p>
+                    </div>
                 </div>
-            </div>
-        </BaseModal>
+            </BaseModal>
+
+            <InvoiceErrorDialog
+                isOpen={errorDialogOpen}
+                onClose={() => {
+                    setErrorDialogOpen(false);
+                    setErrorMessage("");
+                }}
+                errorMessage={errorMessage}
+                invoiceType="BULK"
+            />
+        </>
     );
 }

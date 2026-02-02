@@ -29,7 +29,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "Unit", href: "/master/unit", resource: "master.unit" },
       { title: "Sub Unit", href: "/master/sub-unit", resource: "master.unit" },
       { title: "Paket & Harga", href: "/master/paket", resource: "master.paket" },
-      { title: "Diskon", href: "/master/diskon", resource: "master.diskon" },
+      // { title: "Diskon", href: "/master/diskon", resource: "master.diskon" },
       { title: "Users", href: "/master/users", resource: "master.users" },
       
     ],

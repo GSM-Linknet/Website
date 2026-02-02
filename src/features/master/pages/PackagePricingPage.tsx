@@ -15,6 +15,7 @@ import { useWilayah } from "../hooks/useWilayah";
 import { PackageModal } from "../components/PackageModal";
 import { PackageDetailModal } from "../components/PackageDetailModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { ForeignKeyErrorDialog } from "@/components/shared/ForeignKeyErrorDialog";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { AuthService } from "@/services/auth.service";
 import type { Package } from "@/services/master.service";
@@ -52,9 +53,11 @@ export default function PackagePricingPage() {
     });
 
     const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+    const [deleteError, setDeleteError] = useState<string>("");
     const modal = useDisclosure();
     const detailModal = useDisclosure();
     const deleteModal = useDisclosure();
+    const errorModal = useDisclosure();
 
     // Default to first wilayah if admin haven't selected any
     useEffect(() => {
@@ -103,8 +106,20 @@ export default function PackagePricingPage() {
 
     const confirmDelete = async () => {
         if (selectedPackage) {
-            const success = await remove(selectedPackage.id);
-            if (success) deleteModal.onClose();
+            try {
+                const success = await remove(selectedPackage.id);
+                if (success) deleteModal.onClose();
+            } catch (error: any) {
+                let errorMessage = "Tidak dapat menghapus Paket ini karena masih terkait dengan data lain.";
+                if (error?.response?.data?.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error?.message) {
+                    errorMessage = error.message;
+                }
+                setDeleteError(errorMessage);
+                deleteModal.onClose();
+                errorModal.onOpen();
+            }
         }
     };
 
@@ -359,6 +374,17 @@ export default function PackagePricingPage() {
                 title="Hapus Paket"
                 description={`Apakah Anda yakin ingin menghapus paket "${selectedPackage?.name}"? Tindakan ini tidak dapat dibatalkan.`}
                 itemName={selectedPackage?.name || "Paket"}
+            />
+
+            <ForeignKeyErrorDialog
+                isOpen={errorModal.isOpen}
+                onClose={() => {
+                    errorModal.onClose();
+                    setDeleteError("");
+                    setSelectedPackage(null);
+                }}
+                errorMessage={deleteError}
+                entityName="Paket"
             />
         </div>
     );

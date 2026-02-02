@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { UnitModal } from "../components/UnitModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { ForeignKeyErrorDialog } from "@/components/shared/ForeignKeyErrorDialog";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { useUnit } from "../hooks/useUnit";
 import { useToast } from "@/hooks/useToast";
@@ -41,8 +42,10 @@ export default function UnitPage() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isForeignKeyErrorOpen, setIsForeignKeyErrorOpen] = useState(false);
     const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
     const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null);
+    const [deleteError, setDeleteError] = useState<string>("");
 
     // Handlers
     const handleAdd = () => {
@@ -62,14 +65,31 @@ export default function UnitPage() {
 
     const handleConfirmDelete = async () => {
         if (!unitToDelete) return;
-        const success = await deleteUnit(unitToDelete.id);
-        if (success) {
-            toast({
-                title: "Berhasil",
-                description: "Unit berhasil dihapus",
-            });
+
+        try {
+            const success = await deleteUnit(unitToDelete.id);
+            if (success) {
+                toast({
+                    title: "Berhasil",
+                    description: "Unit berhasil dihapus",
+                });
+                setIsDeleteModalOpen(false);
+                setUnitToDelete(null);
+            }
+        } catch (error: any) {
+            // Extract error message from API response
+            // API returns: { status: false, message: "error message", data: null }
+            let errorMessage = "Tidak dapat menghapus Unit ini karena masih terkait dengan data lain.";
+
+            if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            }
+
+            setDeleteError(errorMessage);
             setIsDeleteModalOpen(false);
-            setUnitToDelete(null);
+            setIsForeignKeyErrorOpen(true);
         }
     };
 
@@ -273,6 +293,17 @@ export default function UnitPage() {
                 onConfirm={handleConfirmDelete}
                 itemName={unitToDelete?.name}
                 isLoading={deleting}
+            />
+
+            <ForeignKeyErrorDialog
+                isOpen={isForeignKeyErrorOpen}
+                onClose={() => {
+                    setIsForeignKeyErrorOpen(false);
+                    setDeleteError("");
+                    setUnitToDelete(null);
+                }}
+                errorMessage={deleteError}
+                entityName="Unit"
             />
         </div>
     );

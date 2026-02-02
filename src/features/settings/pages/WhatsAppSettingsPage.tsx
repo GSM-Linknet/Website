@@ -26,14 +26,37 @@ const WhatsAppSettingsPage: React.FC = () => {
             ? import.meta.env.VITE_API_BASE_URL.replace('/api', '')
             : window.location.origin;
 
-        const newSocket = io(socketUrl);
+        console.log('[WhatsApp] Connecting to Socket.IO:', socketUrl);
+
+        const newSocket = io(socketUrl, {
+            transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+        });
+
+        // Connection success handler
+        newSocket.on('connect', () => {
+            console.log('[WhatsApp] Socket connected successfully');
+        });
+
+        // Connection error handler
+        newSocket.on('connect_error', (err) => {
+            console.error('[WhatsApp] Socket connection error:', err.message);
+            toast({
+                title: "Koneksi Gagal",
+                description: "Tidak dapat terhubung ke server WhatsApp. Periksa koneksi internet Anda.",
+                variant: "destructive"
+            });
+        });
 
         newSocket.on('whatsapp:qr', (qr: string) => {
+            console.log('[WhatsApp] QR Code received');
             setQrCode(qr);
             setStatus('qr');
         });
 
         newSocket.on('whatsapp:status', (newStatus: any) => {
+            console.log('[WhatsApp] Status update:', newStatus);
             setStatus(newStatus);
             if (newStatus === 'connected') {
                 setQrCode(null);
@@ -45,6 +68,7 @@ const WhatsAppSettingsPage: React.FC = () => {
         });
 
         return () => {
+            console.log('[WhatsApp] Disconnecting socket...');
             newSocket.disconnect();
         };
     }, []);
