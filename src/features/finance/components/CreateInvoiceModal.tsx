@@ -45,7 +45,21 @@ export function CreateInvoiceModal({
   useEffect(() => {
     if (initialCustomerId) {
       setCustomerId(initialCustomerId);
-      // Optionally fetch name
+      // Fetch customer name
+      CustomerService.getCustomers({
+        where: `id:${initialCustomerId}`,
+        paginate: false,
+        limit: 1,
+      } as any)
+        .then((response) => {
+          const customer = ((response as any).data?.items || (response as any).items || [])[0];
+          if (customer) {
+            setSelectedCustomerName(customer.name);
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to fetch customer:', error);
+        });
     }
   }, [initialCustomerId]);
 

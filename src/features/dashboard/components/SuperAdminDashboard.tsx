@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { MetricCard } from "./MetricCard";
 import { DashboardService } from "@/services/dashboard.service";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AreaChart, PieChart } from "@/components/shared/Charts";
+import { AreaChart, PieChart, BarChart } from "@/components/shared/Charts";
 import {
     Users,
     UserPlus,
@@ -11,7 +11,7 @@ import {
     Calendar,
     BarChart3,
     TrendingUp,
-    Activity
+    Activity,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -20,22 +20,34 @@ export function SuperAdminDashboard() {
     const [metrics, setMetrics] = useState<any>(null);
     const [revenueData, setRevenueData] = useState<any[]>([]);
     const [customerGrowthData, setCustomerGrowthData] = useState<any[]>([]);
+    const [billingStats, setBillingStats] = useState<any>(null);
+    const [billingTrendData, setBillingTrendData] = useState<any[]>([]);
+    const [statusStats, setStatusStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
+    const [legacyFilter, setLegacyFilter] = useState<"all" | "new" | "legacy">(
+        "all",
+    );
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [overview, revenue, growth] = await Promise.all([
-                    DashboardService.getOverview(legacyFilter),
-                    DashboardService.getRevenueTrend(legacyFilter),
-                    DashboardService.getCustomerGrowth(legacyFilter)
-                ]);
+                const [overview, revenue, growth, billing, billingTrend, status] =
+                    await Promise.all([
+                        DashboardService.getOverview(legacyFilter),
+                        DashboardService.getRevenueTrend(legacyFilter),
+                        DashboardService.getCustomerGrowth(legacyFilter),
+                        DashboardService.getCustomerBillingStats(legacyFilter),
+                        DashboardService.getCustomerBillingTrend(legacyFilter),
+                        DashboardService.getCustomerStatusStats(legacyFilter),
+                    ]);
                 setMetrics(overview);
                 setRevenueData(revenue);
                 setCustomerGrowthData(growth);
+                setBillingStats(billing);
+                setBillingTrendData(billingTrend);
+                setStatusStats(status);
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
             } finally {
@@ -50,23 +62,27 @@ export function SuperAdminDashboard() {
             style: "currency",
             currency: "IDR",
             minimumFractionDigits: 0,
-        }).format(amount).replace("IDR", "Rp");
+        })
+            .format(amount)
+            .replace("IDR", "Rp");
     };
 
     // Work Order status data for pie chart
     const workOrderStatusData = [
-        { name: "Completed", value: (metrics?.workOrders.total || 0) - (metrics?.workOrders.pending || 0) },
-        { name: "Pending", value: metrics?.workOrders.pending || 0 }
+        {
+            name: "Completed",
+            value:
+                (metrics?.workOrders.total || 0) - (metrics?.workOrders.pending || 0),
+        },
+        { name: "Pending", value: metrics?.workOrders.pending || 0 },
     ];
 
     // Legacy filter tabs
     const legacyTabs = [
-        { value: 'all' as const, label: 'Semua' },
-        { value: 'new' as const, label: 'Baru' },
-        { value: 'legacy' as const, label: 'Legacy' },
+        { value: "all" as const, label: "Semua" },
+        { value: "new" as const, label: "Baru" },
+        { value: "legacy" as const, label: "Legacy" },
     ];
-
-
 
     if (loading) {
         return (
@@ -201,6 +217,138 @@ export function SuperAdminDashboard() {
                 </div>
             </div>
 
+            {/* Customer Billing Statistics Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Billing Status Pie Chart */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <BarChart3 size={20} className="text-purple-600" />
+                                Status Tagihan
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Bulan ini</p>
+                        </div>
+                        <Badge className="bg-purple-100 text-purple-700 border-none">
+                            Current
+                        </Badge>
+                    </div>
+                    {billingStats && (
+                        <PieChart
+                            data={[
+                                { name: "Tertagih", value: billingStats.billed },
+                                { name: "Belum Tertagih", value: billingStats.notBilled },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                        />
+                    )}
+                </div>
+
+                {/* Payment Status Pie Chart */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <Wallet size={20} className="text-green-600" />
+                                Status Pembayaran
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Bulan ini</p>
+                        </div>
+                        <Badge className="bg-green-100 text-green-700 border-none">
+                            Overview
+                        </Badge>
+                    </div>
+                    {billingStats && (
+                        <PieChart
+                            data={[
+                                { name: "Sudah Bayar", value: billingStats.paid },
+                                { name: "Belum Bayar", value: billingStats.unpaid },
+                                { name: "Pelanggan Free", value: billingStats.freeCustomers },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                        />
+                    )}
+                </div>
+            </div>
+
+            {/* Billing Trend Chart */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                            <TrendingUp size={20} className="text-indigo-600" />
+                            Trend Billing Pelanggan
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-1">6 bulan terakhir</p>
+                    </div>
+                    <Badge className="bg-indigo-100 text-indigo-700 border-none">
+                        Historical
+                    </Badge>
+                </div>
+                <BarChart
+                    data={billingTrendData}
+                    xKey="month"
+                    yKeys={["billed", "paid", "unpaid", "free"]}
+                />
+            </div>
+
+            {/* Customer Status Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Internet Status Pie Chart */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <Activity size={20} className="text-blue-600" />
+                                Status Internet
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Real-time</p>
+                        </div>
+                        <Badge className="bg-blue-100 text-blue-700 border-none">
+                            Live
+                        </Badge>
+                    </div>
+                    {statusStats && (
+                        <PieChart
+                            data={[
+                                { name: "Online", value: statusStats.internetStatus.online },
+                                { name: "Offline", value: statusStats.internetStatus.offline },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                        />
+                    )}
+                </div>
+
+                {/* Customer Active Status Pie Chart */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <Users size={20} className="text-emerald-600" />
+                                Status Pelanggan
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Aktif vs Non-Aktif</p>
+                        </div>
+                        <Badge className="bg-emerald-100 text-emerald-700 border-none">
+                            Status
+                        </Badge>
+                    </div>
+                    {statusStats && (
+                        <PieChart
+                            data={[
+                                { name: "Aktif", value: statusStats.customerStatus.active },
+                                { name: "Non-Aktif", value: statusStats.customerStatus.inactive },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                        />
+                    )}
+                </div>
+            </div>
+
             {/* Finance & Operations Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Finance Summary */}
@@ -227,7 +375,8 @@ export function SuperAdminDashboard() {
                                 {formatCurrency(paidRevenue)}
                             </p>
                             <p className="text-xs text-emerald-500 mt-1">
-                                {Math.round((paidRevenue / totalRevenue) * 100 || 0)}% dari total
+                                {Math.round((paidRevenue / totalRevenue) * 100 || 0)}% dari
+                                total
                             </p>
                         </div>
                         <div className="bg-white rounded-xl p-4 border border-red-100">
@@ -248,11 +397,7 @@ export function SuperAdminDashboard() {
                         <Wrench size={20} className="text-amber-600" />
                         Work Orders
                     </h2>
-                    <PieChart
-                        data={workOrderStatusData}
-                        dataKey="value"
-                        nameKey="name"
-                    />
+                    <PieChart data={workOrderStatusData} dataKey="value" nameKey="name" />
                 </div>
             </div>
 

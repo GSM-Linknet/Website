@@ -9,6 +9,7 @@ import { AuthService } from "@/services/auth.service";
 import { ImpersonateBanner } from "./ImpersonateBanner";
 import { MaintenanceService } from "@/services/maintenance.service";
 import { useLocation, useNavigate } from "react-router-dom";
+import { WhatsAppDisconnectionAlert } from "./WhatsAppDisconnectionAlert";
 
 /**
  * LayoutContent manages the dynamic arrangement of Sidebar, Navbar, and Page Content.
@@ -75,6 +76,9 @@ const LayoutContent = ({ children }: { children: React.ReactNode }) => {
                 <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl -z-10" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -z-10" />
             </div>
+
+            {/* WhatsApp Disconnection Alert */}
+            <WhatsAppDisconnectionAlert />
         </div>
     );
 };

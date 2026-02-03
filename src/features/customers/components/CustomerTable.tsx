@@ -1,4 +1,5 @@
-import { MoreHorizontal, ShieldCheck, ShieldAlert } from "lucide-react";
+import { useState } from "react";
+import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText } from "lucide-react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
 // import type { Customer } from "@/constants/customers_mock"; // Deprecated
 import type { Customer } from "@/services/customer.service";
 import { AuthService } from "@/services/auth.service";
+import { CustomerInvoiceDialog } from "./CustomerInvoiceDialog";
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -44,6 +46,13 @@ export const CustomerTable = ({
   onEdit,
   onDelete,
 }: CustomerTableProps) => {
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+  const handleViewInvoices = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setInvoiceDialogOpen(true);
+  };
   const columns = [
 
     {
@@ -261,6 +270,13 @@ export const CustomerTable = ({
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
+                className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 flex items-center gap-2"
+                onClick={() => handleViewInvoices(row)}
+              >
+                <FileText size={14} />
+                Lihat Tagihan
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
                 onClick={() => onDelete?.(row.id)}
               >
@@ -274,16 +290,23 @@ export const CustomerTable = ({
   ];
 
   return (
-    <BaseTable
-      data={customers}
-      columns={columns}
-      rowKey={(row) => row.id}
-      className="border-none shadow-none"
-      loading={loading}
-      page={page}
-      totalPages={totalPages}
-      totalItems={totalItems}
-      onPageChange={onPageChange}
-    />
+    <>
+      <BaseTable
+        data={customers}
+        columns={columns}
+        rowKey={(row) => row.id}
+        className="border-none shadow-none"
+        loading={loading}
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        onPageChange={onPageChange}
+      />
+      <CustomerInvoiceDialog
+        open={invoiceDialogOpen}
+        onClose={() => setInvoiceDialogOpen(false)}
+        customer={selectedCustomer}
+      />
+    </>
   );
 };

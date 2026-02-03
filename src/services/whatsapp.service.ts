@@ -1,7 +1,7 @@
 import { apiClient } from "./api-client";
 
 export interface WhatsAppStatus {
-  status: 'connected' | 'disconnected' | 'qr';
+  status: "connected" | "disconnected" | "qr";
 }
 
 export interface WhatsAppStats {
@@ -26,6 +26,7 @@ export interface WhatsAppLogItem {
   batchId: string | null;
   error: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface WhatsAppBatch {
@@ -50,15 +51,33 @@ export interface PaginatedResponse<T> {
 }
 
 export const WhatsAppService = {
-  getStatus: () => apiClient.get<{ data: WhatsAppStatus }>('/whatsapp/status'),
-  logout: () => apiClient.post('/whatsapp/logout'),
-  sendTest: (phoneNumber: string, message: string) => 
-    apiClient.post('/whatsapp/send-test', { phoneNumber, message }),
-  
+  getStatus: () => apiClient.get<{ data: WhatsAppStatus }>("/whatsapp/status"),
+  logout: () => apiClient.post("/whatsapp/logout"),
+  sendTest: (phoneNumber: string, message: string) =>
+    apiClient.post("/whatsapp/send-test", { phoneNumber, message }),
+
+  // Send message (for resend functionality)
+  sendMessage: (data: {
+    phoneNumber: string;
+    message: string;
+    priority?: string;
+  }) => apiClient.post("/whatsapp/send", data),
+
   // Monitoring endpoints
-  getStats: () => apiClient.get<{ data: WhatsAppStats }>('/whatsapp/stats'),
-  getLogs: (params?: { page?: number; limit?: number; status?: string; batchId?: string }) => 
-    apiClient.get<{ data: PaginatedResponse<WhatsAppLogItem> }>('/whatsapp/logs', { params }),
-  getBatches: (params?: { page?: number; limit?: number }) => 
-    apiClient.get<{ data: PaginatedResponse<WhatsAppBatch> }>('/whatsapp/batches', { params }),
+  getStats: () => apiClient.get<{ data: WhatsAppStats }>("/whatsapp/stats"),
+  getLogs: (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    batchId?: string;
+  }) =>
+    apiClient.get<{ data: PaginatedResponse<WhatsAppLogItem> }>(
+      "/whatsapp/logs",
+      { params },
+    ),
+  getBatches: (params?: { page?: number; limit?: number }) =>
+    apiClient.get<{ data: PaginatedResponse<WhatsAppBatch> }>(
+      "/whatsapp/batches",
+      { params },
+    ),
 };
