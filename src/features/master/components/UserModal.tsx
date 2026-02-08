@@ -19,6 +19,7 @@ import {
   Building,
   Layers,
   ShieldCheck,
+  Phone,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { useUser } from "../hooks/useUser";
@@ -60,6 +61,7 @@ export function UserModal({
     name: "",
     email: "",
     password: "",
+    phone: "",
     role: "USER" as UserRole,
     wilayahId: "",
     cabangId: "",
@@ -114,6 +116,7 @@ export function UserModal({
         setFormData({
           name: initialData.name,
           email: initialData.email,
+          phone: initialData.phone || "",
           role: initialData.role,
           wilayahId: initialData.wilayahId || "",
           cabangId: initialData.cabangId || "",
@@ -127,6 +130,7 @@ export function UserModal({
           name: "",
           email: "",
           password: "",
+          phone: "",
           role: "USER" as UserRole,
           wilayahId: "",
           cabangId: "",
@@ -229,6 +233,29 @@ export function UserModal({
             className="rounded-xl h-11"
             disabled={isLoading}
           />
+        </div>
+
+        {/* Phone Field */}
+        <div className="space-y-2">
+          <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+            <Phone size={14} className="text-blue-500" /> No. WhatsApp{" "}
+            <span className="text-[10px] normal-case text-slate-400 font-normal ml-1">
+              (Opsional)
+            </span>
+          </Label>
+          <Input
+            type="tel"
+            placeholder="08123456789"
+            value={formData.phone || ""}
+            onChange={(e) =>
+              setFormData({ ...formData, phone: e.target.value })
+            }
+            className="rounded-xl h-11"
+            disabled={isLoading}
+          />
+          <p className="text-xs text-slate-500">
+            Nomor WhatsApp untuk menerima notifikasi sistem
+          </p>
         </div>
 
         {/* Password Field */}

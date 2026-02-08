@@ -12,6 +12,8 @@ export default function ProfilePage() {
         changingPassword,
         name,
         setName,
+        phone,
+        setPhone,
         photoUrl,
         currentPassword,
         setCurrentPassword,
@@ -81,8 +83,10 @@ export default function ProfilePage() {
                         <ProfileInfoForm
                             name={name}
                             email={profile.email}
+                            phone={phone}
                             updating={updating}
                             onNameChange={setName}
+                            onPhoneChange={setPhone}
                             onSubmit={handleUpdateProfile}
                         />
 
