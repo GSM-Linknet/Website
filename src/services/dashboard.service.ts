@@ -4,6 +4,7 @@ interface DashboardMetrics {
   customers: {
     total: number;
     active: number;
+    online: number;
     newThisMonth: number;
   };
   finance: {

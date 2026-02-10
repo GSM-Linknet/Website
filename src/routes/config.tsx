@@ -77,6 +77,9 @@ const WhatsAppMonitorPage = lazy(
 const CommissionSettingsPage = lazy(
   () => import("@/features/settings/pages/CommissionSettingsPage"),
 );
+const TemplateManagementPage = lazy(
+  () => import("@/features/settings/pages/TemplateManagementPage"),
+);
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
@@ -581,6 +584,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <CommissionSettingsPage />
+              </Suspense>
+            )
+          },
+          {
+            path: "templates",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <TemplateManagementPage />
               </Suspense>
             )
           }

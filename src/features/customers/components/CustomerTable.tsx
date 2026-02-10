@@ -124,6 +124,19 @@ export const CustomerTable = ({
       ),
     },
     {
+      header: "UNIT",
+      accessorKey: "unit",
+      className: " max-w-[150px] truncate",
+      cell: (row: Customer) => (
+        <span
+          title={row.unit?.name}
+          className="text-xs text-slate-600 truncate block max-w-[150px]"
+        >
+          {row.unit?.name || "-"}
+        </span>
+      ),
+    },
+    {
       header: "ALAMAT",
       accessorKey: "address",
       className: "max-w-[150px] truncate",
@@ -158,18 +171,7 @@ export const CustomerTable = ({
         </Badge>
       ),
     },
-    {
-      header: "ODP",
-      accessorKey: "ODPCode",
-      className: "text-slate-500 font-medium text-[12px]",
-    },
-
-    {
-      header: "EMAIL",
-      accessorKey: "email",
-      className:
-        "text-slate-400 font-medium lowercase text-[12px] max-w-[150px] truncate",
-    },
+   
     {
       header: "PAKET",
       accessorKey: "paket",

@@ -19,6 +19,7 @@ import {
     ReportDataTable,
 } from "../components";
 import { reportService } from "@/services/reporting.service";
+import { MasterService, type Unit } from "@/services/master.service";
 import type {
     ReportFilters,
     InvoiceReportData,
@@ -44,22 +45,38 @@ export default function FinancialReportPage() {
     const [reportData, setReportData] = useState<FinancialData | null>(null);
     const [loading, setLoading] = useState(true);
     const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
+    const [unitFilter, setUnitFilter] = useState<string>('all');
+    const [units, setUnits] = useState<Unit[]>([]);
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
     });
 
+    // Fetch units on mount
+    useEffect(() => {
+        const fetchUnits = async () => {
+            try {
+                const response = await MasterService.getUnits({ limit: 1000 });
+                setUnits(response.data.items || []);
+            } catch (error) {
+                console.error('Failed to fetch units:', error);
+            }
+        };
+        fetchUnits();
+    }, []);
+
     useEffect(() => {
         setReportData(null); // Clear data when tab or filters change to prevent type mismatch crashes
         fetchReportData();
-    }, [filters, activeTab, legacyFilter]);
+    }, [filters, activeTab, legacyFilter, unitFilter]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
             const reportFilters = {
                 ...filters,
-                isLegacy: legacyFilter
+                isLegacy: legacyFilter,
+                unitId: unitFilter !== 'all' ? unitFilter : undefined
             };
 
             let data: FinancialData;
@@ -118,6 +135,7 @@ export default function FinancialReportPage() {
                     { key: "paidAt", header: "Waktu", render: (v: string) => formatDate(v), width: "150px" },
                     { key: "invoiceNumber", header: "No. Invoice", width: "150px" },
                     { key: "customerName", header: "Pelanggan", width: "200px" },
+                    { key: "unit", header: "Unit", width: "150px" },
                     { key: "amount", header: "Jumlah", render: (v: number) => formatCurrency(v), width: "150px" },
                     { key: "method", header: "Metode", width: "120px" },
                 ];
@@ -131,6 +149,7 @@ export default function FinancialReportPage() {
                 return [
                     { key: "invoiceNumber", header: "No. Invoice", width: "150px" },
                     { key: "customerName", header: "Pelanggan", width: "200px" },
+                    { key: "unit", header: "Unit", width: "150px" },
                     { key: "amount", header: "Jumlah", render: (v: number) => formatCurrency(v), width: "150px" },
                     { key: "dueDate", header: "Jatuh Tempo", render: (v: string) => formatDate(v), width: "130px" },
                     { key: "daysOverdue", header: "Hari Lewat", width: "100px", render: (v: number) => <span className="text-red-600 font-bold">{v} Hari</span> },
@@ -162,6 +181,12 @@ export default function FinancialReportPage() {
                         header: "Pelanggan",
                         sortable: true,
                         width: "200px",
+                    },
+                    {
+                        key: "unit",
+                        header: "Unit",
+                        sortable: true,
+                        width: "150px",
                     },
                     {
                         key: "amount",
@@ -338,28 +363,44 @@ export default function FinancialReportPage() {
                         <div className="flex items-center gap-2">
                             <Calendar className="w-5 h-5 text-gray-600" />
                             <h3 className="text-lg font-semibold text-gray-800">
-                                Filter Periode
+                                Filter Data
                             </h3>
                         </div>
 
-                        {/* Legacy Filter Tabs Integrated */}
-                        <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
-                            {[
-                                { value: 'all' as const, label: 'Semua Customer' },
-                                { value: 'new' as const, label: 'Customer Baru' },
-                                { value: 'legacy' as const, label: 'Customer Legacy' },
-                            ].map((tab) => (
-                                <button
-                                    key={tab.value}
-                                    onClick={() => setLegacyFilter(tab.value)}
-                                    className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${legacyFilter === tab.value
-                                        ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
-                                        : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
-                                        }`}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {/* Unit Filter Dropdown */}
+                            <select
+                                value={unitFilter}
+                                onChange={(e) => setUnitFilter(e.target.value)}
+                                className="px-4 py-2 text-sm font-medium rounded-lg border-2 border-gray-200 bg-white text-gray-700 hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all outline-none min-w-[200px]"
+                            >
+                                <option value="all">Semua Unit</option>
+                                {units.map((unit) => (
+                                    <option key={unit.id} value={unit.id}>
+                                        {unit.name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* Legacy Filter Tabs */}
+                            <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+                                {[
+                                    { value: 'all' as const, label: 'Semua' },
+                                    { value: 'new' as const, label: 'Baru' },
+                                    { value: 'legacy' as const, label: 'Legacy' },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.value}
+                                        onClick={() => setLegacyFilter(tab.value)}
+                                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all ${legacyFilter === tab.value
+                                            ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
+                                            : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                                            }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                     <div className="pt-2">

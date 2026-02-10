@@ -10,7 +10,7 @@ export interface ReportFilters {
   subUnitId?: string;
   status?: string;
   type?: string;
-  isLegacy?: 'all' | 'new' | 'legacy';
+  isLegacy?: "all" | "new" | "legacy";
 }
 
 export interface CustomerSummary {
@@ -31,6 +31,15 @@ export interface LocationBreakdown {
   count: number;
 }
 
+export interface UplineBreakdown {
+  uplineId: string;
+  uplineName: string;
+  uplineRole: string;
+  totalCustomers: number;
+  customersWithOutstanding: number;
+  totalOutstandingAmount: number;
+}
+
 export interface CustomerDetail {
   id: string;
   customerId: string;
@@ -44,6 +53,8 @@ export interface CustomerDetail {
   subUnit: string;
   statusCust: boolean;
   statusNet: boolean;
+  totalBilling: number;
+  outstandingBilling: number;
   createdAt: string;
 }
 
@@ -51,6 +62,7 @@ export interface CustomerReportData {
   summary: CustomerSummary;
   byPackage: PackageBreakdown[];
   byLocation: LocationBreakdown[];
+  byUpline: UplineBreakdown[];
   customers: CustomerDetail[];
 }
 
@@ -271,7 +283,7 @@ export interface ActivityReportDetail {
   issues: string;
   feedback?: string;
   feedbackBy?: string;
-  status: 'submitted' | 'reviewed';
+  status: "submitted" | "reviewed";
   createdAt: string;
   updatedAt: string;
   user: { name: string; role: string };

@@ -153,19 +153,19 @@ export function SuperAdminDashboard() {
                     variant="success"
                 />
                 <MetricCard
+                    title="Pelanggan Online"
+                    value={metrics?.customers.online || 0}
+                    icon={Activity}
+                    trend={`${Math.round((metrics?.customers.online / metrics?.customers.total) * 100 || 0)}% dari total`}
+                    trendUp={true}
+                    variant="info"
+                />
+                <MetricCard
                     title="Total Revenue"
                     value={formatCurrency(totalRevenue)}
                     icon={Wallet}
                     trend={revenueGrowth}
                     trendUp={true}
-                    variant="info"
-                />
-                <MetricCard
-                    title="Work Orders"
-                    value={metrics?.workOrders.total || 0}
-                    icon={Wrench}
-                    trend={`${metrics?.workOrders.pending || 0} pending`}
-                    trendUp={false}
                     variant="warning"
                 />
             </div>

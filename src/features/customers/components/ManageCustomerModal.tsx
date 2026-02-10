@@ -40,6 +40,7 @@ import { CustomerService } from "@/services/customer.service";
 import { AuthService } from "@/services/auth.service";
 import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { cn } from "@/lib/utils";
+import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 
 const CustomToggle = ({ checked, onChange }: { checked: boolean, onChange: (val: boolean) => void }) => (
     <button
@@ -79,6 +80,8 @@ export function ManageCustomerModal({
     const [formData, setFormData] = useState<any>({});
     const [activeTab, setActiveTab] = useState("personal");
     const [labels, setLabels] = useState<any[]>([]);
+    const [units, setUnits] = useState<Unit[]>([]);
+    const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
 
     const currentUser = useMemo(() => AuthService.getUser(), []);
     const isSalesOrSpv = currentUser?.role === "SALES" || currentUser?.role === "SUPERVISOR";
@@ -90,7 +93,29 @@ export function ManageCustomerModal({
         CustomerService.getLabels()
             .then(res => setLabels(res.data || []))
             .catch(console.error);
+
+        // Fetch units on mount
+        MasterService.getUnits({ paginate: false })
+            .then(res => setUnits(res.data?.items || []))
+            .catch(err => {
+                console.error("Failed to fetch units:", err);
+                setUnits([]);
+            });
     }, []);
+
+    // Fetch sub-units when unitId changes
+    useEffect(() => {
+        if (formData.unitId) {
+            MasterService.getSubUnits({ paginate: false, where: `unitId:${formData.unitId}` })
+                .then(res => setSubUnits(res.data?.items || []))
+                .catch(err => {
+                    console.error("Failed to fetch sub-units:", err);
+                    setSubUnits([]);
+                });
+        } else {
+            setSubUnits([]);
+        }
+    }, [formData.unitId]);
 
     useEffect(() => {
         if (customer) {
@@ -112,6 +137,8 @@ export function ManageCustomerModal({
                 onLeaveStartDate: customer.onLeaveStartDate,
                 onLeaveEndDate: customer.onLeaveEndDate,
                 idUpline: customer.idUpline,
+                unitId: customer.unit?.id || null,
+                subUnitId: customer.subUnit?.id || null,
                 labelIds: customer.labels?.map(l => l.id) || [],
             });
         }
@@ -359,6 +386,61 @@ export function ManageCustomerModal({
                                     />
                                 </div>
                             )}
+
+                            {/* Unit & Sub-Unit Selection */}
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        Unit
+                                    </Label>
+                                    <Select
+                                        value={formData.unitId || "none"}
+                                        onValueChange={(val) => {
+                                            setFormData({
+                                                ...formData,
+                                                unitId: val === "none" ? null : val,
+                                                subUnitId: null
+                                            });
+                                        }}
+                                    >
+                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors">
+                                            <SelectValue placeholder="Pilih Unit" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Tidak Ada</SelectItem>
+                                            {units.map((unit) => (
+                                                <SelectItem key={unit.id} value={unit.id}>
+                                                    {unit.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        Sub-Unit
+                                    </Label>
+                                    <Select
+                                        value={formData.subUnitId || "none"}
+                                        onValueChange={(val) => setFormData({ ...formData, subUnitId: val === "none" ? null : val })}
+                                        disabled={!formData.unitId}
+                                    >
+                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors disabled:opacity-50">
+                                            <SelectValue placeholder={formData.unitId ? "Pilih Sub-Unit" : "Pilih Unit Dulu"} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Tidak Ada</SelectItem>
+                                            {subUnits.map((subUnit) => (
+                                                <SelectItem key={subUnit.id} value={subUnit.id}>
+                                                    {subUnit.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
 
                             <div className="space-y-2">
                                 <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">

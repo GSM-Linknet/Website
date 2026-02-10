@@ -19,7 +19,7 @@ import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationM
 import { cn } from "@/lib/utils";
 import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 import { useDebounce } from "@/hooks/useDebounce";
-import { UserService, type User } from "@/services/user.service";
+// import { UserService, type User } from "@/services/user.service";
 import { AddLegacyCustomerDialog } from "../components/AddLegacyCustomerDialog";
 
 // ==================== Page Component ====================
@@ -63,7 +63,7 @@ export default function CustomerListPage() {
   });
   const [units, setUnits] = useState<Unit[]>([]);
   const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
-  const [uplines, setUplines] = useState<User[]>([]);
+  // const [uplines, setUplines] = useState<User[]>([]);
   const [labels, setLabels] = useState<any[]>([]);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
@@ -108,32 +108,6 @@ export default function CustomerListPage() {
     }
   }, [filters.unit]);
 
-  // Fetch uplines when unit or subUnit changes
-  useEffect(() => {
-    let search = "";
-    if (filters.subUnit !== "all") {
-      search = `subUnitId:${filters.subUnit}`;
-    } else if (filters.unit !== "all") {
-      search = `unitId:${filters.unit}`;
-    }
-
-    if (search) {
-      UserService.findAll({ paginate: false, where: search })
-        .then((res) => {
-          const items = res.items || [];
-          setUplines(items);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch uplines:", err);
-          setUplines([]);
-        });
-    } else {
-      setUplines([]);
-      if (filters.upline !== "all") {
-        setFilters(prev => ({ ...prev, upline: "all" }));
-      }
-    }
-  }, [filters.unit, filters.subUnit]);
 
   // Update query when debounced search or filters change
   useEffect(() => {
@@ -319,7 +293,7 @@ export default function CustomerListPage() {
           onSelect={(val) => handleFilterChange("subUnit", val)}
           disabled={filters.unit === "all"}
         />
-        <FilterDropdown
+        {/* <FilterDropdown
           label="Semua Upline"
           activeValue={filters.upline}
           options={[
@@ -329,8 +303,8 @@ export default function CustomerListPage() {
               : []),
           ]}
           onSelect={(val) => handleFilterChange("upline", val)}
-          disabled={filters.unit === "all"}
-        />
+        // disabled={filters.unit === "all"}
+        /> */}
 
         <LabelFilterDropdown
           labels={labels}
