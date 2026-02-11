@@ -159,6 +159,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         resource: "keuangan.invoice",
       },
       {
+        title: "Pelanggan Tanpa Tagihan",
+        href: "/keuangan/customers-without-invoice",
+        resource: "keuangan.invoice",
+      },
+      {
         title: "History Pembayaran",
         href: "/keuangan/history",
         resource: "keuangan.history",

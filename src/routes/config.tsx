@@ -102,6 +102,7 @@ const UnitExpensePage = lazy(() => import("@/features/finance/pages/UnitExpenseP
 const DailyJournalPage = lazy(() => import("@/features/finance/pages/DailyJournalPage"));
 const UnitRevenuePage = lazy(() => import("@/features/finance/pages/UnitRevenuePage"));
 const UnitBalancePage = lazy(() => import("@/features/finance/pages/UnitBalancePage"));
+const CustomersWithoutInvoicePage = lazy(() => import("@/features/finance/pages/CustomersWithoutInvoicePage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -463,6 +464,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <InvoicePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "customers-without-invoice",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CustomersWithoutInvoicePage />
               </Suspense>
             ),
           },
