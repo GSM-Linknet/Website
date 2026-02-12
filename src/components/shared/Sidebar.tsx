@@ -165,8 +165,8 @@ export const Sidebar = () => {
                         "w-full flex items-center px-3 py-2.5 rounded-xl text-sm transition-all duration-200",
                         "hover:bg-white/5 hover:text-white group relative",
                         expandedItems.includes(item.title) && !isCollapsed
-                          ? "text-white"
-                          : "text-slate-400",
+                          ? "text-white font-bold"
+                          : "text-slate-100 ",
                         isCollapsed ? "justify-center" : "justify-between",
                       )}
                     >
@@ -175,7 +175,7 @@ export const Sidebar = () => {
                           className={cn(
                             "p-1.5 rounded-lg transition-colors",
                             expandedItems.includes(item.title) && !isCollapsed
-                              ? "bg-blue-500/20 text-blue-400"
+                              ? "bg-cyan-500/20 text-blue-400"
                               : "bg-transparent group-hover:text-blue-400",
                           )}
                         >
@@ -188,7 +188,7 @@ export const Sidebar = () => {
                         )}
                       </div>
                       {!isCollapsed && (
-                        <div className="text-slate-500">
+                        <div className="text-white">
                           {expandedItems.includes(item.title) ? (
                             <ChevronDown size={14} />
                           ) : (
@@ -213,7 +213,7 @@ export const Sidebar = () => {
                           isCollapsed ? "justify-center" : "space-x-3",
                           isActive
                             ? "bg-blue-600 text-white"
-                            : "text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-1",
+                            : "text-white hover:bg-white/5 hover:text-white hover:translate-x-1",
                         )
                       }
                     >
@@ -239,7 +239,7 @@ export const Sidebar = () => {
               )}
 
               {item.items && expandedItems.includes(item.title) && (
-                <div className="ml-6 mr-2 mt-1 space-y-1 border-l border-white/5 animate-in fade-in slide-in-from-top-1 duration-300">
+                <div className="ml-6 mr-2 mt-1 space-y-1 border-l border-white animate-in fade-in slide-in-from-top-1 duration-300">
                   {item.items.map((subItem) => (
                     <NavLink
                       key={subItem.title}
@@ -248,8 +248,8 @@ export const Sidebar = () => {
                         cn(
                           "block pl-6 pr-3 py-2 text-[12px] transition-all relative",
                           isActive
-                            ? "text-blue-400 font-bold before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-4 before:bg-blue-500 before:rounded-r-full"
-                            : "text-slate-500 hover:text-slate-200 hover:pl-7",
+                            ? "text-cyan-500 font-bold before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-4 before:bg-blue-500 before:rounded-r-full"
+                            : "text-white hover:text-white hover:pl-7",
                         )
                       }
                     >

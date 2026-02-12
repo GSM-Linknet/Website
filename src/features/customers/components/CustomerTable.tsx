@@ -1,4 +1,5 @@
-import { MoreHorizontal, ShieldCheck, ShieldAlert } from "lucide-react";
+import { useState } from "react";
+import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText } from "lucide-react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
 // import type { Customer } from "@/constants/customers_mock"; // Deprecated
 import type { Customer } from "@/services/customer.service";
 import { AuthService } from "@/services/auth.service";
+import { CustomerInvoiceDialog } from "./CustomerInvoiceDialog";
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -44,6 +46,13 @@ export const CustomerTable = ({
   onEdit,
   onDelete,
 }: CustomerTableProps) => {
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+  const handleViewInvoices = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setInvoiceDialogOpen(true);
+  };
   const columns = [
 
     {
@@ -82,6 +91,18 @@ export const CustomerTable = ({
                 </Badge>
               )}
             </div>
+            <div className="flex flex-wrap gap-1 mt-1.5 mb-1">
+              {row.labels?.map((label) => (
+                <Badge
+                  key={label.id}
+                  variant="outline"
+                  className="text-[9px] px-2 h-4.5 font-bold border-none text-white shadow-sm"
+                  style={{ backgroundColor: label.color || '#E2E8F0' }}
+                >
+                  {label.name.toUpperCase()}
+                </Badge>
+              ))}
+            </div>
             <span className="text-[11px] text-slate-400 font-medium">
               {row.phone}
             </span>
@@ -99,6 +120,19 @@ export const CustomerTable = ({
           className="text-xs text-slate-600 truncate block max-w-[150px]"
         >
           {row.upline?.name || "-"}
+        </span>
+      ),
+    },
+    {
+      header: "UNIT",
+      accessorKey: "unit",
+      className: " max-w-[150px] truncate",
+      cell: (row: Customer) => (
+        <span
+          title={row.unit?.name}
+          className="text-xs text-slate-600 truncate block max-w-[150px]"
+        >
+          {row.unit?.name || "-"}
         </span>
       ),
     },
@@ -137,18 +171,7 @@ export const CustomerTable = ({
         </Badge>
       ),
     },
-    {
-      header: "ODP",
-      accessorKey: "ODPCode",
-      className: "text-slate-500 font-medium text-[12px]",
-    },
-    
-    {
-      header: "EMAIL",
-      accessorKey: "email",
-      className:
-        "text-slate-400 font-medium lowercase text-[12px] max-w-[150px] truncate",
-    },
+   
     {
       header: "PAKET",
       accessorKey: "paket",
@@ -249,6 +272,13 @@ export const CustomerTable = ({
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
+                className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 flex items-center gap-2"
+                onClick={() => handleViewInvoices(row)}
+              >
+                <FileText size={14} />
+                Lihat Tagihan
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
                 onClick={() => onDelete?.(row.id)}
               >
@@ -262,16 +292,23 @@ export const CustomerTable = ({
   ];
 
   return (
-    <BaseTable
-      data={customers}
-      columns={columns}
-      rowKey={(row) => row.id}
-      className="border-none shadow-none"
-      loading={loading}
-      page={page}
-      totalPages={totalPages}
-      totalItems={totalItems}
-      onPageChange={onPageChange}
-    />
+    <>
+      <BaseTable
+        data={customers}
+        columns={columns}
+        rowKey={(row) => row.id}
+        className="border-none shadow-none"
+        loading={loading}
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        onPageChange={onPageChange}
+      />
+      <CustomerInvoiceDialog
+        open={invoiceDialogOpen}
+        onClose={() => setInvoiceDialogOpen(false)}
+        customer={selectedCustomer}
+      />
+    </>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Download, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,13 +13,14 @@ import { useCustomers } from "../hooks/useCustomers";
 import { AuthService } from "@/services/auth.service";
 import { CustomerDetailModal } from "../components/CustomerDetailModal";
 import { ManageCustomerModal } from "../components/ManageCustomerModal";
-import type { Customer } from "@/services/customer.service";
+import { CustomerService, type Customer } from "@/services/customer.service";
 import { useToast } from "@/hooks/useToast";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { cn } from "@/lib/utils";
 import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 import { useDebounce } from "@/hooks/useDebounce";
-import { UserService, type User } from "@/services/user.service";
+// import { UserService, type User } from "@/services/user.service";
+import { AddLegacyCustomerDialog } from "../components/AddLegacyCustomerDialog";
 
 // ==================== Page Component ====================
 
@@ -27,9 +28,8 @@ export default function CustomerListPage() {
   const { toast } = useToast();
   const userProfile = AuthService.getUser();
   const userRole = userProfile?.role || "USER";
-  const resource = "pelanggan.kelola";
 
-  const canExport = AuthService.hasPermission(userRole, resource, "export");
+  const canCreateLegacy = AuthService.hasPermission(userRole, "pelanggan.legacy", "create");
 
   const {
     data: customers,
@@ -63,7 +63,13 @@ export default function CustomerListPage() {
   });
   const [units, setUnits] = useState<Unit[]>([]);
   const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
-  const [uplines, setUplines] = useState<User[]>([]);
+  // const [uplines, setUplines] = useState<User[]>([]);
+  const [labels, setLabels] = useState<any[]>([]);
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+
+  // Legacy filter state: 'all' | 'new' | 'legacy'
+  const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
+  const [isAddLegacyOpen, setIsAddLegacyOpen] = useState(false);
 
   // Fetch units on mount
   useEffect(() => {
@@ -76,6 +82,11 @@ export default function CustomerListPage() {
         console.error("Failed to fetch units:", err);
         setUnits([]);
       });
+
+    // Fetch labels
+    CustomerService.getLabels()
+      .then((res: any) => setLabels(res.data || []))
+      .catch((err: any) => console.error("Failed to fetch labels:", err));
   }, []);
 
   // Fetch subUnits when unit changes
@@ -97,52 +108,45 @@ export default function CustomerListPage() {
     }
   }, [filters.unit]);
 
-  // Fetch uplines when unit or subUnit changes
-  useEffect(() => {
-    let search = "";
-    if (filters.subUnit !== "all") {
-      search = `subUnitId:${filters.subUnit}`;
-    } else if (filters.unit !== "all") {
-      search = `unitId:${filters.unit}`;
-    }
-
-    if (search) {
-      UserService.findAll({ paginate: false, where: search })
-        .then((res) => {
-          const items = res.items || [];
-          setUplines(items);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch uplines:", err);
-          setUplines([]);
-        });
-    } else {
-      setUplines([]);
-      if (filters.upline !== "all") {
-        setFilters(prev => ({ ...prev, upline: "all" }));
-      }
-    }
-  }, [filters.unit, filters.subUnit]);
 
   // Update query when debounced search or filters change
   useEffect(() => {
+    const whereParts: string[] = [];
     const searchParts: string[] = [];
-    if (debouncedSearchQuery) searchParts.push(`name:${debouncedSearchQuery}`);
-    if (filters.status !== "all")
-      searchParts.push(`statusCust:${filters.status === "active"}`);
-    if (filters.internet !== "all")
-      searchParts.push(`statusNet:${filters.internet === "online"}`);
-    if (filters.unit !== "all")
-      searchParts.push(`unitId:${filters.unit}`);
-    if (filters.subUnit !== "all")
-      searchParts.push(`subUnitId:${filters.subUnit}`);
-    if (filters.upline !== "all")
-      searchParts.push(`idUpline:${filters.upline}`);
 
+    // Search fields (uses OR logic via search param)
+    if (debouncedSearchQuery) searchParts.push(`name:${debouncedSearchQuery}`);
+
+    // Filter fields (uses AND logic via where param)
+    if (filters.status !== "all")
+      whereParts.push(`statusCust:${filters.status === "active"}`);
+    if (filters.internet !== "all")
+      whereParts.push(`statusNet:${filters.internet === "online"}`);
+    if (filters.unit !== "all")
+      whereParts.push(`unitId:${filters.unit}`);
+    if (filters.subUnit !== "all")
+      whereParts.push(`subUnitId:${filters.subUnit}`);
+    if (filters.upline !== "all")
+      whereParts.push(`idUpline:${filters.upline}`);
+
+    // Legacy filter using global where format
+    if (legacyFilter === "legacy") {
+      whereParts.push("isLegacy:true");
+    } else if (legacyFilter === "new") {
+      whereParts.push("isLegacy:false");
+    }
+    // 'all' = no filter
+
+    const whereParam = whereParts.join("+");
     const searchParam = searchParts.join("+");
-    // Always update query to ensure refetch, even when cleared
-    setQuery(searchParam ? { search: searchParam } : { search: undefined });
-  }, [debouncedSearchQuery, filters, setQuery]);
+
+    // Always update query to ensure refetch
+    setQuery({
+      where: whereParam || undefined,
+      search: searchParam || undefined,
+      labelIds: selectedLabels.length > 0 ? selectedLabels : undefined,
+    });
+  }, [debouncedSearchQuery, filters, legacyFilter, selectedLabels, setQuery]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters({ ...filters, [key]: value });
@@ -206,13 +210,42 @@ export default function CustomerListPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {canExport && (
-            <Button className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-6 shadow-lg shadow-blue-900/10 transition-all hover:scale-[1.02] w-full sm:w-auto">
-              <Download size={18} className="mr-2" />
-              Unduh VCF
+
+          {canCreateLegacy && (
+            <Button
+              onClick={() => setIsAddLegacyOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold px-6 shadow-lg shadow-emerald-900/10 transition-all hover:scale-[1.02] w-full sm:w-auto"
+            >
+              <Plus size={18} className="mr-2" />
+              Tambah Legacy
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Legacy Filter Tabs */}
+      <div className="flex border-b border-slate-200">
+        {[
+          { label: 'Semua Customer', value: 'all' as const },
+          { label: 'Customer Baru', value: 'new' as const },
+          { label: 'Customer Legacy', value: 'legacy' as const },
+        ].map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setLegacyFilter(tab.value)}
+            className={cn(
+              "px-6 py-3 text-sm font-semibold transition-all relative cursor-pointer",
+              legacyFilter === tab.value
+                ? "text-blue-600 bg-blue-50 rounded-lg"
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            {tab.label}
+            {legacyFilter === tab.value && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Filters Section */}
@@ -260,7 +293,7 @@ export default function CustomerListPage() {
           onSelect={(val) => handleFilterChange("subUnit", val)}
           disabled={filters.unit === "all"}
         />
-        <FilterDropdown
+        {/* <FilterDropdown
           label="Semua Upline"
           activeValue={filters.upline}
           options={[
@@ -270,7 +303,18 @@ export default function CustomerListPage() {
               : []),
           ]}
           onSelect={(val) => handleFilterChange("upline", val)}
-          disabled={filters.unit === "all"}
+        // disabled={filters.unit === "all"}
+        /> */}
+
+        <LabelFilterDropdown
+          labels={labels}
+          selectedIds={selectedLabels}
+          onSelect={(id) => {
+            setSelectedLabels(prev =>
+              prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+            );
+          }}
+          onClear={() => setSelectedLabels([])}
         />
       </div>
 
@@ -317,6 +361,15 @@ export default function CustomerListPage() {
         onConfirm={confirmDelete}
         itemName={selectedCustomer?.name}
         isLoading={deleting}
+      />
+
+      <AddLegacyCustomerDialog
+        isOpen={isAddLegacyOpen}
+        onClose={() => setIsAddLegacyOpen(false)}
+        onSuccess={() => {
+          setIsAddLegacyOpen(false);
+          refresh();
+        }}
       />
     </div>
   );
@@ -383,6 +436,71 @@ const FilterDropdown = ({
             {option.label}
           </DropdownMenuItem>
         ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+interface LabelFilterDropdownProps {
+  labels: any[];
+  selectedIds: string[];
+  onSelect: (id: string) => void;
+  onClear: () => void;
+}
+
+const LabelFilterDropdown = ({ labels, selectedIds, onSelect, onClear }: LabelFilterDropdownProps) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
+            selectedIds.length > 0 && "border-blue-500 text-blue-600 bg-blue-50/50"
+          )}
+        >
+          <span>
+            {selectedIds.length === 0
+              ? "Semua Label"
+              : selectedIds.length === 1
+                ? labels.find((l) => l.id === selectedIds[0])?.name || "1 Label"
+                : `${selectedIds.length} Label`}
+          </span>
+          <ChevronDown size={14} className={cn("text-slate-400", selectedIds.length > 0 && "text-blue-500")} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-[200px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+        <div className="max-h-[300px] overflow-y-auto">
+          {labels.map((label) => (
+            <div
+              key={label.id}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors",
+                selectedIds.includes(label.id) && "bg-blue-50"
+              )}
+              onClick={() => onSelect(label.id)}
+            >
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: label.color || "#E2E8F0" }}
+              />
+              <span className={cn("text-sm font-medium", selectedIds.includes(label.id) ? "text-blue-600" : "text-slate-700")}>
+                {label.name}
+              </span>
+            </div>
+          ))}
+        </div>
+        {selectedIds.length > 0 && (
+          <>
+            <div className="h-px bg-slate-100 my-1" />
+            <DropdownMenuItem
+              className="text-center justify-center text-xs font-bold text-rose-600 rounded-lg cursor-pointer"
+              onClick={onClear}
+            >
+              Hapus Semua Filter
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

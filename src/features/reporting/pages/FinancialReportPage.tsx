@@ -19,6 +19,7 @@ import {
     ReportDataTable,
 } from "../components";
 import { reportService } from "@/services/reporting.service";
+import { MasterService, type Unit } from "@/services/master.service";
 import type {
     ReportFilters,
     InvoiceReportData,
@@ -43,37 +44,58 @@ export default function FinancialReportPage() {
     const [activeTab, setActiveTab] = useState<TabType>("invoice");
     const [reportData, setReportData] = useState<FinancialData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
+    const [unitFilter, setUnitFilter] = useState<string>('all');
+    const [units, setUnits] = useState<Unit[]>([]);
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
     });
 
+    // Fetch units on mount
+    useEffect(() => {
+        const fetchUnits = async () => {
+            try {
+                const response = await MasterService.getUnits({ limit: 1000 });
+                setUnits(response.data.items || []);
+            } catch (error) {
+                console.error('Failed to fetch units:', error);
+            }
+        };
+        fetchUnits();
+    }, []);
+
     useEffect(() => {
         setReportData(null); // Clear data when tab or filters change to prevent type mismatch crashes
         fetchReportData();
-    }, [filters, activeTab]);
+    }, [filters, activeTab, legacyFilter, unitFilter]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            let data: FinancialData;
+            const reportFilters = {
+                ...filters,
+                isLegacy: legacyFilter,
+                unitId: unitFilter !== 'all' ? unitFilter : undefined
+            };
 
+            let data: FinancialData;
             switch (activeTab) {
                 case "payment":
-                    data = await reportService.getPaymentReport(filters);
+                    data = await reportService.getPaymentReport(reportFilters);
                     break;
                 case "revenue":
-                    data = await reportService.getRevenueReport(filters);
+                    data = await reportService.getRevenueReport(reportFilters);
                     break;
                 case "aging":
-                    data = await reportService.getAgingReport(filters);
+                    data = await reportService.getAgingReport(reportFilters);
                     break;
                 case "summary":
-                    data = await reportService.getFinancialSummaryReport(filters);
+                    data = await reportService.getFinancialSummaryReport(reportFilters);
                     break;
                 case "invoice":
                 default:
-                    data = await reportService.getInvoiceReport(filters);
+                    data = await reportService.getInvoiceReport(reportFilters);
                     break;
             }
 
@@ -91,11 +113,11 @@ export default function FinancialReportPage() {
     }, []);
 
     const handleExportExcel = async () => {
-        await reportService.exportFinancialReportExcel(activeTab, filters);
+        await reportService.exportFinancialReportExcel(activeTab, { ...filters, isLegacy: legacyFilter });
     };
 
     const handleExportPDF = async () => {
-        await reportService.exportFinancialReportPDF(activeTab, filters);
+        await reportService.exportFinancialReportPDF(activeTab, { ...filters, isLegacy: legacyFilter });
     };
 
     const tabs = [
@@ -113,8 +135,28 @@ export default function FinancialReportPage() {
                     { key: "paidAt", header: "Waktu", render: (v: string) => formatDate(v), width: "150px" },
                     { key: "invoiceNumber", header: "No. Invoice", width: "150px" },
                     { key: "customerName", header: "Pelanggan", width: "200px" },
+                    { key: "unit", header: "Unit", width: "150px" },
                     { key: "amount", header: "Jumlah", render: (v: number) => formatCurrency(v), width: "150px" },
                     { key: "method", header: "Metode", width: "120px" },
+                    {
+                        key: "paymentSystem",
+                        header: "Sistem",
+                        width: "150px",
+                        render: (v: string, row: any) => (
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs font-semibold text-gray-500 uppercase">{v || '-'}</span>
+                                {row.isAutomatic ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                        Sistem Xendit
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                                        Bayar Manual
+                                    </span>
+                                )}
+                            </div>
+                        )
+                    },
                 ];
             case "revenue":
                 return [
@@ -126,6 +168,7 @@ export default function FinancialReportPage() {
                 return [
                     { key: "invoiceNumber", header: "No. Invoice", width: "150px" },
                     { key: "customerName", header: "Pelanggan", width: "200px" },
+                    { key: "unit", header: "Unit", width: "150px" },
                     { key: "amount", header: "Jumlah", render: (v: number) => formatCurrency(v), width: "150px" },
                     { key: "dueDate", header: "Jatuh Tempo", render: (v: string) => formatDate(v), width: "130px" },
                     { key: "daysOverdue", header: "Hari Lewat", width: "100px", render: (v: number) => <span className="text-red-600 font-bold">{v} Hari</span> },
@@ -157,6 +200,12 @@ export default function FinancialReportPage() {
                         header: "Pelanggan",
                         sortable: true,
                         width: "200px",
+                    },
+                    {
+                        key: "unit",
+                        header: "Unit",
+                        sortable: true,
+                        width: "150px",
                     },
                     {
                         key: "amount",
@@ -229,8 +278,8 @@ export default function FinancialReportPage() {
                 <>
                     <ReportCard title="Total Pembayaran" value={s.totalPayments || 0} icon={CreditCard} variant="info" format="number" />
                     <ReportCard title="Total Dana" value={s.totalAmount || 0} icon={DollarSign} variant="success" format="currency" />
-                    <ReportCard title="Via Bank" value={s.byMethod?.find(m => m.method.toLowerCase().includes('bank'))?.amount || 0} icon={TrendingUp} variant="success" format="currency" />
-                    <ReportCard title="Via Cash" value={s.byMethod?.find(m => m.method.toLowerCase().includes('cash'))?.amount || 0} icon={DollarSign} variant="info" format="currency" />
+                    <ReportCard title="Sistem Xendit" value={s.xenditAmount || 0} icon={TrendingUp} variant="success" format="currency" />
+                    <ReportCard title="Bayar Manual" value={s.manualAmount || 0} icon={DollarSign} variant="info" format="currency" />
                 </>
             );
         }
@@ -279,7 +328,7 @@ export default function FinancialReportPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20 -m-8 p-8">
             <div className="max-w-[1600px] mx-auto space-y-6">
-                {/* Header */}
+                {/* Header with Gradient */}
                 <div className="relative overflow-hidden bg-gradient-to-r from-green-600 via-emerald-600 to-teal-700 rounded-2xl shadow-xl p-8">
                     <div className="absolute inset-0 bg-black/10"></div>
                     <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl"></div>
@@ -305,9 +354,9 @@ export default function FinancialReportPage() {
                     </div>
                 </div>
 
-                {/* Tabs */}
+                {/* Main Tabs */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-2">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap md:flex-nowrap gap-2">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             return (
@@ -327,17 +376,57 @@ export default function FinancialReportPage() {
                     </div>
                 </div>
 
-                {/* Filters */}
+                {/* Filters Row */}
                 <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Calendar className="w-5 h-5 text-gray-600" />
-                        <h3 className="text-lg font-semibold text-gray-800">
-                            Filter Periode
-                        </h3>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-gray-600" />
+                            <h3 className="text-lg font-semibold text-gray-800">
+                                Filter Data
+                            </h3>
+                        </div>
+
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {/* Unit Filter Dropdown */}
+                            <select
+                                value={unitFilter}
+                                onChange={(e) => setUnitFilter(e.target.value)}
+                                className="px-4 py-2 text-sm font-medium rounded-lg border-2 border-gray-200 bg-white text-gray-700 hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all outline-none min-w-[200px]"
+                            >
+                                <option value="all">Semua Unit</option>
+                                {units.map((unit) => (
+                                    <option key={unit.id} value={unit.id}>
+                                        {unit.name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* Legacy Filter Tabs */}
+                            <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+                                {[
+                                    { value: 'all' as const, label: 'Semua' },
+                                    { value: 'new' as const, label: 'Baru' },
+                                    { value: 'legacy' as const, label: 'Legacy' },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.value}
+                                        onClick={() => setLegacyFilter(tab.value)}
+                                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all ${legacyFilter === tab.value
+                                            ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
+                                            : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                                            }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    <DateRangeFilter
-                        onFilterChange={handleDateRangeChange}
-                    />
+                    <div className="pt-2">
+                        <DateRangeFilter
+                            onFilterChange={handleDateRangeChange}
+                        />
+                    </div>
                 </div>
 
                 {loading ? (

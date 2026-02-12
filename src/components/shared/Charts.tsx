@@ -111,13 +111,21 @@ export function PieChart({ data, dataKey, nameKey }: { data: any[]; dataKey: str
                         paddingAngle={5}
                         dataKey={dataKey}
                         nameKey={nameKey}
+                        label={(entry) => {
+                            const value = (entry as any).value;
+                            const name = (entry as any)[nameKey];
+                            const total = data.reduce((sum, item) => sum + item[dataKey], 0);
+                            const percent = ((value / total) * 100).toFixed(0);
+                            return `${name}: ${value} (${percent}%)`;
+                        }}
+                        labelLine={false}
                     >
                         {data.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                         ))}
                     </Pie>
                     <Tooltip
-                        contentStyle={{ backgroundColor: "#1E293B", borderRadius: "12px", border: "none", color: "#F8FAFC" }}
+                        contentStyle={{ borderRadius: "12px", border: "none", color: "#F8FAFC" }}
                     />
                     <Legend
                         layout="vertical"

@@ -2,38 +2,50 @@ import { useState, useEffect } from "react";
 import { MetricCard } from "./MetricCard";
 import { DashboardService } from "@/services/dashboard.service";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AreaChart, PieChart } from "@/components/shared/Charts";
+import { AreaChart, PieChart, BarChart } from "@/components/shared/Charts";
 import {
     Users,
     UserPlus,
     Wallet,
-    Wrench,
-    Calendar,
+
     BarChart3,
     TrendingUp,
-    Activity
+    Activity,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
 export function SuperAdminDashboard() {
     const [metrics, setMetrics] = useState<any>(null);
     const [revenueData, setRevenueData] = useState<any[]>([]);
     const [customerGrowthData, setCustomerGrowthData] = useState<any[]>([]);
+    const [billingStats, setBillingStats] = useState<any>(null);
+    const [billingTrendData, setBillingTrendData] = useState<any[]>([]);
+    const [statusStats, setStatusStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
+    const [legacyFilter, setLegacyFilter] = useState<"all" | "new" | "legacy">(
+        "all",
+    );
+  
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [overview, revenue, growth] = await Promise.all([
-                    DashboardService.getOverview(),
-                    DashboardService.getRevenueTrend(),
-                    DashboardService.getCustomerGrowth()
-                ]);
+                setLoading(true);
+                const [overview, revenue, growth, billing, billingTrend, status] =
+                    await Promise.all([
+                        DashboardService.getOverview(legacyFilter),
+                        DashboardService.getRevenueTrend(legacyFilter),
+                        DashboardService.getCustomerGrowth(legacyFilter),
+                        DashboardService.getCustomerBillingStats(legacyFilter),
+                        DashboardService.getCustomerBillingTrend(legacyFilter),
+                        DashboardService.getCustomerStatusStats(legacyFilter),
+                    ]);
                 setMetrics(overview);
                 setRevenueData(revenue);
                 setCustomerGrowthData(growth);
+                setBillingStats(billing);
+                setBillingTrendData(billingTrend);
+                setStatusStats(status);
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
             } finally {
@@ -41,23 +53,25 @@ export function SuperAdminDashboard() {
             }
         };
         fetchData();
-    }, []);
+    }, [legacyFilter]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("id-ID", {
             style: "currency",
             currency: "IDR",
             minimumFractionDigits: 0,
-        }).format(amount).replace("IDR", "Rp");
+        })
+            .format(amount)
+            .replace("IDR", "Rp");
     };
 
-    // Work Order status data for pie chart
-    const workOrderStatusData = [
-        { name: "Completed", value: (metrics?.workOrders.total || 0) - (metrics?.workOrders.pending || 0) },
-        { name: "Pending", value: metrics?.workOrders.pending || 0 }
+
+    // Legacy filter tabs
+    const legacyTabs = [
+        { value: "all" as const, label: "Semua" },
+        { value: "new" as const, label: "Baru" },
+        { value: "legacy" as const, label: "Legacy" },
     ];
-
-
 
     if (loading) {
         return (
@@ -70,7 +84,6 @@ export function SuperAdminDashboard() {
     }
 
     const totalRevenue = metrics?.finance.totalAmount || 0;
-    const paidRevenue = metrics?.finance.paidAmount || 0;
     const revenueGrowth = totalRevenue > 0 ? "+12.5%" : "0%";
 
     return (
@@ -92,10 +105,25 @@ export function SuperAdminDashboard() {
                     </p>
                 </div>
 
+                {/* Legacy Filter Tabs */}
+                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+                    {legacyTabs.map((tab) => (
+                        <button
+                            key={tab.value}
+                            onClick={() => setLegacyFilter(tab.value)}
+                            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${legacyFilter === tab.value
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-slate-500 hover:text-slate-700"
+                                }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Top KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <MetricCard
                     title="Total Pelanggan"
                     value={metrics?.customers.total || 0}
@@ -103,6 +131,16 @@ export function SuperAdminDashboard() {
                     trend={`+${metrics?.customers.newThisMonth || 0} bulan ini`}
                     trendUp={true}
                     variant="default"
+                    description="Total semua data pelanggan yang terdaftar secara sistem."
+                />
+                <MetricCard
+                    title="Wajib Bayar"
+                    value={metrics?.customers.wajibBayar || 0}
+                    icon={Wallet}
+                    trend="Aktif & Berbayar"
+                    trendUp={true}
+                    variant="warning"
+                    description="Pelanggan Aktif yang tidak memiliki status Free atau Promo."
                 />
                 <MetricCard
                     title="Pelanggan Aktif"
@@ -111,6 +149,16 @@ export function SuperAdminDashboard() {
                     trend={`${Math.round((metrics?.customers.active / metrics?.customers.total) * 100 || 0)}% dari total`}
                     trendUp={true}
                     variant="success"
+                    description="Jumlah pelanggan yang status layanannya aktif (bukan Stopped)."
+                />
+                <MetricCard
+                    title="Pelanggan Online"
+                    value={metrics?.customers.online || 0}
+                    icon={Activity}
+                    trend={`${Math.round((metrics?.customers.online / metrics?.customers.total) * 100 || 0)}% dari total`}
+                    trendUp={true}
+                    variant="info"
+                    description="Jumlah pelanggan yang saat ini sedang terkoneksi ke jaringan."
                 />
                 <MetricCard
                     title="Total Revenue"
@@ -118,15 +166,8 @@ export function SuperAdminDashboard() {
                     icon={Wallet}
                     trend={revenueGrowth}
                     trendUp={true}
-                    variant="info"
-                />
-                <MetricCard
-                    title="Work Orders"
-                    value={metrics?.workOrders.total || 0}
-                    icon={Wrench}
-                    trend={`${metrics?.workOrders.pending || 0} pending`}
-                    trendUp={false}
                     variant="warning"
+                    description="Total nilai tagihan/invoice yang diterbitkan pada periode ini."
                 />
             </div>
 
@@ -177,134 +218,138 @@ export function SuperAdminDashboard() {
                 </div>
             </div>
 
-            {/* Finance & Operations Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Finance Summary */}
-                <div className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-white rounded-2xl border border-blue-100 p-6 shadow-lg shadow-blue-200/40">
-                    <h2 className="text-lg font-bold text-[#101D42] mb-4 flex items-center gap-2">
-                        <Wallet size={20} className="text-blue-600" />
-                        Finance Overview
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                Total Invoices
-                            </p>
-                            <p className="text-2xl font-extrabold text-[#101D42]">
-                                {metrics?.finance.totalInvoices || 0}
-                            </p>
-                            <p className="text-xs text-slate-400 mt-1">Bulan ini</p>
-                        </div>
-                        <div className="bg-white rounded-xl p-4 border border-emerald-100">
-                            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">
-                                Paid Amount
-                            </p>
-                            <p className="text-2xl font-extrabold text-emerald-600">
-                                {formatCurrency(paidRevenue)}
-                            </p>
-                            <p className="text-xs text-emerald-500 mt-1">
-                                {Math.round((paidRevenue / totalRevenue) * 100 || 0)}% dari total
-                            </p>
-                        </div>
-                        <div className="bg-white rounded-xl p-4 border border-red-100">
-                            <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">
-                                Unpaid Amount
-                            </p>
-                            <p className="text-2xl font-extrabold text-red-600">
-                                {formatCurrency(metrics?.finance.unpaidAmount || 0)}
-                            </p>
-                            <p className="text-xs text-red-500 mt-1">Outstanding</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Work Order Status Pie Chart */}
+            {/* Customer Billing Statistics Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Billing Status Pie Chart */}
                 <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
-                    <h2 className="text-lg font-bold text-[#101D42] mb-4 flex items-center gap-2">
-                        <Wrench size={20} className="text-amber-600" />
-                        Work Orders
-                    </h2>
-                    <PieChart
-                        data={workOrderStatusData}
-                        dataKey="value"
-                        nameKey="name"
-                    />
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <BarChart3 size={20} className="text-purple-600" />
+                                Status Tagihan
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Bulan ini</p>
+                        </div>
+                        <Badge className="bg-purple-100 text-purple-700 border-none">
+                            Current
+                        </Badge>
+                    </div>
+                    {billingStats && (
+                        <PieChart
+                            data={[
+                                { name: "Tertagih", value: billingStats.billed },
+                                { name: "Belum Tertagih", value: billingStats.notBilled },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                        />
+                    )}
+                </div>
+
+                {/* Payment Status Pie Chart */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <Wallet size={20} className="text-green-600" />
+                                Status Pembayaran
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Bulan ini</p>
+                        </div>
+                        <Badge className="bg-green-100 text-green-700 border-none">
+                            Overview
+                        </Badge>
+                    </div>
+                    {billingStats && (
+                        <PieChart
+                            data={[
+                                { name: "Sudah Bayar", value: billingStats.paid },
+                                { name: "Belum Bayar", value: billingStats.unpaid },
+                                { name: "Pelanggan Free", value: billingStats.freeCustomers },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                        />
+                    )}
                 </div>
             </div>
 
-            {/* Operations Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg shadow-slate-200/40 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-3 rounded-xl bg-amber-100">
-                            <Wrench size={20} className="text-amber-600" />
+            {/* Billing Trend Chart */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                            <TrendingUp size={20} className="text-indigo-600" />
+                            Trend Billing Pelanggan
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-1">6 bulan terakhir</p>
+                    </div>
+                    <Badge className="bg-indigo-100 text-indigo-700 border-none">
+                        Historical
+                    </Badge>
+                </div>
+                <BarChart
+                    data={billingTrendData}
+                    xKey="month"
+                    yKeys={["billed", "paid", "unpaid", "free"]}
+                />
+            </div>
+
+            {/* Customer Status Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Internet Status Pie Chart */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <Activity size={20} className="text-blue-600" />
+                                Status Internet
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Real-time</p>
                         </div>
-                        <Badge className="bg-amber-100 text-amber-700 border-none text-xs">
-                            Pending
+                        <Badge className="bg-blue-100 text-blue-700 border-none">
+                            Live
                         </Badge>
                     </div>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
-                        Pending WO
-                    </p>
-                    <p className="text-3xl font-extrabold text-[#101D42]">
-                        {metrics?.workOrders.pending || 0}
-                    </p>
+                    {statusStats && (
+                        <PieChart
+                            data={[
+                                { name: "Online", value: statusStats.internetStatus.online },
+                                { name: "Offline", value: statusStats.internetStatus.offline },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                        />
+                    )}
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg shadow-slate-200/40 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-3 rounded-xl bg-blue-100">
-                            <Calendar size={20} className="text-blue-600" />
+                {/* Customer Active Status Pie Chart */}
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-[#101D42] flex items-center gap-2">
+                                <Users size={20} className="text-emerald-600" />
+                                Status Pelanggan
+                            </h2>
+                            <p className="text-xs text-slate-500 mt-1">Aktif vs Non-Aktif</p>
                         </div>
-                        <Badge className="bg-blue-100 text-blue-700 border-none text-xs">
-                            Today
+                        <Badge className="bg-emerald-100 text-emerald-700 border-none">
+                            Status
                         </Badge>
                     </div>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
-                        Schedules Today
-                    </p>
-                    <p className="text-3xl font-extrabold text-[#101D42]">
-                        {metrics?.schedules.today || 0}
-                    </p>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg shadow-slate-200/40 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-3 rounded-xl bg-purple-100">
-                            <Wrench size={20} className="text-purple-600" />
-                        </div>
-                        <Badge className="bg-purple-100 text-purple-700 border-none text-xs">
-                            Active
-                        </Badge>
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
-                        Technicians
-                    </p>
-                    <p className="text-3xl font-extrabold text-[#101D42]">
-                        {metrics?.technicians.total || 0}
-                    </p>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg shadow-slate-200/40 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-3 rounded-xl bg-green-100">
-                            <BarChart3 size={20} className="text-green-600" />
-                        </div>
-                        <Badge className="bg-green-100 text-green-700 border-none text-xs">
-                            View All
-                        </Badge>
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
-                        Reports
-                    </p>
-                    <button
-                        onClick={() => navigate("/reports")}
-                        className="text-sm font-bold text-blue-600 hover:text-blue-700 mt-2"
-                    >
-                        View Reports →
-                    </button>
+                    {statusStats && (
+                        <PieChart
+                            data={[
+                                { name: "Aktif", value: statusStats.customerStatus.active },
+                                { name: "Non-Aktif", value: statusStats.customerStatus.inactive },
+                            ]}
+                            dataKey="value"
+                            nameKey="name"
+                        />
+                    )}
                 </div>
             </div>
+
         </div>
     );
 }

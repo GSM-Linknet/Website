@@ -19,6 +19,7 @@ export type PermissionResource =
     | "pelanggan.pendaftaran" 
     | "pelanggan.kelola" 
     | "pelanggan.layanan"
+    | "pelanggan.legacy" // Legacy customer management
     // Teknisi
     | "teknisi.database" 
     | "teknisi.tools" 
@@ -104,6 +105,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "pelanggan.pendaftaran": ["view", "create", "edit", "delete", "verify", "export"],
       "pelanggan.kelola": ["view", "create", "edit", "delete", "export"],
       "pelanggan.layanan": ["view", "create", "edit", "delete"],
+      "pelanggan.legacy": ["view", "create", "edit", "delete"],
       "teknisi.database": ["view", "create", "edit", "delete"],
       "teknisi.tools": ["view", "create", "edit", "delete"],
       "teknisi.harga": ["view", "create", "edit", "delete"],
@@ -134,6 +136,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "pelanggan.pendaftaran": ["view", "verify", "export"],
       "pelanggan.kelola": ["view", "edit", "export"],
       "pelanggan.layanan": ["view"],
+      "pelanggan.legacy": ["view", "create", "edit"],
       "teknisi.database": ["view", "create", "edit"],
       "teknisi.tools": ["view", "create", "edit"],
       "teknisi.harga": ["view", "create", "edit"],

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { SubUnitModal } from "../components/SubUnitModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { ForeignKeyErrorDialog } from "@/components/shared/ForeignKeyErrorDialog";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { useSubUnit } from "../hooks/useSubUnit";
 import { useToast } from "@/hooks/useToast";
@@ -41,8 +42,10 @@ export default function SubUnitPage() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isForeignKeyErrorOpen, setIsForeignKeyErrorOpen] = useState(false);
     const [selectedSubUnit, setSelectedSubUnit] = useState<SubUnit | null>(null);
     const [subUnitToDelete, setSubUnitToDelete] = useState<SubUnit | null>(null);
+    const [deleteError, setDeleteError] = useState<string>("");
 
     // Handlers
     const handleAdd = () => {
@@ -62,14 +65,27 @@ export default function SubUnitPage() {
 
     const handleConfirmDelete = async () => {
         if (!subUnitToDelete) return;
-        const success = await deleteSubUnit(subUnitToDelete.id);
-        if (success) {
-            toast({
-                title: "Berhasil",
-                description: "Sub Unit berhasil dihapus",
-            });
+
+        try {
+            const success = await deleteSubUnit(subUnitToDelete.id);
+            if (success) {
+                toast({
+                    title: "Berhasil",
+                    description: "Sub Unit berhasil dihapus",
+                });
+                setIsDeleteModalOpen(false);
+                setSubUnitToDelete(null);
+            }
+        } catch (error: any) {
+            let errorMessage = "Tidak dapat menghapus Sub Unit ini karena masih terkait dengan data lain.";
+            if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            }
+            setDeleteError(errorMessage);
             setIsDeleteModalOpen(false);
-            setSubUnitToDelete(null);
+            setIsForeignKeyErrorOpen(true);
         }
     };
 
@@ -273,6 +289,17 @@ export default function SubUnitPage() {
                 onConfirm={handleConfirmDelete}
                 itemName={subUnitToDelete?.name}
                 isLoading={deleting}
+            />
+
+            <ForeignKeyErrorDialog
+                isOpen={isForeignKeyErrorOpen}
+                onClose={() => {
+                    setIsForeignKeyErrorOpen(false);
+                    setDeleteError("");
+                    setSubUnitToDelete(null);
+                }}
+                errorMessage={deleteError}
+                entityName="Sub Unit"
             />
         </div>
     );

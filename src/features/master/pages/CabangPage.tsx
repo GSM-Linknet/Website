@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { CabangModal } from "../components/CabangModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { ForeignKeyErrorDialog } from "@/components/shared/ForeignKeyErrorDialog";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { useCabang } from "../hooks/useCabang";
 import { useToast } from "@/hooks/useToast";
@@ -41,8 +42,10 @@ export default function CabangPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isForeignKeyErrorOpen, setIsForeignKeyErrorOpen] = useState(false);
   const [selectedCabang, setSelectedCabang] = useState<Cabang | null>(null);
   const [cabangToDelete, setCabangToDelete] = useState<Cabang | null>(null);
+  const [deleteError, setDeleteError] = useState<string>("");
 
   // Handlers
   const handleAdd = () => {
@@ -62,14 +65,26 @@ export default function CabangPage() {
 
   const handleConfirmDelete = async () => {
     if (!cabangToDelete) return;
-    const success = await deleteCabang(cabangToDelete.id);
-    if (success) {
-      toast({
-        title: "Berhasil",
-        description: "Cabang berhasil dihapus",
-      });
+    try {
+      const success = await deleteCabang(cabangToDelete.id);
+      if (success) {
+        toast({
+          title: "Berhasil",
+          description: "Cabang berhasil dihapus",
+        });
+        setIsDeleteModalOpen(false);
+        setCabangToDelete(null);
+      }
+    } catch (error: any) {
+      let errorMessage = "Tidak dapat menghapus Cabang ini karena masih terkait dengan data lain.";
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      setDeleteError(errorMessage);
       setIsDeleteModalOpen(false);
-      setCabangToDelete(null);
+      setIsForeignKeyErrorOpen(true);
     }
   };
 
@@ -255,6 +270,17 @@ export default function CabangPage() {
         onConfirm={handleConfirmDelete}
         itemName={cabangToDelete?.name}
         isLoading={deleting}
+      />
+
+      <ForeignKeyErrorDialog
+        isOpen={isForeignKeyErrorOpen}
+        onClose={() => {
+          setIsForeignKeyErrorOpen(false);
+          setDeleteError("");
+          setCabangToDelete(null);
+        }}
+        errorMessage={deleteError}
+        entityName="Cabang"
       />
     </div>
   );

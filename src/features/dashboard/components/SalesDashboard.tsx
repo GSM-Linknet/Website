@@ -102,6 +102,7 @@ export function SalesDashboard() {
                     trend={`+${metrics?.myCustomers.newThisMonth || 0} bulan ini`}
                     trendUp={true}
                     variant="default"
+                    description="Total semua pelanggan yang terdaftar melalui referensi/sales Anda."
                 />
                 <MetricCard
                     title="Baru Bulan Ini"
@@ -110,6 +111,7 @@ export function SalesDashboard() {
                     trend="This month"
                     trendUp={true}
                     variant="success"
+                    description="Jumlah pelanggan baru yang mendaftar dalam bulan berjalan."
                 />
                 <MetricCard
                     title="Pending Approval"
@@ -118,6 +120,7 @@ export function SalesDashboard() {
                     trend="Awaiting review"
                     trendUp={false}
                     variant="warning"
+                    description="Pelanggan yang sudah mendaftar namun belum disetujui oleh Admin."
                 />
                 <MetricCard
                     title="Target Progress"
@@ -126,6 +129,7 @@ export function SalesDashboard() {
                     trend={`${targetAchieved}/${targetMonthly} achieved`}
                     trendUp={targetPercentage >= 50}
                     variant="info"
+                    description="Persentase pencapaian terhadap target penjualan bulanan Anda."
                 />
             </div>
 

@@ -11,6 +11,7 @@ export const useProfile = () => {
 
   // Profile form state
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
 
   // Password form state
@@ -28,6 +29,7 @@ export const useProfile = () => {
       const data = await ProfileService.getProfile();
       setProfile(data);
       setName(data.name);
+      setPhone(data.phone || "");
       setPhotoUrl(data.profile || "");
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Gagal memuat profil");
@@ -46,6 +48,7 @@ export const useProfile = () => {
       setUpdating(true);
       const updated = await ProfileService.updateProfile({
         name: name.trim(),
+        phone: phone.trim() || undefined,
         profile: photoUrl.trim() || undefined,
       });
       setProfile(updated);
@@ -99,14 +102,14 @@ export const useProfile = () => {
 
   const uploadPhoto = async (file: File) => {
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('File harus berupa gambar');
+    if (!file.type.startsWith("image/")) {
+      toast.error("File harus berupa gambar");
       return false;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Ukuran file maksimal 5MB');
+      toast.error("Ukuran file maksimal 5MB");
       return false;
     }
 
@@ -115,10 +118,10 @@ export const useProfile = () => {
       const updated = await ProfileService.uploadPhoto(file);
       setProfile(updated);
       setPhotoUrl(updated.profile || "");
-      toast.success('Foto profil berhasil diupload');
+      toast.success("Foto profil berhasil diupload");
       return true;
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Gagal mengupload foto');
+      toast.error(error.response?.data?.message || "Gagal mengupload foto");
       return false;
     } finally {
       setUpdating(false);
@@ -137,6 +140,8 @@ export const useProfile = () => {
     changingPassword,
     name,
     setName,
+    phone,
+    setPhone,
     photoUrl,
     currentPassword,
     setCurrentPassword,
