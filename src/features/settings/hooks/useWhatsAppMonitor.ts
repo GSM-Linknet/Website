@@ -14,6 +14,7 @@ export const useWhatsAppMonitor = () => {
   const [logsTotalPages, setLogsTotalPages] = useState(1);
   const [logsTotalItems, setLogsTotalItems] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchFilter, setSearchFilter] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
@@ -26,21 +27,26 @@ export const useWhatsAppMonitor = () => {
     }
   }, []);
 
-  const fetchLogs = useCallback(async (page = 1, status = "all") => {
-    try {
-      const params: any = { page, limit: 10 };
-      // Only add status filter if not 'all'
-      if (status && status !== "all") params.status = status;
-      const res = await WhatsAppService.getLogs(params);
-      // Response structure: { status: true, data: { data: [...], pagination: {...} } }
-      const responseData = res.data as any;
-      setLogs(responseData.data || []);
-      setLogsTotalPages(responseData.pagination?.totalPages || 1);
-      setLogsTotalItems(responseData.pagination?.total || 0);
-    } catch (err) {
-      console.error("Failed to fetch logs:", err);
-    }
-  }, []);
+  const fetchLogs = useCallback(
+    async (page = 1, status = "all", search = "") => {
+      try {
+        const params: any = { page, limit: 10 };
+        // Only add status filter if not 'all'
+        if (status && status !== "all") params.status = status;
+        if (search) params.phoneNumber = search;
+
+        const res = await WhatsAppService.getLogs(params);
+        // Response structure: { status: true, data: { data: [...], pagination: {...} } }
+        const responseData = res.data as any;
+        setLogs(responseData.data || []);
+        setLogsTotalPages(responseData.pagination?.totalPages || 1);
+        setLogsTotalItems(responseData.pagination?.total || 0);
+      } catch (err) {
+        console.error("Failed to fetch logs:", err);
+      }
+    },
+    [],
+  );
 
   const fetchBatches = useCallback(async () => {
     try {
@@ -57,11 +63,18 @@ export const useWhatsAppMonitor = () => {
     setIsLoading(true);
     await Promise.all([
       fetchStats(),
-      fetchLogs(logsPage, statusFilter),
+      fetchLogs(logsPage, statusFilter, searchFilter),
       fetchBatches(),
     ]);
     setIsLoading(false);
-  }, [fetchStats, fetchLogs, fetchBatches, logsPage, statusFilter]);
+  }, [
+    fetchStats,
+    fetchLogs,
+    fetchBatches,
+    logsPage,
+    statusFilter,
+    searchFilter,
+  ]);
 
   useEffect(() => {
     refreshAll();
@@ -72,8 +85,8 @@ export const useWhatsAppMonitor = () => {
   }, []);
 
   useEffect(() => {
-    fetchLogs(logsPage, statusFilter);
-  }, [logsPage, statusFilter, fetchLogs]);
+    fetchLogs(logsPage, statusFilter, searchFilter);
+  }, [logsPage, statusFilter, searchFilter, fetchLogs]);
 
   return {
     stats,
@@ -85,6 +98,8 @@ export const useWhatsAppMonitor = () => {
     logsTotalItems,
     statusFilter,
     setStatusFilter,
+    searchFilter,
+    setSearchFilter,
     isLoading,
     refreshAll,
   };

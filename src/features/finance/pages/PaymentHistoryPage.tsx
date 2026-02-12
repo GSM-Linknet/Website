@@ -62,16 +62,29 @@ const columns = [
         header: "SISTEM BAYAR",
         accessorKey: "paymentSystem",
         cell: (row: Payment) => {
-            const systemLabels = {
+            const systemLabels: Record<string, string> = {
                 'CASH_UNIT': 'Cash Unit',
                 'CASH_SALES': 'Cash Sales',
                 'BANK_TRANSFER_PT': 'Transfer PT',
                 'VIRTUAL_ACCOUNT': 'VA'
             };
-            return row.paymentSystem ? systemLabels[row.paymentSystem] : row.method;
+            const label = row.paymentSystem ? systemLabels[row.paymentSystem] : row.method;
+            return (
+                <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-slate-500 uppercase">{label || '-'}</span>
+                    {row.isAutomatic ? (
+                        <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase">
+                            Sistem Xendit
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200 uppercase">
+                            Bayar Manual
+                        </span>
+                    )}
+                </div>
+            );
         }
     },
-    { header: "WILAYAH", accessorKey: "wilayah", className: "text-slate-500", cell: (row: Payment) => row.wilayah?.name || "-" },
     { header: "UNIT", accessorKey: "unit", className: "text-slate-500", cell: (row: Payment) => row.unit?.name || "-" },
 ];
 

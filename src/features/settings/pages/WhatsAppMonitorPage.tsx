@@ -22,6 +22,8 @@ const WhatsAppMonitorPage: React.FC = () => {
         logsTotalItems,
         statusFilter,
         setStatusFilter,
+        searchFilter,
+        setSearchFilter,
         isLoading,
         refreshAll
     } = useWhatsAppMonitor();
@@ -57,9 +59,10 @@ const WhatsAppMonitorPage: React.FC = () => {
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                         Monitor WhatsApp
                     </h1>
-                    <p className="text-slate-500">
-                        Pantau status pengiriman pesan dan antrian WhatsApp
-                    </p>
+                   
+                    <p className="text-sm text-slate-500">
+            Riwayat pesan sistem (Disimpan selama 14 hari)
+          </p>
                 </div>
                 <Button
                     variant="outline"
@@ -87,8 +90,10 @@ const WhatsAppMonitorPage: React.FC = () => {
                 totalPages={logsTotalPages}
                 totalItems={logsTotalItems}
                 statusFilter={statusFilter}
+                searchFilter={searchFilter}
                 onPageChange={setLogsPage}
                 onStatusFilterChange={setStatusFilter}
+                onSearchChange={setSearchFilter}
                 onViewDetail={handleViewDetail}
                 onResend={handleResend}
                 loading={isLoading}

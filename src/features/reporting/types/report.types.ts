@@ -98,6 +98,8 @@ export interface InvoiceReportData {
 export interface PaymentSummary {
   totalPayments: number;
   totalAmount: number;
+  manualAmount?: number;
+  xenditAmount?: number;
   byMethod: PaymentMethodBreakdown[];
 }
 
@@ -118,6 +120,8 @@ export interface PaymentDetail {
   paidAt: string;
   unit: string;
   subUnit: string;
+  paymentSystem?: string;
+  isAutomatic?: boolean;
 }
 
 export interface PaymentReportData {

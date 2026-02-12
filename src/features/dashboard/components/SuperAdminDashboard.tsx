@@ -7,13 +7,11 @@ import {
     Users,
     UserPlus,
     Wallet,
-    Wrench,
-    Calendar,
+
     BarChart3,
     TrendingUp,
     Activity,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
 export function SuperAdminDashboard() {
@@ -27,7 +25,7 @@ export function SuperAdminDashboard() {
     const [legacyFilter, setLegacyFilter] = useState<"all" | "new" | "legacy">(
         "all",
     );
-    const navigate = useNavigate();
+  
 
     useEffect(() => {
         const fetchData = async () => {
@@ -67,15 +65,6 @@ export function SuperAdminDashboard() {
             .replace("IDR", "Rp");
     };
 
-    // Work Order status data for pie chart
-    const workOrderStatusData = [
-        {
-            name: "Completed",
-            value:
-                (metrics?.workOrders.total || 0) - (metrics?.workOrders.pending || 0),
-        },
-        { name: "Pending", value: metrics?.workOrders.pending || 0 },
-    ];
 
     // Legacy filter tabs
     const legacyTabs = [
@@ -95,7 +84,6 @@ export function SuperAdminDashboard() {
     }
 
     const totalRevenue = metrics?.finance.totalAmount || 0;
-    const paidRevenue = metrics?.finance.paidAmount || 0;
     const revenueGrowth = totalRevenue > 0 ? "+12.5%" : "0%";
 
     return (
@@ -135,7 +123,7 @@ export function SuperAdminDashboard() {
             </div>
 
             {/* Top KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <MetricCard
                     title="Total Pelanggan"
                     value={metrics?.customers.total || 0}
@@ -143,6 +131,16 @@ export function SuperAdminDashboard() {
                     trend={`+${metrics?.customers.newThisMonth || 0} bulan ini`}
                     trendUp={true}
                     variant="default"
+                    description="Total semua data pelanggan yang terdaftar secara sistem."
+                />
+                <MetricCard
+                    title="Wajib Bayar"
+                    value={metrics?.customers.wajibBayar || 0}
+                    icon={Wallet}
+                    trend="Aktif & Berbayar"
+                    trendUp={true}
+                    variant="warning"
+                    description="Pelanggan Aktif yang tidak memiliki status Free atau Promo."
                 />
                 <MetricCard
                     title="Pelanggan Aktif"
@@ -151,6 +149,7 @@ export function SuperAdminDashboard() {
                     trend={`${Math.round((metrics?.customers.active / metrics?.customers.total) * 100 || 0)}% dari total`}
                     trendUp={true}
                     variant="success"
+                    description="Jumlah pelanggan yang status layanannya aktif (bukan Stopped)."
                 />
                 <MetricCard
                     title="Pelanggan Online"
@@ -159,6 +158,7 @@ export function SuperAdminDashboard() {
                     trend={`${Math.round((metrics?.customers.online / metrics?.customers.total) * 100 || 0)}% dari total`}
                     trendUp={true}
                     variant="info"
+                    description="Jumlah pelanggan yang saat ini sedang terkoneksi ke jaringan."
                 />
                 <MetricCard
                     title="Total Revenue"
@@ -167,6 +167,7 @@ export function SuperAdminDashboard() {
                     trend={revenueGrowth}
                     trendUp={true}
                     variant="warning"
+                    description="Total nilai tagihan/invoice yang diterbitkan pada periode ini."
                 />
             </div>
 
@@ -349,131 +350,6 @@ export function SuperAdminDashboard() {
                 </div>
             </div>
 
-            {/* Finance & Operations Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Finance Summary */}
-                <div className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-white rounded-2xl border border-blue-100 p-6 shadow-lg shadow-blue-200/40">
-                    <h2 className="text-lg font-bold text-[#101D42] mb-4 flex items-center gap-2">
-                        <Wallet size={20} className="text-blue-600" />
-                        Finance Overview
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                                Total Invoices
-                            </p>
-                            <p className="text-2xl font-extrabold text-[#101D42]">
-                                {metrics?.finance.totalInvoices || 0}
-                            </p>
-                            <p className="text-xs text-slate-400 mt-1">Bulan ini</p>
-                        </div>
-                        <div className="bg-white rounded-xl p-4 border border-emerald-100">
-                            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">
-                                Paid Amount
-                            </p>
-                            <p className="text-2xl font-extrabold text-emerald-600">
-                                {formatCurrency(paidRevenue)}
-                            </p>
-                            <p className="text-xs text-emerald-500 mt-1">
-                                {Math.round((paidRevenue / totalRevenue) * 100 || 0)}% dari
-                                total
-                            </p>
-                        </div>
-                        <div className="bg-white rounded-xl p-4 border border-red-100">
-                            <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">
-                                Unpaid Amount
-                            </p>
-                            <p className="text-2xl font-extrabold text-red-600">
-                                {formatCurrency(metrics?.finance.unpaidAmount || 0)}
-                            </p>
-                            <p className="text-xs text-red-500 mt-1">Outstanding</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Work Order Status Pie Chart */}
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-lg shadow-slate-200/40">
-                    <h2 className="text-lg font-bold text-[#101D42] mb-4 flex items-center gap-2">
-                        <Wrench size={20} className="text-amber-600" />
-                        Work Orders
-                    </h2>
-                    <PieChart data={workOrderStatusData} dataKey="value" nameKey="name" />
-                </div>
-            </div>
-
-            {/* Operations Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg shadow-slate-200/40 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-3 rounded-xl bg-amber-100">
-                            <Wrench size={20} className="text-amber-600" />
-                        </div>
-                        <Badge className="bg-amber-100 text-amber-700 border-none text-xs">
-                            Pending
-                        </Badge>
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
-                        Pending WO
-                    </p>
-                    <p className="text-3xl font-extrabold text-[#101D42]">
-                        {metrics?.workOrders.pending || 0}
-                    </p>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg shadow-slate-200/40 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-3 rounded-xl bg-blue-100">
-                            <Calendar size={20} className="text-blue-600" />
-                        </div>
-                        <Badge className="bg-blue-100 text-blue-700 border-none text-xs">
-                            Today
-                        </Badge>
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
-                        Schedules Today
-                    </p>
-                    <p className="text-3xl font-extrabold text-[#101D42]">
-                        {metrics?.schedules.today || 0}
-                    </p>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg shadow-slate-200/40 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-3 rounded-xl bg-purple-100">
-                            <Wrench size={20} className="text-purple-600" />
-                        </div>
-                        <Badge className="bg-purple-100 text-purple-700 border-none text-xs">
-                            Active
-                        </Badge>
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
-                        Technicians
-                    </p>
-                    <p className="text-3xl font-extrabold text-[#101D42]">
-                        {metrics?.technicians.total || 0}
-                    </p>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-lg shadow-slate-200/40 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-3 rounded-xl bg-green-100">
-                            <BarChart3 size={20} className="text-green-600" />
-                        </div>
-                        <Badge className="bg-green-100 text-green-700 border-none text-xs">
-                            View All
-                        </Badge>
-                    </div>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
-                        Reports
-                    </p>
-                    <button
-                        onClick={() => navigate("/reports")}
-                        className="text-sm font-bold text-blue-600 hover:text-blue-700 mt-2"
-                    >
-                        View Reports →
-                    </button>
-                </div>
-            </div>
         </div>
     );
 }

@@ -138,6 +138,25 @@ export default function FinancialReportPage() {
                     { key: "unit", header: "Unit", width: "150px" },
                     { key: "amount", header: "Jumlah", render: (v: number) => formatCurrency(v), width: "150px" },
                     { key: "method", header: "Metode", width: "120px" },
+                    {
+                        key: "paymentSystem",
+                        header: "Sistem",
+                        width: "150px",
+                        render: (v: string, row: any) => (
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs font-semibold text-gray-500 uppercase">{v || '-'}</span>
+                                {row.isAutomatic ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                        Sistem Xendit
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                                        Bayar Manual
+                                    </span>
+                                )}
+                            </div>
+                        )
+                    },
                 ];
             case "revenue":
                 return [
@@ -259,8 +278,8 @@ export default function FinancialReportPage() {
                 <>
                     <ReportCard title="Total Pembayaran" value={s.totalPayments || 0} icon={CreditCard} variant="info" format="number" />
                     <ReportCard title="Total Dana" value={s.totalAmount || 0} icon={DollarSign} variant="success" format="currency" />
-                    <ReportCard title="Via Bank" value={s.byMethod?.find(m => m.method.toLowerCase().includes('bank'))?.amount || 0} icon={TrendingUp} variant="success" format="currency" />
-                    <ReportCard title="Via Cash" value={s.byMethod?.find(m => m.method.toLowerCase().includes('cash'))?.amount || 0} icon={DollarSign} variant="info" format="currency" />
+                    <ReportCard title="Sistem Xendit" value={s.xenditAmount || 0} icon={TrendingUp} variant="success" format="currency" />
+                    <ReportCard title="Bayar Manual" value={s.manualAmount || 0} icon={DollarSign} variant="info" format="currency" />
                 </>
             );
         }

@@ -6,6 +6,7 @@ interface DashboardMetrics {
     active: number;
     online: number;
     newThisMonth: number;
+    wajibBayar: number;
   };
   finance: {
     totalInvoices: number;

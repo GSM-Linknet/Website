@@ -40,7 +40,7 @@ interface UnitDashboardProps {
 export default function UnitDashboard({ userName }: UnitDashboardProps) {
     const [filterQuery, setFilterQuery] = useState("");
     const [stats, setStats] = useState<{
-        customers: { total: number; newThisMonth: number; active: number; suspended: number };
+        customers: { total: number; newThisMonth: number; active: number; suspended: number; wajibBayar: number };
         quota: { quota: number; quotaUsed: number };
         invoices: { totalAmount: number; paidAmount: number; unpaidAmount: number; month: string };
         expenses: { subUnit: number };
@@ -175,7 +175,7 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
             </div>
 
             {/* Top KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <MetricCard
                     title="Total Pelanggan"
                     value={loading ? "..." : stats?.customers.total ?? 0}
@@ -183,6 +183,16 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
                     trend={`+${stats?.customers.newThisMonth || 0} bulan ini`}
                     trendUp={true}
                     variant="default"
+                    description="Total semua data pelanggan yang terdaftar (termasuk yang sudah berhenti)."
+                />
+                <MetricCard
+                    title="Wajib Bayar"
+                    value={loading ? "..." : stats?.customers.wajibBayar ?? 0}
+                    icon={Wallet}
+                    trend="Aktif & Berbayar"
+                    trendUp={true}
+                    variant="warning"
+                    description="Jumlah pelanggan Aktif dikurangi akun Free dan pelanggan masa Promo."
                 />
                 <MetricCard
                     title="Pelanggan Aktif"
@@ -191,6 +201,7 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
                     trend={`${Math.round(((stats?.customers.active ?? 0) / (stats?.customers.total ?? 1)) * 100)}% dari total`}
                     trendUp={true}
                     variant="success"
+                    description="Jumlah pelanggan dengan status 'Aktif' (Belum berhenti/stopped)."
                 />
                 <MetricCard
                     title="Kuota Unit"
