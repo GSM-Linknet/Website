@@ -2,21 +2,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, User, Lock } from "lucide-react";
+import { Loader2, User, Lock, Phone } from "lucide-react";
 
 interface ProfileInfoFormProps {
     name: string;
     email: string;
+    phone: string;
     updating: boolean;
     onNameChange: (value: string) => void;
+    onPhoneChange: (value: string) => void;
     onSubmit: (e: React.FormEvent) => void;
 }
 
 export const ProfileInfoForm = ({
     name,
     email,
+    phone,
     updating,
     onNameChange,
+    onPhoneChange,
     onSubmit,
 }: ProfileInfoFormProps) => {
     return (
@@ -66,6 +70,26 @@ export const ProfileInfoForm = ({
                         <p className="text-xs text-slate-500 flex items-center gap-1">
                             <Lock className="h-3 w-3" />
                             Email tidak dapat diubah untuk keamanan akun
+                        </p>
+                    </div>
+
+                    {/* Phone Field */}
+                    <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-blue-600" />
+                            Nomor WhatsApp
+                            <span className="text-xs font-normal text-slate-400">(Opsional)</span>
+                        </Label>
+                        <Input
+                            id="phone"
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => onPhoneChange(e.target.value)}
+                            placeholder="08123456789"
+                            className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                        <p className="text-xs text-slate-500">
+                            Nomor WhatsApp untuk menerima notifikasi sistem
                         </p>
                     </div>
 

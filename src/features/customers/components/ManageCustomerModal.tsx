@@ -27,6 +27,10 @@ import {
     Calendar,
     Loader2,
     Hash,
+    History,
+    RefreshCw,
+    Tag,
+    Check,
 } from "lucide-react";
 import type { Customer } from "@/services/customer.service";
 import { usePackage } from "@/features/master/hooks/usePackage";
@@ -36,6 +40,7 @@ import { CustomerService } from "@/services/customer.service";
 import { AuthService } from "@/services/auth.service";
 import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { cn } from "@/lib/utils";
+import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 
 const CustomToggle = ({ checked, onChange }: { checked: boolean, onChange: (val: boolean) => void }) => (
     <button
@@ -72,11 +77,45 @@ export function ManageCustomerModal({
     const { data: packages } = usePackage({ paginate: false });
     const { data: users } = useUser({ paginate: false });
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState<Partial<Customer>>({});
+    const [formData, setFormData] = useState<any>({});
     const [activeTab, setActiveTab] = useState("personal");
+    const [labels, setLabels] = useState<any[]>([]);
+    const [units, setUnits] = useState<Unit[]>([]);
+    const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
 
     const currentUser = useMemo(() => AuthService.getUser(), []);
     const isSalesOrSpv = currentUser?.role === "SALES" || currentUser?.role === "SUPERVISOR";
+    const canEditLegacy = useMemo(() =>
+        AuthService.hasPermission(currentUser?.role || "", "pelanggan.legacy", "edit"),
+        [currentUser]);
+
+    useEffect(() => {
+        CustomerService.getLabels()
+            .then(res => setLabels(res.data || []))
+            .catch(console.error);
+
+        // Fetch units on mount
+        MasterService.getUnits({ paginate: false })
+            .then(res => setUnits(res.data?.items || []))
+            .catch(err => {
+                console.error("Failed to fetch units:", err);
+                setUnits([]);
+            });
+    }, []);
+
+    // Fetch sub-units when unitId changes
+    useEffect(() => {
+        if (formData.unitId) {
+            MasterService.getSubUnits({ paginate: false, where: `unitId:${formData.unitId}` })
+                .then(res => setSubUnits(res.data?.items || []))
+                .catch(err => {
+                    console.error("Failed to fetch sub-units:", err);
+                    setSubUnits([]);
+                });
+        } else {
+            setSubUnits([]);
+        }
+    }, [formData.unitId]);
 
     useEffect(() => {
         if (customer) {
@@ -98,6 +137,9 @@ export function ManageCustomerModal({
                 onLeaveStartDate: customer.onLeaveStartDate,
                 onLeaveEndDate: customer.onLeaveEndDate,
                 idUpline: customer.idUpline,
+                unitId: customer.unit?.id || null,
+                subUnitId: customer.subUnit?.id || null,
+                labelIds: customer.labels?.map(l => l.id) || [],
             });
         }
     }, [customer]);
@@ -118,6 +160,32 @@ export function ManageCustomerModal({
             toast({
                 title: "Gagal",
                 description: error.response?.data?.message || "Gagal memperbarui data",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleToggleLegacy = async () => {
+        if (!customer) return;
+
+        const actionText = customer.isLegacy ? "Konversi ke Customer Baru" : "Konversi ke Customer Legacy";
+        if (!confirm(`Apakah Anda yakin ingin melakukan ${actionText}?`)) return;
+
+        try {
+            setLoading(true);
+            await CustomerService.toggleLegacyStatus(customer.id);
+            toast({
+                title: "Berhasil",
+                description: `Berhasil mengubah status customer menjadi ${customer.isLegacy ? "Baru" : "Legacy"}`,
+            });
+            onSuccess();
+            onClose();
+        } catch (error: any) {
+            toast({
+                title: "Gagal",
+                description: error.response?.data?.message || "Gagal mengubah status legacy",
                 variant: "destructive",
             });
         } finally {
@@ -229,7 +297,7 @@ export function ManageCustomerModal({
                                     <div className="space-y-2">
                                         <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                             <Hash className="w-3.5 h-3.5" />
-                                            ID LN (Livin Network)
+                                            ID LN
                                         </Label>
                                         <Input
                                             value={formData.lnId || ""}
@@ -318,6 +386,61 @@ export function ManageCustomerModal({
                                     />
                                 </div>
                             )}
+
+                            {/* Unit & Sub-Unit Selection */}
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        Unit
+                                    </Label>
+                                    <Select
+                                        value={formData.unitId || "none"}
+                                        onValueChange={(val) => {
+                                            setFormData({
+                                                ...formData,
+                                                unitId: val === "none" ? null : val,
+                                                subUnitId: null
+                                            });
+                                        }}
+                                    >
+                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors">
+                                            <SelectValue placeholder="Pilih Unit" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Tidak Ada</SelectItem>
+                                            {units.map((unit) => (
+                                                <SelectItem key={unit.id} value={unit.id}>
+                                                    {unit.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        Sub-Unit
+                                    </Label>
+                                    <Select
+                                        value={formData.subUnitId || "none"}
+                                        onValueChange={(val) => setFormData({ ...formData, subUnitId: val === "none" ? null : val })}
+                                        disabled={!formData.unitId}
+                                    >
+                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors disabled:opacity-50">
+                                            <SelectValue placeholder={formData.unitId ? "Pilih Sub-Unit" : "Pilih Unit Dulu"} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Tidak Ada</SelectItem>
+                                            {subUnits.map((subUnit) => (
+                                                <SelectItem key={subUnit.id} value={subUnit.id}>
+                                                    {subUnit.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
 
                             <div className="space-y-2">
                                 <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
@@ -436,6 +559,74 @@ export function ManageCustomerModal({
                                     />
                                 </div>
                             </div>
+
+                            {/* Labels Management */}
+                            <div className="space-y-4">
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <Tag className="w-3.5 h-3.5" />
+                                    Label Klasifikasi Pelanggan
+                                </Label>
+                                <div className="grid grid-cols-2 gap-3 p-1">
+                                    {labels.map((label) => {
+                                        const isSelected = formData.labelIds?.includes(label.id);
+                                        return (
+                                            <div
+                                                key={label.id}
+                                                onClick={() => {
+                                                    const current = formData.labelIds || [];
+                                                    const next = current.includes(label.id)
+                                                        ? current.filter((id: string) => id !== label.id)
+                                                        : [...current, label.id];
+                                                    setFormData({ ...formData, labelIds: next });
+                                                }}
+                                                className={cn(
+                                                    "group relative flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-300 border-2",
+                                                    isSelected
+                                                        ? "bg-white shadow-md shadow-slate-200/50"
+                                                        : "bg-slate-50 border-transparent hover:bg-white hover:border-slate-200 hover:shadow-sm"
+                                                )}
+                                                style={{
+                                                    borderColor: isSelected ? label.color : undefined
+                                                }}
+                                            >
+                                                <div
+                                                    className={cn(
+                                                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110",
+                                                        isSelected ? "text-white" : "bg-white shadow-inner"
+                                                    )}
+                                                    style={{ backgroundColor: isSelected ? label.color : undefined }}
+                                                >
+                                                    {isSelected ? <Check size={18} strokeWidth={3} /> : <Tag size={18} className="text-slate-400" />}
+                                                </div>
+                                                <div className="flex flex-col min-w-0 pr-2">
+                                                    <span className={cn(
+                                                        "text-[13px] font-bold truncate transition-colors",
+                                                        isSelected ? "text-slate-900" : "text-slate-600"
+                                                    )}>
+                                                        {label.name}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">
+                                                        {isSelected ? "Terpilih" : "Klik untuk pilih"}
+                                                    </span>
+                                                </div>
+                                                {/* Color accent bar */}
+                                                {!isSelected && (
+                                                    <div
+                                                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1/2 rounded-r-full"
+                                                        style={{ backgroundColor: label.color }}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {labels.length === 0 && (
+                                        <div className="col-span-2 flex flex-col items-center justify-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                            <Tag className="w-8 h-8 text-slate-300 mb-2" />
+                                            <p className="text-xs text-slate-400 font-bold">Tidak ada label tersedia</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </TabsContent>
 
                         <TabsContent value="location" className="p-6 m-0 space-y-6">
@@ -500,29 +691,60 @@ export function ManageCustomerModal({
                         </TabsContent>
                     </div>
 
-                    <DialogFooter className="px-8 py-6 border-t border-slate-100 bg-slate-50/30 sticky bottom-0 z-10 flex items-center justify-end gap-3">
-                        <Button
-                            variant="ghost"
-                            onClick={onClose}
-                            disabled={loading}
-                            className="h-11 px-8 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-all"
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            onClick={handleSubmit}
-                            disabled={loading}
-                            className="h-11 px-10 bg-[#101D42] hover:bg-[#1a2d61] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 transition-all transform hover:scale-[1.02] active:scale-[0.98] min-w-[160px]"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Menyimpan...
-                                </>
-                            ) : (
-                                "Simpan Perubahan"
+                    <DialogFooter className="px-8 py-6 border-t border-slate-100 bg-slate-50/30 sticky bottom-0 z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                            {canEditLegacy && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleToggleLegacy}
+                                    disabled={loading}
+                                    className={cn(
+                                        "h-9 px-4 rounded-xl font-bold transition-all flex items-center gap-2",
+                                        customer.isLegacy
+                                            ? "border-blue-200 text-blue-600 hover:bg-blue-50"
+                                            : "border-amber-200 text-amber-600 hover:bg-amber-50"
+                                    )}
+                                >
+                                    {customer.isLegacy ? (
+                                        <>
+                                            <RefreshCw className="w-4 h-4" />
+                                            Jadikan Customer Baru
+                                        </>
+                                    ) : (
+                                        <>
+                                            <History className="w-4 h-4" />
+                                            Jadikan Customer Legacy
+                                        </>
+                                    )}
+                                </Button>
                             )}
-                        </Button>
+                        </div>
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <Button
+                                variant="ghost"
+                                onClick={onClose}
+                                disabled={loading}
+                                className="h-11 px-8 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-all flex-1 sm:flex-none"
+                            >
+                                Batal
+                            </Button>
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={loading}
+                                className="h-11 px-10 bg-[#101D42] hover:bg-[#1a2d61] text-white rounded-xl font-bold shadow-lg shadow-blue-900/10 transition-all transform hover:scale-[1.02] active:scale-[0.98] min-w-[160px] flex-1 sm:flex-none"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Menyimpan...
+                                    </>
+                                ) : (
+                                    "Simpan Perubahan"
+                                )}
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </Tabs >
             </DialogContent >

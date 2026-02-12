@@ -71,8 +71,14 @@ const PermissionPage = lazy(
 const WhatsAppSettingsPage = lazy(
   () => import("@/features/settings/pages/WhatsAppSettingsPage"),
 );
+const WhatsAppMonitorPage = lazy(
+  () => import("@/features/settings/pages/WhatsAppMonitorPage"),
+);
 const CommissionSettingsPage = lazy(
   () => import("@/features/settings/pages/CommissionSettingsPage"),
+);
+const TemplateManagementPage = lazy(
+  () => import("@/features/settings/pages/TemplateManagementPage"),
 );
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
@@ -92,6 +98,11 @@ const MaintenancePage = lazy(() => import("@/pages/MaintenancePage"));
 const PublicPaymentPage = lazy(() => import("@/features/finance/pages/PublicPaymentPage"));
 const BatchPaymentPage = lazy(() => import("@/features/finance/pages/BatchPaymentPage"));
 const ExpenseUsagePage = lazy(() => import("@/features/reporting/pages/ExpenseUsagePage"));
+const UnitExpensePage = lazy(() => import("@/features/finance/pages/UnitExpensePage"));
+const DailyJournalPage = lazy(() => import("@/features/finance/pages/DailyJournalPage"));
+const UnitRevenuePage = lazy(() => import("@/features/finance/pages/UnitRevenuePage"));
+const UnitBalancePage = lazy(() => import("@/features/finance/pages/UnitBalancePage"));
+const CustomersWithoutInvoicePage = lazy(() => import("@/features/finance/pages/CustomersWithoutInvoicePage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -457,6 +468,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "customers-without-invoice",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CustomersWithoutInvoicePage />
+              </Suspense>
+            ),
+          },
+          {
             path: "saldo",
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -505,6 +524,38 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "unit-expense",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <UnitExpensePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "daily-journal",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <DailyJournalPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "revenue-share",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <UnitRevenuePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "unit-balance",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <UnitBalancePage />
+              </Suspense>
+            ),
+          },
+          {
             index: true,
             element: <Navigate to="saldo" replace />,
           },
@@ -530,10 +581,26 @@ export const routes: RouteObject[] = [
             )
           },
           {
+            path: "whatsapp-monitor",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <WhatsAppMonitorPage />
+              </Suspense>
+            )
+          },
+          {
             path: "commission",
             element: (
               <Suspense fallback={<PageLoader />}>
                 <CommissionSettingsPage />
+              </Suspense>
+            )
+          },
+          {
+            path: "templates",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <TemplateManagementPage />
               </Suspense>
             )
           }

@@ -19,6 +19,7 @@ import {
   Building,
   Layers,
   ShieldCheck,
+  Phone,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { useUser } from "../hooks/useUser";
@@ -28,6 +29,7 @@ import { useUnit } from "../hooks/useUnit";
 import { useSubUnit } from "../hooks/useSubUnit";
 import type { User as UserType } from "@/services/user.service";
 import type { UserRole } from "@/services/auth.service";
+import { AuthService } from "@/services/auth.service";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -37,7 +39,7 @@ interface UserModalProps {
   initialData?: UserType | null;
 }
 
-const ROLES: { value: UserRole; label: string }[] = [
+const ALL_ROLES: { value: UserRole; label: string }[] = [
   { value: "SUPER_ADMIN", label: "Super Admin" },
   { value: "ADMIN_PUSAT", label: "Admin Pusat" },
   { value: "ADMIN_CABANG", label: "Admin Cabang" },
@@ -59,6 +61,7 @@ export function UserModal({
     name: "",
     email: "",
     password: "",
+    phone: "",
     role: "USER" as UserRole,
     wilayahId: "",
     cabangId: "",
@@ -80,6 +83,16 @@ export function UserModal({
   };
 
   const isEdit = !!initialData;
+
+  // Get current user to filter available roles
+  const currentUser = AuthService.getUser();
+  const currentUserLevel = ROLE_LEVELS[currentUser?.role as UserRole] ?? 99;
+
+  // Filter roles: only show same level or below (higher number = lower rank)
+  const availableRoles = ALL_ROLES.filter((role) => {
+    const roleLevel = ROLE_LEVELS[role.value] ?? 99;
+    return roleLevel >= currentUserLevel;
+  });
 
   // Data fetching for selections
   const { data: users } = useUser({ paginate: false });
@@ -103,6 +116,7 @@ export function UserModal({
         setFormData({
           name: initialData.name,
           email: initialData.email,
+          phone: initialData.phone || "",
           role: initialData.role,
           wilayahId: initialData.wilayahId || "",
           cabangId: initialData.cabangId || "",
@@ -116,6 +130,7 @@ export function UserModal({
           name: "",
           email: "",
           password: "",
+          phone: "",
           role: "USER" as UserRole,
           wilayahId: "",
           cabangId: "",
@@ -220,6 +235,29 @@ export function UserModal({
           />
         </div>
 
+        {/* Phone Field */}
+        <div className="space-y-2">
+          <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+            <Phone size={14} className="text-blue-500" /> No. WhatsApp{" "}
+            <span className="text-[10px] normal-case text-slate-400 font-normal ml-1">
+              (Opsional)
+            </span>
+          </Label>
+          <Input
+            type="tel"
+            placeholder="08123456789"
+            value={formData.phone || ""}
+            onChange={(e) =>
+              setFormData({ ...formData, phone: e.target.value })
+            }
+            className="rounded-xl h-11"
+            disabled={isLoading}
+          />
+          <p className="text-xs text-slate-500">
+            Nomor WhatsApp untuk menerima notifikasi sistem
+          </p>
+        </div>
+
         {/* Password Field */}
         <div className="space-y-2">
           <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
@@ -258,13 +296,16 @@ export function UserModal({
               <SelectValue placeholder="Pilih Role" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
-              {ROLES.map((role) => (
+              {availableRoles.map((role) => (
                 <SelectItem key={role.value} value={role.value}>
                   {role.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <p className="text-xs text-slate-500">
+            Anda hanya bisa assign role <strong>{currentUser?.role}</strong> atau lebih rendah
+          </p>
         </div>
 
         {/* Hierarchy Selects */}

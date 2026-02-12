@@ -16,6 +16,7 @@ import {
     ReportCard,
     StatusBadge,
     ReportDataTable,
+    UplineCustomerModal,
 } from "../components";
 import { reportService } from "@/services/reporting.service";
 import type { CustomerReportData, ReportFilters } from "../types/report.types";
@@ -32,6 +33,8 @@ import {
 export default function CustomerReportPage() {
     const [reportData, setReportData] = useState<CustomerReportData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
+    const [selectedUpline, setSelectedUpline] = useState<string | null>(null);
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
@@ -40,12 +43,16 @@ export default function CustomerReportPage() {
     // Fetch report data
     useEffect(() => {
         fetchReportData();
-    }, [filters]);
+    }, [filters, legacyFilter]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            const data = await reportService.getCustomerReport(filters);
+            const reportFilters = {
+                ...filters,
+                isLegacy: legacyFilter
+            };
+            const data = await reportService.getCustomerReport(reportFilters);
             setReportData(data);
         } catch (error) {
             console.error("Failed to fetch customer report:", error);
@@ -60,12 +67,19 @@ export default function CustomerReportPage() {
     }, []);
 
     const handleExportExcel = async () => {
-        await reportService.exportCustomerReportExcel(filters);
+        await reportService.exportCustomerReportExcel({ ...filters, isLegacy: legacyFilter });
     };
 
     const handleExportPDF = async () => {
-        await reportService.exportCustomerReportPDF(filters);
+        await reportService.exportCustomerReportPDF({ ...filters, isLegacy: legacyFilter });
     };
+
+    // Legacy filter tabs
+    const legacyTabs = [
+        { value: 'all' as const, label: 'Semua Customer' },
+        { value: 'new' as const, label: 'Customer Baru' },
+        { value: 'legacy' as const, label: 'Customer Legacy' },
+    ];
 
     // Table columns configuration
     const columns = [
@@ -135,6 +149,17 @@ export default function CustomerReportPage() {
             width: "150px",
         },
         {
+            key: "totalBilling",
+            header: "Total Tagihan",
+            sortable: true,
+            render: (value: number) => (
+                <span className="font-semibold text-blue-600">
+                    {formatCurrency(value)}
+                </span>
+            ),
+            width: "140px",
+        },
+        {
             key: "statusNet",
             header: "Status",
             render: (_: any, row: any) => {
@@ -188,11 +213,28 @@ export default function CustomerReportPage() {
 
                 {/* Filters */}
                 <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Calendar className="w-5 h-5 text-gray-600" />
-                        <h3 className="text-lg font-semibold text-gray-800">
-                            Filter Periode
-                        </h3>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-gray-600" />
+                            <h3 className="text-lg font-semibold text-gray-800">
+                                Filter Periode
+                            </h3>
+                        </div>
+                        {/* Legacy Filter Tabs */}
+                        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+                            {legacyTabs.map((tab) => (
+                                <button
+                                    key={tab.value}
+                                    onClick={() => setLegacyFilter(tab.value)}
+                                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${legacyFilter === tab.value
+                                        ? "bg-white text-blue-600 shadow-sm"
+                                        : "text-gray-500 hover:text-gray-700"
+                                        }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <DateRangeFilter
                         onFilterChange={handleDateRangeChange}
@@ -323,6 +365,54 @@ export default function CustomerReportPage() {
                             </div>
                         </div>
 
+                        {/* Upline Breakdown */}
+                        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
+                            <div className="flex items-center gap-2 mb-6">
+                                <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg">
+                                    <Users className="w-5 h-5 text-white" />
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    Distribusi per Upline
+                                </h2>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {reportData.byUpline.map((upline, index) => (
+                                    <div
+                                        key={index}
+                                        onClick={() => setSelectedUpline(upline.uplineId)}
+                                        className="group relative p-5 border-2 border-gray-100 rounded-xl bg-gradient-to-br from-white to-gray-50 hover:from-green-50 hover:to-emerald-50 hover:border-green-200 transition-all duration-300 hover:shadow-lg cursor-pointer"
+                                    >
+                                        <div className="absolute top-3 right-3 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                                        <div className="mb-3">
+                                            <p className="text-sm font-medium text-gray-600 mb-1 truncate" title={upline.uplineName}>
+                                                {upline.uplineName}
+                                            </p>
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                                                {upline.uplineRole}
+                                            </span>
+                                        </div>
+                                        <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
+                                            {upline.totalCustomers}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mb-2">total pelanggan</p>
+                                        {upline.customersWithOutstanding > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs text-gray-600">Tunggakan:</span>
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">
+                                                        {upline.customersWithOutstanding} customer
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm font-semibold text-red-600 mt-1">
+                                                    {formatCurrency(upline.totalOutstandingAmount)}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
                         {/* Data Table */}
                         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
                             <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
@@ -338,6 +428,14 @@ export default function CustomerReportPage() {
                     </>
                 )}
             </div>
+
+            {/* Upline Customer Details Modal */}
+            <UplineCustomerModal
+                open={!!selectedUpline}
+                onClose={() => setSelectedUpline(null)}
+                uplineId={selectedUpline}
+                reportData={reportData}
+            />
         </div>
     );
 }

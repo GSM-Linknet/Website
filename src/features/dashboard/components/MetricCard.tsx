@@ -1,5 +1,12 @@
 import type { LucideIcon } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MetricCardProps {
     title: string;
@@ -9,6 +16,7 @@ interface MetricCardProps {
     trendUp?: boolean;
     variant?: "default" | "success" | "warning" | "danger" | "info";
     className?: string;
+    description?: string;
 }
 
 export function MetricCard({
@@ -18,7 +26,8 @@ export function MetricCard({
     trend,
     trendUp,
     variant = "default",
-    className
+    className,
+    description
 }: MetricCardProps) {
     const variantClasses = {
         default: "border-slate-100 bg-white",
@@ -46,9 +55,25 @@ export function MetricCard({
         >
             <div className="flex items-start justify-between">
                 <div className="space-y-2 flex-1">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        {title}
-                    </p>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1.5 cursor-help">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        {title}
+                                    </p>
+                                    {description && (
+                                        <HelpCircle size={12} className="text-slate-400" />
+                                    )}
+                                </div>
+                            </TooltipTrigger>
+                            {description && (
+                                <TooltipContent side="top" className="max-w-[200px] text-[11px] p-2 bg-[#101D42] text-white border-none shadow-xl">
+                                    {description}
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    </TooltipProvider>
                     <p className="text-3xl font-extrabold text-[#101D42] tracking-tight">
                         {value}
                     </p>

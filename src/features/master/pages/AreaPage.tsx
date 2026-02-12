@@ -6,6 +6,7 @@ import { useArea } from "../hooks/useArea";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import { AreaModal } from "../components/AreaModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
+import { ForeignKeyErrorDialog } from "@/components/shared/ForeignKeyErrorDialog";
 import { SearchInput } from "@/components/shared/SearchInput";
 import type { Area } from "@/services/master.service";
 import { AuthService } from "@/services/auth.service";
@@ -39,7 +40,9 @@ export default function AreaPage() {
 
     const createDisclosure = useDisclosure();
     const deleteDisclosure = useDisclosure();
+    const errorDisclosure = useDisclosure();
     const [selectedArea, setSelectedArea] = useState<Area | null>(null);
+    const [deleteError, setDeleteError] = useState<string>("");
 
     // Handlers
     const handleEdit = (area: Area) => {
@@ -59,10 +62,22 @@ export default function AreaPage() {
 
     const handleConfirmDelete = async () => {
         if (!selectedArea) return;
-        const success = await remove(selectedArea.id);
-        if (success) {
+        try {
+            const success = await remove(selectedArea.id);
+            if (success) {
+                deleteDisclosure.onClose();
+                setSelectedArea(null);
+            }
+        } catch (error: any) {
+            let errorMessage = "Tidak dapat menghapus Area ini karena masih terkait dengan data lain.";
+            if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error?.message) {
+                errorMessage = error.message;
+            }
+            setDeleteError(errorMessage);
             deleteDisclosure.onClose();
-            setSelectedArea(null);
+            errorDisclosure.onOpen();
         }
     };
 
@@ -147,6 +162,17 @@ export default function AreaPage() {
                 onConfirm={handleConfirmDelete}
                 itemName={selectedArea?.name}
                 isLoading={deleting}
+            />
+
+            <ForeignKeyErrorDialog
+                isOpen={errorDisclosure.isOpen}
+                onClose={() => {
+                    errorDisclosure.onClose();
+                    setDeleteError("");
+                    setSelectedArea(null);
+                }}
+                errorMessage={deleteError}
+                entityName="Area"
             />
 
             {/* Header */}

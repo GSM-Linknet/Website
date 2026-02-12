@@ -1,11 +1,16 @@
 import { apiClient } from "./api-client";
-import type { BaseEntity, BaseQuery, PaginatedResponse } from "./master.service";
+import type {
+  BaseEntity,
+  BaseQuery,
+  PaginatedResponse,
+} from "./master.service";
 import type { UserRole } from "./auth.service";
 
 export interface User extends BaseEntity {
   name: string;
   email: string;
   password?: string;
+  phone?: string | null;
   role: UserRole;
   status: boolean;
   wilayahId?: string | null;
@@ -24,7 +29,9 @@ const ENDPOINT = "/user";
 
 export const UserService = {
   findAll: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<User>>(`${ENDPOINT}/find-all`, { params: query });
+    return apiClient.get<PaginatedResponse<User>>(`${ENDPOINT}/find-all`, {
+      params: query,
+    });
   },
   findById: async (id: string) => {
     return apiClient.get<User>(`${ENDPOINT}/find-one/${id}`);

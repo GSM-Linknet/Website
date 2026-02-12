@@ -15,6 +15,7 @@ interface UseCrudResult<T> {
   creating: boolean;
   updating: boolean;
   deleting: boolean;
+  error: Error | null;
   create: (data: Partial<T>) => Promise<T | null>;
   update: (id: string, data: Partial<T>) => Promise<T | null>;
   remove: (id: string) => Promise<boolean>;
@@ -27,7 +28,7 @@ interface CrudService<T> {
 }
 
 /**
- * Generic hook for CRUD operations with loading states.
+ * Generic hook for CRUD operations with loading states and error handling.
  *
  * @param service - Object containing create, update, delete methods
  * @param options - Callbacks for success/error handling
@@ -41,6 +42,7 @@ export function useCrud<T>(
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const create = useCallback(
     async (data: Partial<T>): Promise<T | null> => {
@@ -50,12 +52,14 @@ export function useCrud<T>(
       }
 
       setCreating(true);
+      setError(null);
       try {
         const result = await service.create(data);
         onCreateSuccess?.();
         return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Create failed");
+        setError(error);
         onError?.(error);
         console.error("useCrud create error:", err);
         return null;
@@ -74,12 +78,14 @@ export function useCrud<T>(
       }
 
       setUpdating(true);
+      setError(null);
       try {
         const result = await service.update(id, data);
         onUpdateSuccess?.();
         return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Update failed");
+        setError(error);
         onError?.(error);
         console.error("useCrud update error:", err);
         return null;
@@ -98,15 +104,18 @@ export function useCrud<T>(
       }
 
       setDeleting(true);
+      setError(null);
       try {
         await service.delete(id);
         onDeleteSuccess?.();
         return true;
       } catch (err) {
         const error = err instanceof Error ? err : new Error("Delete failed");
+        setError(error);
         onError?.(error);
         console.error("useCrud delete error:", err);
-        return false;
+        // Throw error to allow caller to catch and handle it
+        throw error;
       } finally {
         setDeleting(false);
       }
@@ -118,6 +127,7 @@ export function useCrud<T>(
     creating,
     updating,
     deleting,
+    error,
     create,
     update,
     remove,

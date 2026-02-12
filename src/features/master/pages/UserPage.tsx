@@ -42,7 +42,15 @@ export default function UserPage() {
         remove: deleteUser,
         deleting,
         setQuery
-    } = useUser();
+    } = useUser(undefined, {
+        onError: (err) => {
+            toast({
+                title: "Gagal",
+                description: err.message || "Terjadi kesalahan pada server",
+                variant: "destructive",
+            });
+        }
+    });
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
