@@ -29,7 +29,8 @@ const WhatsAppSettingsPage: React.FC = () => {
         console.log('[WhatsApp] Connecting to Socket.IO:', socketUrl);
 
         const newSocket = io(socketUrl, {
-            transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+            path: '/api/socket.io',
+            transports: ['polling', 'websocket'], // Try polling first, fallback to websocket for better stability behind proxies
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
         });
