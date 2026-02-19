@@ -17,6 +17,8 @@ import {
     StatusBadge,
     ReportDataTable,
     UplineCustomerModal,
+    PackageCustomerModal,
+    LocationCustomerModal,
 } from "../components";
 import { reportService } from "@/services/reporting.service";
 import type { CustomerReportData, ReportFilters } from "../types/report.types";
@@ -35,6 +37,8 @@ export default function CustomerReportPage() {
     const [loading, setLoading] = useState(true);
     const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
     const [selectedUpline, setSelectedUpline] = useState<string | null>(null);
+    const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+    const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
@@ -313,6 +317,7 @@ export default function CustomerReportPage() {
                                 {reportData.byPackage.map((pkg, index) => (
                                     <div
                                         key={index}
+                                        onClick={() => setSelectedPackage(pkg.name)}
                                         className="group relative p-5 border-2 border-gray-100 rounded-xl bg-gradient-to-br from-white to-gray-50 hover:from-purple-50 hover:to-pink-50 hover:border-purple-200 transition-all duration-300 hover:shadow-lg cursor-pointer"
                                     >
                                         <div className="absolute top-3 right-3 w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full opacity-20 group-hover:opacity-30 transition-opacity"></div>
@@ -348,6 +353,7 @@ export default function CustomerReportPage() {
                                 {reportData.byLocation.map((loc, index) => (
                                     <div
                                         key={index}
+                                        onClick={() => setSelectedLocation(loc.name)}
                                         className="group p-5 border-2 border-gray-100 rounded-xl bg-gradient-to-br from-white to-gray-50 hover:from-blue-50 hover:to-cyan-50 hover:border-blue-200 transition-all duration-300 hover:shadow-lg cursor-pointer"
                                     >
                                         <p
@@ -434,6 +440,22 @@ export default function CustomerReportPage() {
                 open={!!selectedUpline}
                 onClose={() => setSelectedUpline(null)}
                 uplineId={selectedUpline}
+                reportData={reportData}
+            />
+
+            {/* Package Customer Details Modal */}
+            <PackageCustomerModal
+                open={!!selectedPackage}
+                onClose={() => setSelectedPackage(null)}
+                packageName={selectedPackage}
+                reportData={reportData}
+            />
+
+            {/* Location Customer Details Modal */}
+            <LocationCustomerModal
+                open={!!selectedLocation}
+                onClose={() => setSelectedLocation(null)}
+                locationName={selectedLocation}
                 reportData={reportData}
             />
         </div>

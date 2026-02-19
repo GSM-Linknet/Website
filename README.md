@@ -158,6 +158,7 @@ The Disbursement (Payout) approval process has been hardened:
 
 - **Frontend**: React 18, TypeScript, Vite.
 - **UI Architecture**: Tailwind CSS v4, Lucide Icons, Shadcn UI.
+- **Socket.io**: Robust real-time connection using `polling` first strategy for production proxy stability.
 - **Mobile**: Android (Sales App integration).
 - **Design System**: Premium GSM "Float" aesthetic (border-less, clean typography).
 
