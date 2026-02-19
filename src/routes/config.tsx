@@ -15,6 +15,9 @@ const CustomerListPage = lazy(
 const CustomerRegistrationPage = lazy(
   () => import("@/features/customers/pages/CustomerRegistrationPage"),
 );
+const LinkNetPage = lazy(
+  () => import("@/features/customers/pages/LinkNetPage"),
+);
 const TechnicianPage = lazy(
   () => import("@/features/technicians/pages/TechnicianPage"),
 );
@@ -210,7 +213,7 @@ export const routes: RouteObject[] = [
             path: "layanan",
             element: (
               <Suspense fallback={<PageLoader />}>
-                <ComingSoonPage />
+                <LinkNetPage />
               </Suspense>
             ),
           },

@@ -52,7 +52,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/pelanggan/kelola",
         resource: "pelanggan.kelola",
       },
-      // { title: "Layanan Mandiri", href: "/pelanggan/layanan", resource: "pelanggan.layanan" },
+      {
+        title: "Layanan Link Net",
+        href: "/pelanggan/layanan",
+        resource: "pelanggan.layanan",
+      },
     ],
   },
   {
