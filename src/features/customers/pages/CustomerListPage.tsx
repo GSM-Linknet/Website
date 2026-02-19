@@ -119,7 +119,7 @@ export default function CustomerListPage() {
 
     // Filter fields (uses AND logic via where param)
     if (filters.status !== "all")
-      whereParts.push(`statusCust:${filters.status === "active"}`);
+      whereParts.push(`customerStatus:${filters.status}`);
     if (filters.internet !== "all")
       whereParts.push(`statusNet:${filters.internet === "online"}`);
     if (filters.unit !== "all")
@@ -254,9 +254,14 @@ export default function CustomerListPage() {
           label="Semua Status"
           activeValue={filters.status}
           options={[
-            { label: "Semua Status", value: "all" },
-            { label: "Aktif", value: "active" },
-            { label: "Non-Aktif", value: "inactive" },
+            { label: "Semua Kategori", value: "all" },
+            { label: "Reguler", value: "ACTIVE" },
+            { label: "Gratis 3 Bulan", value: "FREE_3_MONTHS" },
+            { label: "Gratis 6 Bulan", value: "FREE_6_MONTHS" },
+            { label: "Gratis 12 Bulan", value: "FREE_12_MONTHS" },
+            { label: "Libur 1 Bulan", value: "ON_LEAVE_1_MONTH" },
+            { label: "Dismantle", value: "DISMANTLE" },
+            { label: "Keluar", value: "TERMINATED" },
           ]}
           onSelect={(val) => handleFilterChange("status", val)}
         />
@@ -266,7 +271,7 @@ export default function CustomerListPage() {
           options={[
             { label: "Semua Internet", value: "all" },
             { label: "Online", value: "online" },
-            { label: "Offline", value: "offline" },
+            { label: "Suspend", value: "offline" },
           ]}
           onSelect={(val) => handleFilterChange("internet", val)}
         />

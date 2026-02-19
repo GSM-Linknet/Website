@@ -50,6 +50,15 @@ const columns = [
         ) : "-",
     },
     {
+        header: "KOMISI",
+        accessorKey: "commission",
+        cell: (row: Payment) => row.commission ? (
+            <span className="font-mono text-red-600">
+                -Rp {row.commission.toLocaleString("id-ID")}
+            </span>
+        ) : "-",
+    },
+    {
         header: "DITERIMA",
         accessorKey: "amountReceived",
         cell: (row: Payment) => row.amountReceived ? (

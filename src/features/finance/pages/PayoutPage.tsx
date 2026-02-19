@@ -89,6 +89,15 @@ export default function PayoutPage() {
             ),
         },
         {
+            accessorKey: "description",
+            header: "Deskripsi",
+            cell: (payout: any) => (
+                <div className="flex flex-col">
+                    <span className="text-xs font-mono font-medium text-slate-500 uppercase">{payout.description}</span>
+                </div>
+            ),
+        },
+        {
             accessorKey: "bankCode",
             header: "Informasi Bank",
             cell: (payout: any) => (

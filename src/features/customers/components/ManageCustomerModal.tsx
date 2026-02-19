@@ -297,7 +297,7 @@ export function ManageCustomerModal({
                                     <div className="space-y-2">
                                         <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                             <Hash className="w-3.5 h-3.5" />
-                                            ID LN
+                                            ID LinkNet
                                         </Label>
                                         <Input
                                             value={formData.lnId || ""}
@@ -457,7 +457,7 @@ export function ManageCustomerModal({
 
                             {/* Customer Status */}
                             <div className="space-y-2">
-                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status Pelanggan Detail</Label>
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kategori Pelanggan</Label>
                                 <Select
                                     value={formData.customerStatus || ''}
                                     onValueChange={(val) => setFormData({ ...formData, customerStatus: val as any })}
@@ -466,7 +466,7 @@ export function ManageCustomerModal({
                                         <SelectValue placeholder="Pilih Status" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="ACTIVE">Aktif</SelectItem>
+                                        <SelectItem value="ACTIVE">Reguler</SelectItem>
                                         <SelectItem value="FREE_3_MONTHS">Gratis 3 Bulan</SelectItem>
                                         <SelectItem value="FREE_6_MONTHS">Gratis 6 Bulan</SelectItem>
                                         <SelectItem value="FREE_12_MONTHS">Gratis 12 Bulan</SelectItem>
@@ -526,7 +526,7 @@ export function ManageCustomerModal({
                             )}
 
                             <div className="flex flex-col gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                                <div className="flex items-center justify-between">
+                                {/* <div className="flex items-center justify-between">
                                     <div className="space-y-1">
                                         <Label className="text-sm font-semibold text-slate-900">Status Pelanggan</Label>
                                         <p className="text-xs text-slate-500">Aktifkan atau nonaktifkan pelanggan ini</p>
@@ -535,8 +535,8 @@ export function ManageCustomerModal({
                                         checked={formData.statusCust || false}
                                         onChange={(val) => setFormData({ ...formData, statusCust: val })}
                                     />
-                                </div>
-                                <div className="h-px bg-slate-200 w-full" />
+                                </div> */}
+                                {/* <div className="h-px bg-slate-200 w-full" />
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-1">
                                         <Label className="text-sm font-semibold text-slate-900">Status Internet</Label>
@@ -546,8 +546,8 @@ export function ManageCustomerModal({
                                         checked={formData.statusNet || false}
                                         onChange={(val) => setFormData({ ...formData, statusNet: val })}
                                     />
-                                </div>
-                                <div className="h-px bg-slate-200 w-full" />
+                                </div> */}
+                               
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-1">
                                         <Label className="text-sm font-semibold text-slate-900">Akun Gratis</Label>
