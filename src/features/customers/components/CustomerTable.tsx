@@ -179,7 +179,7 @@ export const CustomerTable = ({
       cell: (row: Customer) => row.paket?.name || "-",
     },
     {
-      header: "STATUS",
+      header: "KATEGORI",
       accessorKey: "statusCust",
       cell: (row: Customer) => {
         // Show detailed customerStatus if available
@@ -189,7 +189,7 @@ export const CustomerTable = ({
             'FREE_6_MONTHS': { label: 'Gratis 6 Bln', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
             'FREE_12_MONTHS': { label: 'Gratis 12 Bln', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
             'ON_LEAVE_1_MONTH': { label: 'Libur 1 Bln', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
-            'ACTIVE': { label: 'Aktif', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
+            'ACTIVE': { label: 'Reguler', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
             'DISMANTLE': { label: 'Dismantle', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
             'TERMINATED': { label: 'Keluar', bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
           };
@@ -213,13 +213,10 @@ export const CustomerTable = ({
         return (
           <Badge
             className={cn(
-              "rounded-md text-[11px] font-bold px-3 py-1 border-none",
-              row.statusCust
-                ? "bg-emerald-500 text-white"
-                : "bg-slate-200 text-slate-600",
+              "rounded-md text-[11px] font-bold px-3 py-1 border-none bg-emerald-100 text-emerald-700",
             )}
           >
-            {row.statusCust ? "Aktif" : "Non-Aktif"}
+            Reguler
           </Badge>
         );
       },
