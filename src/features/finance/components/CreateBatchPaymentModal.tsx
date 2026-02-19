@@ -128,10 +128,13 @@ export function CreateBatchPaymentModal({
             return;
         }
 
+        // Quota check removed per user request
+        /*
         if (isQuotaExceeded) {
             toast.error(`Selisih melebihi quota tersedia (${formatCurrency(quotaAvailable)})`);
             return;
         }
+        */
 
         setStep(3);
     };
@@ -369,12 +372,9 @@ export function CreateBatchPaymentModal({
                         <div className="space-y-2">
                             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
                                 <span>Pengeluaran Unit/sub unit</span>
-                                {isQuotaExceeded && <AlertCircle className="h-3 w-3 text-rose-500 animate-bounce" />}
+                                {isQuotaExceeded && <AlertCircle className="h-3 w-3 text-orange-500" />}
                             </div>
-                            <div className={cn(
-                                "text-3xl font-black tracking-tighter",
-                                isQuotaExceeded ? "text-rose-600" : "text-orange-600"
-                            )}>
+                            <div className="text-3xl font-black tracking-tighter text-orange-600">
                                 {formatCurrency(selisih)}
                             </div>
                         </div>
@@ -385,8 +385,8 @@ export function CreateBatchPaymentModal({
                                 <span className="text-[10px] font-black text-[#101D42]">{formatCurrency(quotaAvailable)}</span>
                             </div>
                             {isQuotaExceeded && (
-                                <div className="text-[10px] font-black text-rose-500 bg-white px-3 py-1.5 rounded-full border border-rose-200 shadow-sm animate-pulse">
-                                    DANA TIDAK CUKUP!
+                                <div className="text-[10px] font-black text-orange-500 bg-white px-3 py-1.5 rounded-full border border-orange-200 shadow-sm">
+                                    MELEBIHI QUOTA
                                 </div>
                             )}
                         </div>
@@ -405,7 +405,7 @@ export function CreateBatchPaymentModal({
                 </Button>
                 <Button
                     onClick={handleNext}
-                    disabled={!totalSetor || Number(totalSetor) <= 0 || isQuotaExceeded}
+                    disabled={!totalSetor || Number(totalSetor) <= 0}
                     className="h-12 px-8 bg-[#101D42] hover:bg-[#1a2b5e] min-w-[160px] rounded-[1.25rem] font-bold shadow-lg shadow-blue-900/20 active:scale-95 transition-all text-white"
                 >
                     Review Batch <ChevronRight className="ml-2 h-4 w-4 font-black" />

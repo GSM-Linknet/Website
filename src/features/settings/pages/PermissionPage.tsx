@@ -119,6 +119,7 @@ const MODULE_GROUPS: {
     ];
 
 const ACTIONS: { id: AppAction; label: string }[] = [
+    { id: "pay", label: "Pay" },
     { id: "view", label: "View" },
     { id: "create", label: "Add" },
     { id: "edit", label: "Edit" },

@@ -9,3 +9,5 @@ export { ReportCard } from "./ReportCard";
 export { StatusBadge } from "./StatusBadge";
 export { ReportDataTable } from "./ReportDataTable";
 export { default as UplineCustomerModal } from "./UplineCustomerModal";
+export { default as PackageCustomerModal } from "./PackageCustomerModal";
+export { default as LocationCustomerModal } from "./LocationCustomerModal";

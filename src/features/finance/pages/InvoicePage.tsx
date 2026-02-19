@@ -32,6 +32,7 @@ import { FinanceService } from "@/services/finance.service";
 import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 import { CustomerService, type Customer } from "@/services/customer.service";
 import { useDebounce } from "@/hooks/useDebounce";
+import { AuthService } from "@/services/auth.service";
 
 export default function InvoicePage() {
     const {
@@ -44,6 +45,7 @@ export default function InvoicePage() {
         totalPages,
         setQuery,
     } = useInvoices();
+    const user = AuthService.getUser();
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isBulkOpen, setIsBulkOpen] = useState(false);
@@ -238,19 +240,21 @@ export default function InvoicePage() {
             header: "Aksi",
             cell: (invoice: any) => (
                 <div className="flex items-center gap-2">
-                    {invoice.status !== "paid" && invoice.status !== "cancelled" && (
-                        <Button
-                            size="sm"
-                            variant="default"
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => {
-                                setSelectedInvoice(invoice);
-                                setIsPaymentOpen(true);
-                            }}
-                        >
-                            Bayar
-                        </Button>
-                    )}
+                    {AuthService.hasPermission(user?.role || "USER", "keuangan.invoice", "pay") &&
+                        invoice.status !== "paid" &&
+                        invoice.status !== "cancelled" && (
+                            <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                onClick={() => {
+                                    setSelectedInvoice(invoice);
+                                    setIsPaymentOpen(true);
+                                }}
+                            >
+                                Bayar
+                            </Button>
+                        )}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button

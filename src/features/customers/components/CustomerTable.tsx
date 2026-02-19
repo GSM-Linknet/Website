@@ -159,7 +159,7 @@ export const CustomerTable = ({
             "rounded-xl text-[10px] font-bold px-2.5 py-1 space-x-1.5 border-none",
             row.statusNet
               ? "bg-emerald-500 text-white"
-              : "bg-slate-200 text-slate-600",
+              : "bg-red-200 text-red-600",
           )}
         >
           {row.statusNet ? (
@@ -167,7 +167,7 @@ export const CustomerTable = ({
           ) : (
             <ShieldAlert size={12} />
           )}
-          <span>{row.statusNet ? "Online" : "Offline"}</span>
+          <span>{row.statusNet ? "Online" : "Suspend"}</span>
         </Badge>
       ),
     },

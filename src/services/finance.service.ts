@@ -1,12 +1,15 @@
-
 import { apiClient } from "./api-client";
-import type { BaseQuery, PaginatedResponse, ApiResponse } from "./master.service";
+import type {
+  BaseQuery,
+  PaginatedResponse,
+  ApiResponse,
+} from "./master.service";
 
 export interface Invoice {
   id: string;
   customerId: string;
   customer?: any;
-  type: 'REGISTRATION' | 'MONTHLY';
+  type: "REGISTRATION" | "MONTHLY";
   period?: string;
   invoiceNumber: string;
   amount: number;
@@ -33,17 +36,22 @@ export interface Payment {
   reference?: string;
   paidAt?: string;
   notes?: string;
-  
+
   // New: Billing Parameters
   wilayahId?: string;
   unitId?: string;
   customerName?: string;
   discount?: number;
-  paymentSystem?: 'CASH_UNIT' | 'CASH_SALES' | 'BANK_TRANSFER_PT' | 'VIRTUAL_ACCOUNT';
+  commission?: number;
+  paymentSystem?:
+    | "CASH_UNIT"
+    | "CASH_SALES"
+    | "BANK_TRANSFER_PT"
+    | "VIRTUAL_ACCOUNT";
   amountReceived?: number;
   isAutomatic?: boolean;
   xenditCallbackData?: any;
-  
+
   wilayah?: { id: string; name: string; code: string };
   unit?: { id: string; name: string; code: string };
 }
@@ -58,8 +66,8 @@ export interface CommissionLedger {
   };
   amount: number;
   percentage: number;
-  status: 'PENDING' | 'PAID' | 'CANCELLED';
-  type: 'SALES' | 'SPV' | 'UNIT' | 'ADMIN';
+  status: "PENDING" | "PAID" | "CANCELLED";
+  type: "SALES" | "SPV" | "UNIT" | "ADMIN";
   invoiceId?: string;
   invoice?: {
     id: string;
@@ -71,15 +79,18 @@ export interface CommissionLedger {
 }
 
 const ENDPOINTS = {
-    INVOICE: "/keuangan/invoice",
-    PAYMENT: "/keuangan/payment",
-    COMMISSION: "/keuangan/commission"
+  INVOICE: "/keuangan/invoice",
+  PAYMENT: "/keuangan/payment",
+  COMMISSION: "/keuangan/commission",
 };
 
 export const FinanceService = {
   // Invoices
   getInvoices: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Invoice>>(`${ENDPOINTS.INVOICE}/find-all`, { params: query });
+    return apiClient.get<PaginatedResponse<Invoice>>(
+      `${ENDPOINTS.INVOICE}/find-all`,
+      { params: query },
+    );
   },
   createInvoice: async (data: Partial<Invoice>) => {
     return apiClient.post<Invoice>(`${ENDPOINTS.INVOICE}/create`, data);
@@ -92,15 +103,23 @@ export const FinanceService = {
   },
 
   createRegistrationBill: async (customerId: string) => {
-    return apiClient.post(`${ENDPOINTS.INVOICE}/create/registration`, { customerId });
+    return apiClient.post(`${ENDPOINTS.INVOICE}/create/registration`, {
+      customerId,
+    });
   },
 
   createMonthlyBill: async (customerId: string, period: Date) => {
-    return apiClient.post(`${ENDPOINTS.INVOICE}/create/monthly`, { customerId, period });
+    return apiClient.post(`${ENDPOINTS.INVOICE}/create/monthly`, {
+      customerId,
+      period,
+    });
   },
 
   generateBulk: async (period: Date, unitId?: string) => {
-    return apiClient.post(`${ENDPOINTS.INVOICE}/generate-bulk`, { period, unitId });
+    return apiClient.post(`${ENDPOINTS.INVOICE}/generate-bulk`, {
+      period,
+      unitId,
+    });
   },
 
   regeneratePaymentLink: async (id: string) => {
@@ -108,14 +127,17 @@ export const FinanceService = {
   },
 
   downloadInvoicePdf: async (invoiceId: string, invoiceNumber: string) => {
-    const response = await apiClient.get<Blob>(`/keuangan/invoice/download-pdf/${invoiceId}`, {
-      responseType: 'blob',
-    });
+    const response = await apiClient.get<Blob>(
+      `/keuangan/invoice/download-pdf/${invoiceId}`,
+      {
+        responseType: "blob",
+      },
+    );
 
     // Create a blob URL and trigger download
     // response is already a Blob thanks to api-client standardization
     const url = window.URL.createObjectURL(response);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = `Invoice_${invoiceNumber}.pdf`;
     document.body.appendChild(link); // For better browser compatibility
@@ -126,12 +148,15 @@ export const FinanceService = {
 
   // Xendit Balance
   getXenditBalance: async () => {
-    return apiClient.get('/xendit/balance');
+    return apiClient.get("/xendit/balance");
   },
 
   // Payments
   getPayments: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Payment>>(`${ENDPOINTS.PAYMENT}/find-all`, { params: query });
+    return apiClient.get<PaginatedResponse<Payment>>(
+      `${ENDPOINTS.PAYMENT}/find-all`,
+      { params: query },
+    );
   },
   createPayment: async (data: Partial<Payment>) => {
     return apiClient.post<Payment>(`${ENDPOINTS.PAYMENT}/create`, data);
@@ -142,7 +167,10 @@ export const FinanceService = {
 
   // Commissions
   getCommissions: async (query: BaseQuery = {}) => {
-    return apiClient.get<ApiResponse<PaginatedResponse<CommissionLedger>>>(`${ENDPOINTS.COMMISSION}/find-all`, { params: query });
+    return apiClient.get<ApiResponse<PaginatedResponse<CommissionLedger>>>(
+      `${ENDPOINTS.COMMISSION}/find-all`,
+      { params: query },
+    );
   },
   getCommissionSummary: async () => {
     return apiClient.get<{
@@ -151,10 +179,13 @@ export const FinanceService = {
         totalPaid: number;
         totalCancelled: number;
         activeCustomers: number;
-      }
+      };
     }>(`${ENDPOINTS.COMMISSION}/summary`);
   },
-  updateCommissionStatus: async (id: string, status: 'PAID' | 'CANCELLED' | 'PENDING') => {
+  updateCommissionStatus: async (
+    id: string,
+    status: "PAID" | "CANCELLED" | "PENDING",
+  ) => {
     return apiClient.patch(`${ENDPOINTS.COMMISSION}/status/${id}`, { status });
-  }
+  },
 };

@@ -266,7 +266,7 @@ export default function CustomerListPage() {
           options={[
             { label: "Semua Internet", value: "all" },
             { label: "Online", value: "online" },
-            { label: "Offline", value: "offline" },
+            { label: "Suspend", value: "offline" },
           ]}
           onSelect={(val) => handleFilterChange("internet", val)}
         />

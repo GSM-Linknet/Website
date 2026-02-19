@@ -21,6 +21,7 @@ import { CreditCard, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { FinanceService } from "@/services/finance.service";
 import type { Invoice } from "@/services/finance.service";
+import { AuthService } from "@/services/auth.service";
 
 interface CreatePaymentModalProps {
     isOpen: boolean;
@@ -35,11 +36,14 @@ export function CreatePaymentModal({
     invoice,
     onSuccess,
 }: CreatePaymentModalProps) {
+    const user = AuthService.getUser();
+    const isSales = user?.role === "SALES";
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         amount: 0,
         discount: 0,
+        commission: 0,
         amountReceived: 0,
         paymentSystem: "",
         method: "cash",
@@ -52,8 +56,9 @@ export function CreatePaymentModal({
             setFormData({
                 amount: invoice.amount,
                 discount: 0,
+                commission: 0,
                 amountReceived: invoice.amount,
-                paymentSystem: "",
+                paymentSystem: isSales ? "CASH_SALES" : "",
                 method: "cash",
                 reference: "",
                 notes: "",
@@ -61,14 +66,14 @@ export function CreatePaymentModal({
         }
     }, [invoice]);
 
-    // Auto-calculate amount received when amount or discount changes
+    // Auto-calculate amount received when amount, discount or commission changes
     useEffect(() => {
-        const netAmount = formData.amount - formData.discount;
+        const netAmount = formData.amount - formData.discount - formData.commission;
         setFormData((prev) => ({
             ...prev,
             amountReceived: netAmount > 0 ? netAmount : 0,
         }));
-    }, [formData.amount, formData.discount]);
+    }, [formData.amount, formData.discount, formData.commission]);
 
     if (!invoice) return null;
 
@@ -99,6 +104,7 @@ export function CreatePaymentModal({
                 invoiceId: invoice.id,
                 amount: formData.amount,
                 discount: formData.discount,
+                commission: formData.commission,
                 amountReceived: formData.amountReceived,
                 paymentSystem: formData.paymentSystem as any,
                 method: formData.method,
@@ -168,16 +174,22 @@ export function CreatePaymentModal({
                                 <SelectValue placeholder="Pilih Sistem Bayar" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="CASH_UNIT">Cash di Unit</SelectItem>
-                                <SelectItem value="CASH_SALES">Cash via Sales</SelectItem>
-                                <SelectItem value="BANK_TRANSFER_PT">Transfer Bank PT</SelectItem>
-                                <SelectItem value="VIRTUAL_ACCOUNT">Virtual Account (Manual Input)</SelectItem>
+                                {isSales ? (
+                                    <SelectItem value="CASH_SALES">Cash via Sales</SelectItem>
+                                ) : (
+                                    <>
+                                        <SelectItem value="CASH_UNIT">Cash di Unit</SelectItem>
+                                        <SelectItem value="CASH_SALES">Cash via Sales</SelectItem>
+                                        <SelectItem value="BANK_TRANSFER_PT">Transfer Bank PT</SelectItem>
+                                        <SelectItem value="VIRTUAL_ACCOUNT">Virtual Account (Manual Input)</SelectItem>
+                                    </>
+                                )}
                             </SelectContent>
                         </Select>
                     </div>
 
                     {/* Amount Fields */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label className="text-sm font-semibold text-slate-700">Nominal Tagihan</Label>
                             <Input
@@ -199,6 +211,16 @@ export function CreatePaymentModal({
                                 placeholder="0"
                             />
                         </div>
+                        <div className="space-y-2">
+                            <Label className="text-sm font-semibold text-slate-700">Komisi ( Rp )</Label>
+                            <Input
+                                type="number"
+                                value={formData.commission}
+                                onChange={(e) => setFormData({ ...formData, commission: parseFloat(e.target.value) || 0 })}
+                                className="h-10 bg-white border-slate-300"
+                                placeholder="0"
+                            />
+                        </div>
                     </div>
 
                     {/* Amount Received - Auto calculated */}
@@ -210,7 +232,7 @@ export function CreatePaymentModal({
                             className="h-10 bg-slate-100 border-slate-300 font-bold text-green-600"
                             readOnly
                         />
-                        <p className="text-xs text-slate-500">Otomatis dihitung: Nominal - Diskon</p>
+                        <p className="text-xs text-slate-500">Otomatis dihitung: Nominal - Diskon - Komisi</p>
                     </div>
 
                     {/* Reference & Notes */}

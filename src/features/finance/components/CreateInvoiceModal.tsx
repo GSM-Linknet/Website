@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { InvoiceErrorDialog } from "@/components/shared/InvoiceErrorDialog";
 import { Button } from "@/components/ui/button";
@@ -11,11 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FinanceService } from "@/services/finance.service";
-import { CustomerService } from "@/services/customer.service";
-import { useToast } from "@/hooks/useToast";
 import { Loader2, Search, Plus } from "lucide-react";
-import moment from "moment";
+import { useCreateInvoice } from "../hooks/useCreateInvoice";
 
 interface CreateInvoiceModalProps {
   isOpen: boolean;
@@ -30,139 +26,36 @@ export function CreateInvoiceModal({
   onSuccess,
   initialCustomerId,
 }: CreateInvoiceModalProps) {
-  const [type, setType] = useState<"REGISTRATION" | "MONTHLY">("MONTHLY");
-  const [customerId, setCustomerId] = useState(initialCustomerId || "");
-  const [period, setPeriod] = useState<string>(moment().format("YYYY-MM"));
-  const [loading, setLoading] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [foundCustomers, setFoundCustomers] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedCustomerName, setSelectedCustomerName] = useState("");
-  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const { toast } = useToast();
+  const { state, handlers } = useCreateInvoice({
+    initialCustomerId,
+    onClose,
+    onSuccess,
+  });
 
-  useEffect(() => {
-    if (initialCustomerId) {
-      setCustomerId(initialCustomerId);
-      // Fetch customer name
-      CustomerService.getCustomers({
-        where: `id:${initialCustomerId}`,
-        paginate: false,
-        limit: 1,
-      } as any)
-        .then((response) => {
-          const customer = ((response as any).data?.items || (response as any).items || [])[0];
-          if (customer) {
-            setSelectedCustomerName(customer.name);
-          }
-        })
-        .catch((error) => {
-          console.error('Failed to fetch customer:', error);
-        });
-    }
-  }, [initialCustomerId]);
+  const {
+    type,
+    customerId,
+    period,
+    loading,
+    customerSearch,
+    foundCustomers,
+    isSearching,
+    selectedCustomerName,
+    errorDialogOpen,
+    errorMessage,
+  } = state;
 
-  const handleSearchCustomer = async () => {
-    if (!customerSearch) return;
-    setIsSearching(true);
-    try {
-      // Find customers by name or ID
-      const response = await CustomerService.getCustomers({
-        search: `name:${customerSearch}:`,
-        paginate: false,
-        limit: 5,
-      } as any);
-      setFoundCustomers(
-        (response as any).data?.items || (response as any).items || [],
-      );
-    } catch (error) {
-      console.error("Search error", error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const selectCustomer = (cust: any) => {
-    setCustomerId(cust.id);
-    setSelectedCustomerName(cust.name);
-    setFoundCustomers([]); // Clear search results
-    setCustomerSearch(""); // Clear search input
-  };
-
-  const handleCreate = async () => {
-    if (!customerId) {
-      toast({
-        title: "Gagal",
-        description: "Pilih pelanggan terlebih dahulu",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      let response;
-      if (type === "REGISTRATION") {
-        response = await FinanceService.createRegistrationBill(customerId);
-      } else {
-        if (!period) {
-          toast({
-            title: "Gagal",
-            description: "Pilih periode tagihan",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-        const selectedDate = moment(period, "YYYY-MM").toDate();
-        response = await FinanceService.createMonthlyBill(
-          customerId,
-          selectedDate,
-        );
-      }
-
-      const result = (response as any).data;
-      toast({
-        title: "Berhasil",
-        description: result.message || "Invoice created",
-      });
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      console.error("Create invoice error", error);
-      // Check multiple possible error fields from backend
-      const errMsg =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to create invoice";
-
-      console.log("Error message:", errMsg); // Debug
-      console.log("Full error response:", error.response?.data); // Debug
-
-      // Check if it's a duplicate error - more flexible matching
-      const isDuplicate =
-        errMsg.toLowerCase().includes("sudah ada") ||
-        errMsg.toLowerCase().includes("already exists") ||
-        errMsg.toLowerCase().includes("duplicate") ||
-        errMsg.toLowerCase().includes("tagihan");
-
-      if (isDuplicate) {
-        console.log("Opening error dialog");
-        setErrorMessage(errMsg);
-        setErrorDialogOpen(true);
-      } else {
-        toast({
-          title: "Gagal",
-          description: errMsg,
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    setType,
+    setCustomerId,
+    setPeriod,
+    setCustomerSearch,
+    handleSearchCustomer,
+    selectCustomer,
+    resetSelection,
+    handleCreate,
+    closeErrorDialog,
+  } = handlers;
 
   return (
     <>
@@ -189,10 +82,7 @@ export function CreateInvoiceModal({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setCustomerId("");
-                    setSelectedCustomerName("");
-                  }}
+                  onClick={resetSelection}
                   className="h-8 text-xs hover:bg-blue-100 text-blue-700"
                 >
                   Ganti
@@ -285,10 +175,7 @@ export function CreateInvoiceModal({
 
       <InvoiceErrorDialog
         isOpen={errorDialogOpen}
-        onClose={() => {
-          setErrorDialogOpen(false);
-          setErrorMessage("");
-        }}
+        onClose={closeErrorDialog}
         errorMessage={errorMessage}
         invoiceType={type}
       />
