@@ -33,7 +33,7 @@ export interface ResponseData<T> {
  */
 export const apiInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
-  timeout: 10000,
+  timeout: 120000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -66,7 +66,7 @@ const refreshAccessToken = async (): Promise<string> => {
 
   const response = await axios.post(
     `${import.meta.env.VITE_API_BASE_URL || "/api"}/auth/refresh`,
-    { refreshToken }
+    { refreshToken },
   );
 
   const { accessToken, refreshToken: newRefreshToken } = response.data.data;
@@ -94,7 +94,7 @@ apiInstance.interceptors.request.use(
   },
   (error: AxiosError) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
@@ -103,7 +103,7 @@ apiInstance.interceptors.request.use(
 apiInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     // For blob responses, return just the data (the Blob itself)
-    if (response.config.responseType === 'blob') {
+    if (response.config.responseType === "blob") {
       return response.data;
     }
     return response.data;
@@ -115,8 +115,12 @@ apiInstance.interceptors.response.use(
 
     // Handle 401 Unauthorized - Attempt token refresh
     const isAuthLogin = originalRequest.url?.includes("/auth/login");
-    
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthLogin) {
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthLogin
+    ) {
       if (isRefreshing) {
         // Queue the request while refresh is in progress
         return new Promise((resolve, reject) => {
@@ -159,7 +163,7 @@ apiInstance.interceptors.response.use(
 
     console.error(`[API Error] ${status}: ${message}`);
     return Promise.reject(new ApiError(status, message, error.response?.data));
-  }
+  },
 );
 
 // ==================== API Client Wrapper ====================
@@ -178,4 +182,3 @@ export const apiClient = {
   delete: <T>(url: string, config = {}) =>
     apiInstance.delete<any, T>(url, config),
 };
-

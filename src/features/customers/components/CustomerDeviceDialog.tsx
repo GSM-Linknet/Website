@@ -26,7 +26,7 @@ export function CustomerDeviceDialog({ customerId, customerName, open, onOpenCha
         setLoading(true);
         try {
             const res: any = await LinkNetService.getCustomerDevices(customerId);
-            setDevices(res?.data?.data || []);
+            setDevices(res?.data || []);
         } catch (err: any) {
             toast.error(err?.message || "Gagal mengambil data perangkat");
             setDevices([]);
@@ -64,8 +64,8 @@ export function CustomerDeviceDialog({ customerId, customerName, open, onOpenCha
                                         {device.DEVICETYPE || "Unknown Device"}
                                     </span>
                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${device.status === "active" || device.status === "Active"
-                                            ? "bg-emerald-100 text-emerald-700"
-                                            : "bg-red-100 text-red-700"
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-red-100 text-red-700"
                                         }`}>
                                         {device.status || "N/A"}
                                     </span>

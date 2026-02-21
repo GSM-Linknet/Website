@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power } from "lucide-react";
+import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power} from "lucide-react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -309,6 +309,7 @@ export const CustomerTable = ({
                   className="cursor-pointer rounded-lg text-xs font-semibold"
                   onClick={() => onEdit?.(row)}
                 >
+                  
                   Kelola
                 </DropdownMenuItem>
               )}
@@ -319,7 +320,7 @@ export const CustomerTable = ({
                 <FileText size={14} />
                 Lihat Tagihan
               </DropdownMenuItem>
-              {row.lnId && canSuspend && (
+              {row.customerId && canSuspend && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-purple-600 flex items-center gap-2"
                   onClick={() => handleViewDevices(row)}
@@ -329,7 +330,7 @@ export const CustomerTable = ({
                   Lihat Perangkat
                 </DropdownMenuItem>
               )}
-              {row.lnId && canSuspend && (
+              {row.customerId && canSuspend && (
                 <DropdownMenuItem
                   className={cn(
                     "cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2",
