@@ -50,7 +50,7 @@ export function CreateBatchPaymentModal({
     const debouncedSearch = useDebounce(searchTerm, 300);
 
     const { data: invoices, loading: loadingInvoices } = useInvoices({
-        where: "status:pending",
+        where: "status:pending||status:overdue",
         paginate: false,
     });
 

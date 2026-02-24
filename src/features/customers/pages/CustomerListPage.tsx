@@ -115,7 +115,7 @@ export default function CustomerListPage() {
     const searchParts: string[] = [];
 
     // Search fields (uses OR logic via search param)
-    if (debouncedSearchQuery) searchParts.push(`name:${debouncedSearchQuery}`);
+    if (debouncedSearchQuery) searchParts.push(debouncedSearchQuery);
 
     // Filter fields (uses AND logic via where param)
     if (filters.status !== "all")
@@ -204,7 +204,7 @@ export default function CustomerListPage() {
               size={18}
             />
             <Input
-              placeholder="Cari"
+              placeholder="Cari nama, ID, no. telp..."
               className="pl-10 w-full sm:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

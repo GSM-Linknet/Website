@@ -159,6 +159,11 @@ export default function InvoicePage() {
             header: "Nomor Invoice",
         },
         {
+            accessorKey: "createdAt",
+            header: "Dibuat Pada",
+            cell: (invoice: any) => moment(invoice.createdAt).format("DD/MM/YYYY"),
+        },
+        {
             accessorKey: "customer.name",
             header: "Pelanggan",
             cell: (invoice: any) => invoice.customer?.name || invoice.customerId,
@@ -224,7 +229,7 @@ export default function InvoicePage() {
         {
             header: "Link Bayar",
             cell: (invoice: any) =>
-                invoice.paymentUrl && invoice.status === "pending" ? (
+                invoice.paymentUrl && invoice.status !== "paid" && invoice.status !== "cancelled" ? (
                     <Button
                         variant="link"
                         className="text-blue-600 p-0 h-auto font-medium"
@@ -297,6 +302,32 @@ export default function InvoicePage() {
                                 >
                                     <RefreshCw className="mr-2 h-4 w-4" />
                                     Generate Ulang Link
+                                </DropdownMenuItem>
+                            )}
+                            {invoice.status === "paid" && user?.role === "SUPER_ADMIN" && (
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        setAlertConfig({
+                                            title: "Rollback Invoice",
+                                            description: `Apakah Anda yakin ingin membatalkan status lunas untuk invoice ${invoice.invoiceNumber}? Status akan kembali menjadi pending.`,
+                                            variant: "destructive",
+                                            onConfirm: async () => {
+                                                try {
+                                                    await FinanceService.rollbackInvoice(invoice.id);
+                                                    await refetch();
+                                                    toast.success("Invoice berhasil di-rollback ke pending");
+                                                } catch (error: any) {
+                                                    console.error(error);
+                                                    toast.error(error?.response?.data?.message || "Gagal melakukan rollback invoice");
+                                                }
+                                            }
+                                        });
+                                        setAlertOpen(true);
+                                    }}
+                                    className="cursor-pointer text-amber-600 focus:text-amber-600"
+                                >
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Rollback ke Pending
                                 </DropdownMenuItem>
                             )}
                             {invoice.status !== "paid" && (

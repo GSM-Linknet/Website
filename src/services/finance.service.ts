@@ -131,6 +131,10 @@ export const FinanceService = {
     return apiClient.post(`${ENDPOINTS.INVOICE}/regenerate-payment-link/${id}`);
   },
 
+  rollbackInvoice: async (id: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/rollback/${id}`);
+  },
+
   downloadInvoicePdf: async (invoiceId: string, invoiceNumber: string) => {
     const response = await apiClient.get<Blob>(
       `/keuangan/invoice/download-pdf/${invoiceId}`,
