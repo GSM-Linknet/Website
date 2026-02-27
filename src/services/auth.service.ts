@@ -27,6 +27,7 @@ export type PermissionResource =
   | "pelanggan.pendaftaran"
   | "pelanggan.kelola"
   | "pelanggan.layanan"
+  | "pelanggan.suspend-queue" // Suspend queue management
   | "pelanggan.legacy" // Legacy customer management
   // Teknisi
   | "teknisi.database"
@@ -128,6 +129,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "export",
     ],
     "pelanggan.kelola": ["view", "create", "edit", "delete", "export"],
+    "pelanggan.suspend-queue": ["view", "edit", "suspend"],
     "pelanggan.layanan": ["view", "create", "edit", "delete", "suspend"],
     "pelanggan.legacy": ["view", "create", "edit", "delete"],
     "teknisi.database": ["view", "create", "edit", "delete"],

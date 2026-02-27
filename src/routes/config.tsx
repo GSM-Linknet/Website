@@ -18,6 +18,9 @@ const CustomerRegistrationPage = lazy(
 const LinkNetPage = lazy(
   () => import("@/features/customers/pages/LinkNetPage"),
 );
+const SuspendReviewPage = lazy(
+  () => import("@/features/customers/pages/SuspendReviewPage"),
+);
 const TechnicianPage = lazy(
   () => import("@/features/technicians/pages/TechnicianPage"),
 );
@@ -214,6 +217,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <LinkNetPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "review-suspend",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <SuspendReviewPage />
               </Suspense>
             ),
           },

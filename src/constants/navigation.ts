@@ -52,6 +52,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/pelanggan/kelola",
         resource: "pelanggan.kelola",
       },
+      {
+        title: "Review Suspend",
+        href: "/pelanggan/review-suspend",
+        resource: "pelanggan.suspend-queue",
+      },
       // {
       //   title: "Layanan Link Net",
       //   href: "/pelanggan/layanan",
