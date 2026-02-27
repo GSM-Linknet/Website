@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText } from "lucide-react";
+import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power} from "lucide-react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -11,10 +11,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-// import type { Customer } from "@/constants/customers_mock"; // Deprecated
 import type { Customer } from "@/services/customer.service";
 import { AuthService } from "@/services/auth.service";
 import { CustomerInvoiceDialog } from "./CustomerInvoiceDialog";
+import { CustomerDeviceDialog } from "./CustomerDeviceDialog";
+import { LinkNetService } from "@/services/linknet.service";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -34,6 +46,7 @@ const resource = "pelanggan.kelola";
 
 const canEdit = AuthService.hasPermission(userRole, resource, "edit");
 const canDelete = AuthService.hasPermission(userRole, resource, "delete");
+const canSuspend = AuthService.hasPermission(userRole, "pelanggan.layanan", "suspend");
 
 export const CustomerTable = ({
   customers,
@@ -48,10 +61,41 @@ export const CustomerTable = ({
 }: CustomerTableProps) => {
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [deviceDialogOpen, setDeviceDialogOpen] = useState(false);
+  const [deviceCustomer, setDeviceCustomer] = useState<Customer | null>(null);
+  const [suspendingId, setSuspendingId] = useState<string | null>(null);
+  const [suspendConfirm, setSuspendConfirm] = useState<{ customer: Customer; action: "suspend" | "unsuspend" } | null>(null);
 
   const handleViewInvoices = (customer: Customer) => {
     setSelectedCustomer(customer);
     setInvoiceDialogOpen(true);
+  };
+
+  const handleViewDevices = (customer: Customer) => {
+    setDeviceCustomer(customer);
+    setDeviceDialogOpen(true);
+  };
+
+  const openSuspendConfirm = (customer: Customer) => {
+    const action = customer.statusNet ? "suspend" : "unsuspend";
+    setSuspendConfirm({ customer, action });
+  };
+
+  const executeSuspend = async () => {
+    if (!suspendConfirm) return;
+    const { customer, action } = suspendConfirm;
+    const label = action === "suspend" ? "Suspend" : "Unsuspend";
+    setSuspendConfirm(null);
+    setSuspendingId(customer.id);
+    try {
+      await LinkNetService.toggleSuspend(customer.id, action);
+      toast.success(`Pelanggan berhasil di-${label.toLowerCase()}`);
+      customer.statusNet = !customer.statusNet;
+    } catch (err: any) {
+      toast.error(err?.message || `Gagal ${label.toLowerCase()} pelanggan`);
+    } finally {
+      setSuspendingId(null);
+    }
   };
   const columns = [
 
@@ -171,7 +215,7 @@ export const CustomerTable = ({
         </Badge>
       ),
     },
-   
+
     {
       header: "PAKET",
       accessorKey: "paket",
@@ -265,6 +309,7 @@ export const CustomerTable = ({
                   className="cursor-pointer rounded-lg text-xs font-semibold"
                   onClick={() => onEdit?.(row)}
                 >
+                  
                   Kelola
                 </DropdownMenuItem>
               )}
@@ -275,6 +320,29 @@ export const CustomerTable = ({
                 <FileText size={14} />
                 Lihat Tagihan
               </DropdownMenuItem>
+              {row.customerId && canSuspend && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-purple-600 flex items-center gap-2"
+                  onClick={() => handleViewDevices(row)}
+                  disabled={suspendingId === row.id}
+                >
+                  <Wifi size={14} />
+                  Lihat Perangkat
+                </DropdownMenuItem>
+              )}
+              {row.customerId && canSuspend && (
+                <DropdownMenuItem
+                  className={cn(
+                    "cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2",
+                    row.statusNet ? "text-orange-600" : "text-emerald-600"
+                  )}
+                  onClick={() => openSuspendConfirm(row)}
+                  disabled={suspendingId === row.id}
+                >
+                  <Power size={14} />
+                  {row.statusNet ? "Suspend" : "Unsuspend"}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
                 onClick={() => onDelete?.(row.id)}
@@ -306,6 +374,53 @@ export const CustomerTable = ({
         onClose={() => setInvoiceDialogOpen(false)}
         customer={selectedCustomer}
       />
+      {deviceCustomer && (
+        <CustomerDeviceDialog
+          customerId={deviceCustomer.id}
+          customerName={deviceCustomer.name}
+          open={deviceDialogOpen}
+          onOpenChange={setDeviceDialogOpen}
+        />
+      )}
+
+      {/* Suspend/Unsuspend Confirmation Dialog */}
+      <AlertDialog open={!!suspendConfirm} onOpenChange={(open) => !open && setSuspendConfirm(null)}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className={cn(
+                "p-2.5 rounded-xl",
+                suspendConfirm?.action === "suspend" ? "bg-orange-100" : "bg-emerald-100"
+              )}>
+                <Power size={20} className={suspendConfirm?.action === "suspend" ? "text-orange-600" : "text-emerald-600"} />
+              </div>
+              <AlertDialogTitle className="text-lg">
+                {suspendConfirm?.action === "suspend" ? "Suspend" : "Unsuspend"} Pelanggan
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-slate-500 leading-relaxed">
+              Apakah Anda yakin ingin <span className="font-semibold text-slate-700">{suspendConfirm?.action === "suspend" ? "menonaktifkan" : "mengaktifkan kembali"}</span> layanan untuk pelanggan <span className="font-semibold text-slate-700">{suspendConfirm?.customer.name}</span>?
+              {suspendConfirm?.action === "suspend" && (
+                <span className="block mt-2 text-orange-600 text-xs font-medium">⚠ Pelanggan tidak akan bisa mengakses layanan internet setelah di-suspend.</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogCancel className="rounded-lg">Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeSuspend}
+              className={cn(
+                "rounded-lg text-white",
+                suspendConfirm?.action === "suspend"
+                  ? "bg-orange-600 hover:bg-orange-700"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              )}
+            >
+              {suspendConfirm?.action === "suspend" ? "Ya, Suspend" : "Ya, Unsuspend"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
