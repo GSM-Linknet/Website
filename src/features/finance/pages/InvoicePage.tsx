@@ -2,24 +2,35 @@ import { useState, useEffect } from "react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Button } from "@/components/ui/button";
 import { useInvoices } from "../hooks/useInvoices";
-import { Plus, Receipt, Search, ChevronDown, Trash2, RefreshCw, MoreVertical, Download } from "lucide-react";
+import {
+  Plus,
+  Receipt,
+  Search,
+  ChevronDown,
+  Trash2,
+  RefreshCw,
+  MoreVertical,
+  Download,
+  Filter,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CreateInvoiceModal } from "../components/CreateInvoiceModal";
 import { BulkGenerateModal } from "../components/BulkGenerateModal";
@@ -29,539 +40,742 @@ import moment from "moment";
 import { toast } from "sonner";
 import type { Invoice } from "@/services/finance.service";
 import { FinanceService } from "@/services/finance.service";
-import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
+import {
+  MasterService,
+  type Unit,
+  type SubUnit,
+} from "@/services/master.service";
 import { CustomerService, type Customer } from "@/services/customer.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AuthService } from "@/services/auth.service";
 
 export default function InvoicePage() {
-    const {
-        data: invoices,
-        loading: isLoading,
-        refetch,
-        setPage,
-        totalItems,
-        page,
-        totalPages,
-        setQuery,
-    } = useInvoices();
-    const user = AuthService.getUser();
+  const {
+    data: invoices,
+    loading: isLoading,
+    refetch,
+    setPage,
+    totalItems,
+    page,
+    totalPages,
+    setQuery,
+  } = useInvoices();
+  const user = AuthService.getUser();
 
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [isBulkOpen, setIsBulkOpen] = useState(false);
-    const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-    const [searchQuery, setSearchQuery] = useState("");
-    const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-    // Alert Dialog state
-    const [alertOpen, setAlertOpen] = useState(false);
-    const [alertConfig, setAlertConfig] = useState<{
-        title: string;
-        description: string;
-        onConfirm: () => void;
-        variant?: "destructive" | "default";
-    }>({ title: "", description: "", onConfirm: () => { } });
+  // Alert Dialog state
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant?: "destructive" | "default";
+  }>({ title: "", description: "", onConfirm: () => {} });
 
-    // Filters state
-    const [filters, setFilters] = useState({
-        status: "all",
-        unit: "all",
-        subUnit: "all",
-        upline: "all",
-        customer: "all",
-    });
+  // Filters state
+  const defaultStartDate = moment().startOf("month").format("YYYY-MM-DD");
+  const defaultEndDate = moment().format("YYYY-MM-DD"); // Up to today
 
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
-    const [uplines, setUplines] = useState<Customer[]>([]);
-    const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filters, setFilters] = useState({
+    status: "all",
+    unit: "all",
+    subUnit: "all",
+    upline: "all",
+    customer: "all",
+    type: "all",
+    period: "all",
+    createdAtStart: defaultStartDate,
+    createdAtEnd: defaultEndDate,
+  });
 
-    // Fetch units on mount
-    useEffect(() => {
-        MasterService.getUnits({ paginate: false })
-            .then((res) => {
-                const items = res.data?.items || [];
-                setUnits(items);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch units:", err);
-                setUnits([]);
-            });
-    }, []);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-    // Fetch customers on mount
-    useEffect(() => {
-        CustomerService.getCustomers({ paginate: false })
-            .then((res) => {
-                const items = (res as any).data?.items || [];
-                setCustomers(items);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
+  const [uplines, setUplines] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
-                // Extract unique uplines
-                const uniqueUplines = items
-                    .filter((c: Customer) => c.upline)
-                    .map((c: Customer) => c.upline)
-                    .filter((u: any, index: number, self: any[]) =>
-                        index === self.findIndex((t: any) => t.id === u.id)
-                    );
-                setUplines(uniqueUplines);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch customers:", err);
-                setCustomers([]);
-                setUplines([]);
-            });
-    }, []);
+  // Fetch units on mount
+  useEffect(() => {
+    MasterService.getUnits({ paginate: false })
+      .then((res) => {
+        const items = res.data?.items || [];
+        setUnits(items);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch units:", err);
+        setUnits([]);
+      });
+  }, []);
 
-    // Fetch subUnits when unit changes
-    useEffect(() => {
-        if (filters.unit !== "all") {
-            MasterService.getSubUnits({ paginate: false, where: `unitId:${filters.unit}` })
-                .then((res) => {
-                    const items = res.data?.items || [];
-                    setSubUnits(items);
-                })
-                .catch((err) => {
-                    console.error("Failed to fetch subUnits:", err);
-                    setSubUnits([]);
-                });
-        } else {
-            setSubUnits([]);
-            setFilters(prev => ({ ...prev, subUnit: "all" }));
-        }
-    }, [filters.unit]);
+  // Fetch customers on mount
+  useEffect(() => {
+    CustomerService.getCustomers({ paginate: false })
+      .then((res) => {
+        const items = (res as any).data?.items || [];
+        setCustomers(items);
 
-    // Update query when search or filters change
-    useEffect(() => {
-        const whereParts: string[] = [];
+        // Extract unique uplines
+        const uniqueUplines = items
+          .filter((c: Customer) => c.upline)
+          .map((c: Customer) => c.upline)
+          .filter(
+            (u: any, index: number, self: any[]) =>
+              index === self.findIndex((t: any) => t.id === u.id),
+          );
+        setUplines(uniqueUplines);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch customers:", err);
+        setCustomers([]);
+        setUplines([]);
+      });
+  }, []);
 
-        if (filters.status !== "all") whereParts.push(`status:${filters.status}`);
-        if (filters.unit !== "all") whereParts.push(`customer.unitId:${filters.unit}`);
-        if (filters.subUnit !== "all") whereParts.push(`customer.subUnitId:${filters.subUnit}`);
-        if (filters.upline !== "all") whereParts.push(`customer.idUpline:${filters.upline}`);
-        if (filters.customer !== "all") whereParts.push(`customerId:${filters.customer}`);
+  // Fetch subUnits when unit changes
+  useEffect(() => {
+    if (filters.unit !== "all") {
+      MasterService.getSubUnits({
+        paginate: false,
+        where: `unitId:${filters.unit}`,
+      })
+        .then((res) => {
+          const items = res.data?.items || [];
+          setSubUnits(items);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch subUnits:", err);
+          setSubUnits([]);
+        });
+    } else {
+      setSubUnits([]);
+      setFilters((prev) => ({ ...prev, subUnit: "all" }));
+    }
+  }, [filters.unit]);
 
-        const queryParams: any = {};
-        if (debouncedSearchQuery) queryParams.search = `customer.name:${debouncedSearchQuery}`;
-        if (whereParts.length > 0) queryParams.where = whereParts.join("+");
+  // Update query when search or filters change
+  useEffect(() => {
+    const whereParts: string[] = [];
+    const gteParts: string[] = [];
+    const lteParts: string[] = [];
 
-        setQuery(Object.keys(queryParams).length > 0 ? queryParams : { search: undefined, where: undefined });
-    }, [debouncedSearchQuery, filters, setQuery]);
+    if (filters.status !== "all") whereParts.push(`status:${filters.status}`);
+    if (filters.unit !== "all")
+      whereParts.push(`customer.unitId:${filters.unit}`);
+    if (filters.subUnit !== "all")
+      whereParts.push(`customer.subUnitId:${filters.subUnit}`);
+    if (filters.upline !== "all")
+      whereParts.push(`customer.idUpline:${filters.upline}`);
+    if (filters.customer !== "all")
+      whereParts.push(`customerId:${filters.customer}`);
+    if (filters.type !== "all") whereParts.push(`type:${filters.type}`);
 
+    if (filters.period && filters.period !== "all") {
+      const startOfMonth = moment(filters.period, "YYYY-MM")
+        .startOf("month")
+        .format("YYYY-MM-DD");
+      const endOfMonth = moment(filters.period, "YYYY-MM")
+        .endOf("month")
+        .format("YYYY-MM-DD");
+      gteParts.push(`period:${startOfMonth}`);
+      lteParts.push(`period:${endOfMonth}`);
+    }
 
-    const handleFilterChange = (key: string, value: string) => {
-        setFilters({ ...filters, [key]: value });
+    if (filters.createdAtStart) {
+      gteParts.push(
+        `createdAt:${moment(filters.createdAtStart).format("YYYY-MM-DD")}`,
+      );
+    }
+    if (filters.createdAtEnd) {
+      lteParts.push(
+        `createdAt:${moment(filters.createdAtEnd).format("YYYY-MM-DD")}`,
+      );
+    }
+
+    const queryParams: any = {
+      search: debouncedSearchQuery
+        ? `customer.name:${debouncedSearchQuery}`
+        : undefined,
+      where: whereParts.length > 0 ? whereParts.join("+") : undefined,
+      gte: gteParts.length > 0 ? gteParts.join("+") : undefined,
+      lte: lteParts.length > 0 ? lteParts.join("+") : undefined,
     };
 
-    const columns: any[] = [
-        {
-            accessorKey: "invoiceNumber",
-            header: "Nomor Invoice",
-        },
-        {
-            accessorKey: "customer.name",
-            header: "Pelanggan",
-            cell: (invoice: any) => invoice.customer?.name || invoice.customerId,
-        },
-        {
-            accessorKey: "upline",
-            header: "Upline",
-            cell: (invoice: any) => invoice.customer?.upline?.name || "-",
-        },
-        {
-            accessorKey: "type",
-            header: "Tipe",
-            cell: (invoice: any) => (
-                <Badge
-                    variant="secondary"
-                    className={
-                        invoice.type === "REGISTRATION"
-                            ? "bg-purple-100 text-purple-700 hover:bg-purple-100"
-                            : "bg-blue-100 text-blue-700 hover:bg-blue-100"
-                    }
-                >
-                    {invoice.type === "REGISTRATION" ? "Registrasi" : "Bulanan"}
-                </Badge>
-            ),
-        },
-        {
-            accessorKey: "period",
-            header: "Periode",
-            cell: (invoice: any) =>
-                invoice.period ? moment(invoice.period).format("MMMM YYYY") : "-",
-        },
-        {
-            accessorKey: "amount",
-            header: "Total",
-            cell: (invoice: any) => formatCurrency(invoice.amount),
-        },
-        {
-            accessorKey: "dueDate",
-            header: "Jatuh Tempo",
-            cell: (invoice: any) => moment(invoice.dueDate).format("DD MMM YYYY"),
-        },
-        {
-            accessorKey: "status",
-            header: "Status",
-            cell: (invoice: any) => {
-                const status = invoice.status;
-                let color = "bg-gray-100 text-gray-700";
-                if (status === "paid")
-                    color = "bg-emerald-100 text-emerald-700 shadow-sm";
-                if (status === "overdue") color = "bg-rose-100 text-rose-700 shadow-sm";
-                if (status === "pending")
-                    color = "bg-amber-100 text-amber-700 shadow-sm";
+    setQuery(queryParams);
+  }, [debouncedSearchQuery, filters, setQuery]);
 
-                return (
-                    <Badge
-                        className={`px-2.5 py-0.5 rounded-full border-none font-medium ${color} hover:${color}`}
-                    >
-                        {status ? status.toUpperCase() : "UNKNOWN"}
-                    </Badge>
-                );
-            },
-        },
-        {
-            header: "Link Bayar",
-            cell: (invoice: any) =>
-                invoice.paymentUrl && invoice.status === "pending" ? (
-                    <Button
-                        variant="link"
-                        className="text-blue-600 p-0 h-auto font-medium"
-                        onClick={() => window.open(invoice.paymentUrl, "_blank")}
-                    >
-                        Buka Link
-                    </Button>
-                ) : (
-                    "-"
-                ),
-        },
-        {
-            header: "Aksi",
-            cell: (invoice: any) => (
-                <div className="flex items-center gap-2">
-                    {AuthService.hasPermission(user?.role || "USER", "keuangan.invoice", "pay") &&
-                        invoice.status !== "paid" &&
-                        invoice.status !== "cancelled" && (
-                            <Button
-                                size="sm"
-                                variant="default"
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                                onClick={() => {
-                                    setSelectedInvoice(invoice);
-                                    setIsPaymentOpen(true);
-                                }}
-                            >
-                                Bayar
-                            </Button>
-                        )}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-9 w-9 p-0"
-                            >
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                                onClick={() => FinanceService.downloadInvoicePdf(invoice.id, invoice.invoiceNumber)}
-                                className="cursor-pointer"
-                            >
-                                <Download className="mr-2 h-4 w-4" />
-                                Download PDF
-                            </DropdownMenuItem>
-                            {invoice.status !== "paid" && invoice.status !== "cancelled" && (
-                                <DropdownMenuItem
-                                    onClick={() => {
-                                        setAlertConfig({
-                                            title: "Generate Ulang Link Pembayaran",
-                                            description: "Apakah Anda yakin ingin membuat link pembayaran baru untuk invoice ini?",
-                                            variant: "default",
-                                            onConfirm: async () => {
-                                                try {
-                                                    await FinanceService.regeneratePaymentLink(invoice.id);
-                                                    await refetch();
-                                                    toast.success("Link pembayaran berhasil digenerate ulang");
-                                                } catch (error) {
-                                                    console.error(error);
-                                                    toast.error("Gagal generate ulang link pembayaran");
-                                                }
-                                            }
-                                        });
-                                        setAlertOpen(true);
-                                    }}
-                                    className="cursor-pointer"
-                                >
-                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                    Generate Ulang Link
-                                </DropdownMenuItem>
-                            )}
-                            {invoice.status !== "paid" && (
-                                <DropdownMenuItem
-                                    onClick={() => {
-                                        setAlertConfig({
-                                            title: "Hapus Invoice",
-                                            description: `Apakah Anda yakin ingin menghapus invoice ${invoice.invoiceNumber}? Tindakan ini tidak dapat dibatalkan.`,
-                                            variant: "destructive",
-                                            onConfirm: async () => {
-                                                try {
-                                                    await FinanceService.deleteInvoice(invoice.id);
-                                                    await refetch();
-                                                    toast.success("Invoice berhasil dihapus");
-                                                } catch (error) {
-                                                    console.error(error);
-                                                    toast.error("Gagal menghapus invoice");
-                                                }
-                                            }
-                                        });
-                                        setAlertOpen(true);
-                                    }}
-                                    className="cursor-pointer text-red-600 focus:text-red-600"
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Hapus Invoice
-                                </DropdownMenuItem>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            ),
-        },
-    ];
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters({ ...filters, [key]: value });
+  };
 
-    return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-1.5">
-                    <h1 className="text-2xl font-extrabold text-[#101D42] tracking-tight sm:text-3xl">
-                        Tagihan
-                    </h1>
-                    <p className="text-sm font-medium text-slate-500 max-w-2xl leading-relaxed">
-                        Kelola tagihan pelanggan (Registrasi & Bulanan)
-                    </p>
-                </div>
+  const columns: any[] = [
+    {
+      accessorKey: "invoiceNumber",
+      header: "Nomor Invoice",
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Dibuat Pada",
+      cell: (invoice: any) => moment(invoice.createdAt).format("DD/MM/YYYY"),
+    },
+    {
+      accessorKey: "customer.name",
+      header: "Pelanggan",
+      cell: (invoice: any) => invoice.customer?.name || invoice.customerId,
+    },
+    {
+      accessorKey: "upline",
+      header: "Upline",
+      cell: (invoice: any) => invoice.customer?.upline?.name || "-",
+    },
+    {
+      accessorKey: "type",
+      header: "Tipe",
+      cell: (invoice: any) => (
+        <Badge
+          variant="secondary"
+          className={
+            invoice.type === "REGISTRATION"
+              ? "bg-purple-100 text-purple-700 hover:bg-purple-100"
+              : "bg-blue-100 text-blue-700 hover:bg-blue-100"
+          }
+        >
+          {invoice.type === "REGISTRATION" ? "Registrasi" : "Bulanan"}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "period",
+      header: "Periode",
+      cell: (invoice: any) =>
+        invoice.period ? moment(invoice.period).format("MMMM YYYY") : "-",
+    },
+    {
+      accessorKey: "amount",
+      header: "Total",
+      cell: (invoice: any) => formatCurrency(invoice.amount),
+    },
+    {
+      accessorKey: "dueDate",
+      header: "Jatuh Tempo",
+      cell: (invoice: any) => moment(invoice.dueDate).format("DD MMM YYYY"),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: (invoice: any) => {
+        const status = invoice.status;
+        let color = "bg-gray-100 text-gray-700";
+        if (status === "paid")
+          color = "bg-emerald-100 text-emerald-700 shadow-sm";
+        if (status === "overdue") color = "bg-rose-100 text-rose-700 shadow-sm";
+        if (status === "pending")
+          color = "bg-amber-100 text-amber-700 shadow-sm";
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
-                    <div className="relative group w-full sm:w-auto">
-                        <Search
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
-                            size={18}
-                        />
-                        <Input
-                            placeholder="Cari nama pelanggan..."
-                            className="pl-10 w-full sm:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <Button
-                        variant="outline"
-                        onClick={() => setIsBulkOpen(true)}
-                        className="rounded-xl font-bold w-full sm:w-auto"
-                    >
-                        <Receipt className="mr-2 h-4 w-4" />
-                        Generate Bulanan
-                    </Button>
-                    <Button
-                        onClick={() => setIsCreateOpen(true)}
-                        className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold shadow-lg transition-all hover:scale-[1.02] w-full sm:w-auto"
-                    >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Buat Tagihan
-                    </Button>
-                </div>
-            </div>
-
-            {/* Filters Section */}
-            <div className="flex flex-wrap items-center gap-3">
-                <FilterDropdown
-                    label="Semua Status"
-                    activeValue={filters.status}
-                    options={[
-                        { label: "Semua Status", value: "all" },
-                        { label: "Pending", value: "pending" },
-                        { label: "Paid", value: "paid" },
-                        { label: "Overdue", value: "overdue" },
-                        { label: "Cancelled", value: "cancelled" },
-                    ]}
-                    onSelect={(val) => handleFilterChange("status", val)}
-                />
-                <FilterDropdown
-                    label="Semua Unit"
-                    activeValue={filters.unit}
-                    options={[
-                        { label: "Semua Unit", value: "all" },
-                        ...(Array.isArray(units)
-                            ? units.map((u) => ({ label: u.name, value: u.id }))
-                            : []),
-                    ]}
-                    onSelect={(val) => handleFilterChange("unit", val)}
-                />
-                <FilterDropdown
-                    label="Semua Sub-Unit"
-                    activeValue={filters.subUnit}
-                    options={[
-                        { label: "Semua Sub-Unit", value: "all" },
-                        ...(Array.isArray(subUnits)
-                            ? subUnits.map((s) => ({ label: s.name, value: s.id }))
-                            : []),
-                    ]}
-                    onSelect={(val) => handleFilterChange("subUnit", val)}
-                    disabled={filters.unit === "all"}
-                />
-                <FilterDropdown
-                    label="Semua Upline"
-                    activeValue={filters.upline}
-                    options={[
-                        { label: "Semua Upline", value: "all" },
-                        ...(Array.isArray(uplines)
-                            ? uplines.map((u) => ({ label: u.name, value: u.id }))
-                            : []),
-                    ]}
-                    onSelect={(val) => handleFilterChange("upline", val)}
-                />
-                <FilterDropdown
-                    label="Semua Customer"
-                    activeValue={filters.customer}
-                    options={[
-                        { label: "Semua Customer", value: "all" },
-                        ...(Array.isArray(customers)
-                            ? customers.map((c) => ({ label: c.name, value: c.id }))
-                            : []),
-                    ]}
-                    onSelect={(val) => handleFilterChange("customer", val)}
-                />
-            </div>
-
-            {/* Table Content */}
-            <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
-                <BaseTable
-                    data={invoices || []}
-                    columns={columns}
-                    rowKey={(row) => row.id}
-                    loading={isLoading}
-                    totalItems={totalItems || 0}
-                    page={page || 1}
-                    totalPages={totalPages || 1}
-                    onPageChange={setPage}
-                    className="border-none shadow-none"
-                />
-            </div>
-
-            <CreateInvoiceModal
-                isOpen={isCreateOpen}
-                onClose={() => setIsCreateOpen(false)}
-                onSuccess={refetch}
-            />
-
-            <BulkGenerateModal
-                isOpen={isBulkOpen}
-                onClose={() => setIsBulkOpen(false)}
-                onSuccess={refetch}
-            />
-
-            <CreatePaymentModal
-                isOpen={isPaymentOpen}
-                onClose={() => {
-                    setIsPaymentOpen(false);
-                    setSelectedInvoice(null);
+        return (
+          <Badge
+            className={`px-2.5 py-0.5 rounded-full border-none font-medium ${color} hover:${color}`}
+          >
+            {status ? status.toUpperCase() : "UNKNOWN"}
+          </Badge>
+        );
+      },
+    },
+    {
+      header: "Link Bayar",
+      cell: (invoice: any) =>
+        invoice.paymentUrl &&
+        invoice.status !== "paid" &&
+        invoice.status !== "cancelled" ? (
+          <Button
+            variant="link"
+            className="text-blue-600 p-0 h-auto font-medium"
+            onClick={() => window.open(invoice.paymentUrl, "_blank")}
+          >
+            Buka Link
+          </Button>
+        ) : (
+          "-"
+        ),
+    },
+    {
+      header: "Aksi",
+      cell: (invoice: any) => (
+        <div className="flex items-center gap-2">
+          {AuthService.hasPermission(
+            user?.role || "USER",
+            "keuangan.invoice",
+            "pay",
+          ) &&
+            invoice.status !== "paid" &&
+            invoice.status !== "cancelled" && (
+              <Button
+                size="sm"
+                variant="default"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  setSelectedInvoice(invoice);
+                  setIsPaymentOpen(true);
                 }}
-                invoice={selectedInvoice}
-                onSuccess={refetch}
-            />
-
-            <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{alertConfig.title}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {alertConfig.description}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={() => {
-                                alertConfig.onConfirm();
-                                setAlertOpen(false);
-                            }}
-                            className={alertConfig.variant === "destructive" ? "bg-red-600 hover:bg-red-700" : ""}
-                        >
-                            {alertConfig.variant === "destructive" ? "Hapus" : "Konfirmasi"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+              >
+                Bayar
+              </Button>
+            )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="h-9 w-9 p-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={() =>
+                  FinanceService.downloadInvoicePdf(
+                    invoice.id,
+                    invoice.invoiceNumber,
+                  )
+                }
+                className="cursor-pointer"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </DropdownMenuItem>
+              {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setAlertConfig({
+                      title: "Generate Ulang Link Pembayaran",
+                      description:
+                        "Apakah Anda yakin ingin membuat link pembayaran baru untuk invoice ini?",
+                      variant: "default",
+                      onConfirm: async () => {
+                        try {
+                          await FinanceService.regeneratePaymentLink(
+                            invoice.id,
+                          );
+                          await refetch();
+                          toast.success(
+                            "Link pembayaran berhasil digenerate ulang",
+                          );
+                        } catch (error) {
+                          console.error(error);
+                          toast.error("Gagal generate ulang link pembayaran");
+                        }
+                      },
+                    });
+                    setAlertOpen(true);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Generate Ulang Link
+                </DropdownMenuItem>
+              )}
+              {invoice.status === "paid" && user?.role === "SUPER_ADMIN" && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setAlertConfig({
+                      title: "Rollback Invoice",
+                      description: `Apakah Anda yakin ingin membatalkan status lunas untuk invoice ${invoice.invoiceNumber}? Status akan kembali menjadi pending.`,
+                      variant: "destructive",
+                      onConfirm: async () => {
+                        try {
+                          await FinanceService.rollbackInvoice(invoice.id);
+                          await refetch();
+                          toast.success(
+                            "Invoice berhasil di-rollback ke pending",
+                          );
+                        } catch (error: any) {
+                          console.error(error);
+                          toast.error(
+                            error?.response?.data?.message ||
+                              "Gagal melakukan rollback invoice",
+                          );
+                        }
+                      },
+                    });
+                    setAlertOpen(true);
+                  }}
+                  className="cursor-pointer text-amber-600 focus:text-amber-600"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Rollback ke Pending
+                </DropdownMenuItem>
+              )}
+              {invoice.status !== "paid" && user?.role === "SUPER_ADMIN" &&(
+                <DropdownMenuItem
+                  onClick={() => {
+                    setAlertConfig({
+                      title: "Hapus Invoice",
+                      description: `Apakah Anda yakin ingin menghapus invoice ${invoice.invoiceNumber}? Tindakan ini tidak dapat dibatalkan.`,
+                      variant: "destructive",
+                      onConfirm: async () => {
+                        try {
+                          await FinanceService.deleteInvoice(invoice.id);
+                          await refetch();
+                          toast.success("Invoice berhasil dihapus");
+                        } catch (error) {
+                          console.error(error);
+                          toast.error("Gagal menghapus invoice");
+                        }
+                      },
+                    });
+                    setAlertOpen(true);
+                  }}
+                  className="cursor-pointer text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Hapus Invoice
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-    );
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1.5">
+          <h1 className="text-2xl font-extrabold text-[#101D42] tracking-tight sm:text-3xl">
+            Tagihan
+          </h1>
+          <p className="text-sm font-medium text-slate-500 max-w-2xl leading-relaxed">
+            Kelola tagihan pelanggan (Registrasi & Bulanan)
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+          <div className="relative group w-full sm:w-auto">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
+              size={18}
+            />
+            <Input
+              placeholder="Cari nama pelanggan..."
+              className="pl-10 w-full sm:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setIsBulkOpen(true)}
+            className="rounded-xl font-bold w-full sm:w-auto"
+          >
+            <Receipt className="mr-2 h-4 w-4" />
+            Generate Bulanan
+          </Button>
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold shadow-lg transition-all hover:scale-[1.02] w-full sm:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Buat Tagihan
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      <div className="flex flex-col gap-4 bg-slate-50 border border-slate-100 p-4 sm:p-5 rounded-2xl shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h3 className="font-semibold text-slate-700 text-sm flex items-center gap-2">
+            <Filter className="w-4 h-4 text-blue-500" /> Filter Invoice
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-slate-500 hover:text-slate-700 h-9 bg-white border border-slate-200 shadow-sm w-full sm:w-auto font-medium"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
+            {showAdvancedFilters
+              ? "Sembunyikan Filter Lanjutan"
+              : "Tampilkan Filter Lanjutan"}
+            <ChevronDown
+              className={cn(
+                "ml-2 w-4 h-4 transition-transform duration-300",
+                showAdvancedFilters && "rotate-180",
+              )}
+            />
+          </Button>
+        </div>
+
+        {/* Main Filters - Always Visible */}
+        <div className="flex flex-wrap items-center gap-3">
+          <FilterDropdown
+            label="Semua Jenis"
+            activeValue={filters.type}
+            options={[
+              { label: "Semua Jenis", value: "all" },
+              { label: "Registrasi", value: "REGISTRATION" },
+              { label: "Bulanan", value: "MONTHLY" },
+            ]}
+            onSelect={(val) => handleFilterChange("type", val)}
+          />
+          <FilterDropdown
+            label="Semua Status"
+            activeValue={filters.status}
+            options={[
+              { label: "Semua Status", value: "all" },
+              { label: "Pending", value: "pending" },
+              { label: "Paid", value: "paid" },
+              { label: "Overdue", value: "overdue" },
+              { label: "Cancelled", value: "cancelled" },
+            ]}
+            onSelect={(val) => handleFilterChange("status", val)}
+          />
+
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl shadow-sm h-11 overflow-hidden transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+            <label className="text-xs font-semibold text-slate-500 px-3 bg-slate-50 h-full flex items-center border-r border-slate-200">
+              Dibuat
+            </label>
+            <Input
+              type="date"
+              value={filters.createdAtStart}
+              onChange={(e) =>
+                handleFilterChange("createdAtStart", e.target.value)
+              }
+              className="h-full border-none shadow-none focus-visible:ring-0 w-[130px] px-2 text-sm"
+            />
+            <span className="text-slate-300 px-1">-</span>
+            <div className="relative flex items-center">
+              <Input
+                type="date"
+                value={filters.createdAtEnd}
+                onChange={(e) =>
+                  handleFilterChange("createdAtEnd", e.target.value)
+                }
+                className="h-full border-none shadow-none focus-visible:ring-0 w-[130px] px-2 text-sm"
+              />
+              {(filters.createdAtStart || filters.createdAtEnd) && (
+                <button
+                  onClick={() => {
+                    handleFilterChange("createdAtStart", "");
+                    handleFilterChange("createdAtEnd", "");
+                  }}
+                  className="absolute right-2 text-slate-400 hover:text-red-500 bg-slate-100 hover:bg-red-50 p-1 rounded-md transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Advanced Filters - Expandable */}
+        {showAdvancedFilters && (
+          <div className="flex flex-wrap items-center gap-3 pt-4 mt-1 border-t border-slate-200/60 animate-in fade-in slide-in-from-top-2 duration-300">
+            <FilterDropdown
+              label="Semua Unit"
+              activeValue={filters.unit}
+              options={[
+                { label: "Semua Unit", value: "all" },
+                ...(Array.isArray(units)
+                  ? units.map((u) => ({ label: u.name, value: u.id }))
+                  : []),
+              ]}
+              onSelect={(val) => handleFilterChange("unit", val)}
+            />
+            <FilterDropdown
+              label="Semua Sub-Unit"
+              activeValue={filters.subUnit}
+              options={[
+                { label: "Semua Sub-Unit", value: "all" },
+                ...(Array.isArray(subUnits)
+                  ? subUnits.map((s) => ({ label: s.name, value: s.id }))
+                  : []),
+              ]}
+              onSelect={(val) => handleFilterChange("subUnit", val)}
+              disabled={filters.unit === "all"}
+            />
+            <FilterDropdown
+              label="Semua Upline"
+              activeValue={filters.upline}
+              options={[
+                { label: "Semua Upline", value: "all" },
+                ...(Array.isArray(uplines)
+                  ? uplines.map((u) => ({ label: u.name, value: u.id }))
+                  : []),
+              ]}
+              onSelect={(val) => handleFilterChange("upline", val)}
+            />
+            <FilterDropdown
+              label="Semua Customer"
+              activeValue={filters.customer}
+              options={[
+                { label: "Semua Customer", value: "all" },
+                ...(Array.isArray(customers)
+                  ? customers.map((c) => ({ label: c.name, value: c.id }))
+                  : []),
+              ]}
+              onSelect={(val) => handleFilterChange("customer", val)}
+            />
+            <div className="flex items-center bg-white border border-slate-200 rounded-xl shadow-sm h-11 overflow-hidden transition-all focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 min-w-[220px]">
+              <label className="text-xs font-semibold text-slate-500 px-3 bg-slate-50 h-full flex items-center border-r border-slate-200 whitespace-nowrap">
+                Periode Tagihan
+              </label>
+              <div className="flex-1 relative flex items-center">
+                <Input
+                  type="month"
+                  value={filters.period === "all" ? "" : filters.period}
+                  onChange={(e) =>
+                    handleFilterChange("period", e.target.value || "all")
+                  }
+                  className="h-full border-none shadow-none focus-visible:ring-0 px-3 bg-transparent"
+                />
+                {filters.period !== "all" && (
+                  <button
+                    onClick={() => handleFilterChange("period", "all")}
+                    className="absolute right-2 text-slate-400 hover:text-red-500 bg-slate-100 hover:bg-red-50 p-1 rounded-md transition-colors"
+                    title="Clear Periode"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Table Content */}
+      <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
+        <BaseTable
+          data={invoices || []}
+          columns={columns}
+          rowKey={(row) => row.id}
+          loading={isLoading}
+          totalItems={totalItems || 0}
+          page={page || 1}
+          totalPages={totalPages || 1}
+          onPageChange={setPage}
+          className="border-none shadow-none"
+        />
+      </div>
+
+      <CreateInvoiceModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={refetch}
+      />
+
+      <BulkGenerateModal
+        isOpen={isBulkOpen}
+        onClose={() => setIsBulkOpen(false)}
+        onSuccess={refetch}
+      />
+
+      <CreatePaymentModal
+        isOpen={isPaymentOpen}
+        onClose={() => {
+          setIsPaymentOpen(false);
+          setSelectedInvoice(null);
+        }}
+        invoice={selectedInvoice}
+        onSuccess={refetch}
+      />
+
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertConfig.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertConfig.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                alertConfig.onConfirm();
+                setAlertOpen(false);
+              }}
+              className={
+                alertConfig.variant === "destructive"
+                  ? "bg-red-600 hover:bg-red-700"
+                  : ""
+              }
+            >
+              {alertConfig.variant === "destructive" ? "Hapus" : "Konfirmasi"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }
 
 // ==================== Helper Components ====================
 
 interface FilterOption {
-    label: string;
-    value: string;
+  label: string;
+  value: string;
 }
 
 interface FilterDropdownProps {
-    label: string;
-    options: FilterOption[];
-    activeValue: string;
-    onSelect: (value: string) => void;
-    disabled?: boolean;
+  label: string;
+  options: FilterOption[];
+  activeValue: string;
+  onSelect: (value: string) => void;
+  disabled?: boolean;
 }
 
 const FilterDropdown = ({
-    label,
-    options,
-    activeValue,
-    onSelect,
-    disabled = false,
+  label,
+  options,
+  activeValue,
+  onSelect,
+  disabled = false,
 }: FilterDropdownProps) => {
-    const activeLabel =
-        options.find((opt) => opt.value === activeValue)?.label || label;
+  const activeLabel =
+    options.find((opt) => opt.value === activeValue)?.label || label;
 
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    variant="outline"
-                    disabled={disabled}
-                    className={cn(
-                        "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
-                        activeValue !== "all" &&
-                        "border-blue-500 text-blue-600 bg-blue-50/50",
-                        disabled && "opacity-50 cursor-not-allowed"
-                    )}
-                >
-                    <span>{activeLabel}</span>
-                    <ChevronDown
-                        size={14}
-                        className={cn(
-                            "text-slate-400",
-                            activeValue !== "all" && "text-blue-500",
-                        )}
-                    />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-[180px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
-                {options.map((option) => (
-                    <DropdownMenuItem
-                        key={option.value}
-                        className={cn(
-                            "rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700",
-                            activeValue === option.value && "bg-blue-50 text-blue-600",
-                        )}
-                        onClick={() => onSelect(option.value)}
-                    >
-                        {option.label}
-                    </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          disabled={disabled}
+          className={cn(
+            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
+            activeValue !== "all" &&
+              "border-blue-500 text-blue-600 bg-blue-50/50",
+            disabled && "opacity-50 cursor-not-allowed",
+          )}
+        >
+          <span>{activeLabel}</span>
+          <ChevronDown
+            size={14}
+            className={cn(
+              "text-slate-400",
+              activeValue !== "all" && "text-blue-500",
+            )}
+          />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-[180px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+        {options.map((option) => (
+          <DropdownMenuItem
+            key={option.value}
+            className={cn(
+              "rounded-lg cursor-pointer text-sm font-medium py-2.5 text-slate-700",
+              activeValue === option.value && "bg-blue-50 text-blue-600",
+            )}
+            onClick={() => onSelect(option.value)}
+          >
+            {option.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 };

@@ -10,6 +10,7 @@ import { ImpersonateBanner } from "./ImpersonateBanner";
 import { MaintenanceService } from "@/services/maintenance.service";
 import { useLocation, useNavigate } from "react-router-dom";
 import { WhatsAppDisconnectionAlert } from "./WhatsAppDisconnectionAlert";
+import { SuspendQueueAlert } from "./SuspendQueueAlert";
 
 /**
  * LayoutContent manages the dynamic arrangement of Sidebar, Navbar, and Page Content.
@@ -77,8 +78,9 @@ const LayoutContent = ({ children }: { children: React.ReactNode }) => {
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -z-10" />
             </div>
 
-            {/* WhatsApp Disconnection Alert */}
+            {/* Global Alerts */}
             <WhatsAppDisconnectionAlert />
+            <SuspendQueueAlert />
         </div>
     );
 };

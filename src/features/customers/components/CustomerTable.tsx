@@ -343,12 +343,15 @@ export const CustomerTable = ({
                   {row.statusNet ? "Suspend" : "Unsuspend"}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
-                onClick={() => onDelete?.(row.id)}
-              >
-                Hapus
-              </DropdownMenuItem>
+              {canDelete && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
+                  onClick={() => onDelete?.(row.id)}
+                >
+                  Hapus
+                </DropdownMenuItem>
+              )}
+             
             </DropdownMenuContent>
           </DropdownMenu>
         );

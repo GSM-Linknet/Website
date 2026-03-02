@@ -1,6 +1,11 @@
-
-import { apiClient } from "./api-client";
-import type { BaseQuery, PaginatedResponse, Unit, SubUnit, ApiResponse } from "./master.service";
+import { apiClient, apiInstance } from "./api-client";
+import type {
+  BaseQuery,
+  PaginatedResponse,
+  Unit,
+  SubUnit,
+  ApiResponse,
+} from "./master.service";
 
 // Interfaces based on Prisma Schema
 export interface Label {
@@ -20,7 +25,7 @@ export interface Customer {
   idUpline: string;
   isLegacy: boolean; // Legacy customer flag
   ktpNumber?: string; // Optional for legacy (String type to match backend)
-  ktpFile?: string;   // Optional for legacy
+  ktpFile?: string; // Optional for legacy
   address: string;
   // Location (optional for legacy)
   latUser?: number;
@@ -36,24 +41,31 @@ export interface Customer {
   ODPImage?: string;
   CaImage?: string;
   attachment?: string;
-  
+
   idPackages: string;
   statusCust: boolean;
   statusNet: boolean;
   siteId?: string;
   isFreeAccount: boolean;
   billingDate: number;
-  
+
   // New: Customer Status
-  customerStatus?: 'FREE_3_MONTHS' | 'FREE_6_MONTHS' | 'FREE_12_MONTHS' | 'ON_LEAVE_1_MONTH' | 'ACTIVE' | 'DISMANTLE' | 'TERMINATED';
+  customerStatus?:
+    | "FREE_3_MONTHS"
+    | "FREE_6_MONTHS"
+    | "FREE_12_MONTHS"
+    | "ON_LEAVE_1_MONTH"
+    | "ACTIVE"
+    | "DISMANTLE"
+    | "TERMINATED";
   freeStartDate?: string;
   freeEndDate?: string;
   onLeaveStartDate?: string;
   onLeaveEndDate?: string;
-  
+
   createdAt?: string;
   updatedAt?: string;
-  
+
   // Relations (optional/partial)
   upline?: { name?: string };
   paket?: { name?: string };
@@ -71,24 +83,28 @@ export interface LegacyCustomerInput {
   idUpline: string;
   phone?: string;
   customerId?: string; // Can import existing ID
-  lnId?: string;       // Can import existing LN ID
+  lnId?: string; // Can import existing LN ID
   billingDate?: number;
   customerStatus?: string;
 }
 
 // Query interface for customer list (isLegacy uses standard where param)
 export interface CustomerQuery extends BaseQuery {
-  where?: string;  // e.g., "isLegacy:true+unitId:xxx"
+  where?: string; // e.g., "isLegacy:true+unitId:xxx"
   unitId?: string;
   subUnitId?: string;
   labelIds?: string | string[];
+  gte?: string; // e.g., "createdAt:2025-01-01"
+  lte?: string; // e.g., "createdAt:2025-12-31"
 }
 
 const ENDPOINT = "/pelanggan/customer";
 
 export const CustomerService = {
   getCustomers: async (query: CustomerQuery = {}) => {
-    return apiClient.get<PaginatedResponse<Customer>>(`${ENDPOINT}/find-all`, { params: query });
+    return apiClient.get<PaginatedResponse<Customer>>(`${ENDPOINT}/find-all`, {
+      params: query,
+    });
   },
   getCustomer: async (id: string) => {
     return apiClient.get<Customer>(`${ENDPOINT}/find-one/${id}`);
@@ -96,11 +112,13 @@ export const CustomerService = {
   createCustomer: async (data: Partial<Customer> | FormData) => {
     const isFormData = data instanceof FormData;
     return apiClient.post<Customer>(
-      `${ENDPOINT}/create`, 
+      `${ENDPOINT}/create`,
       data,
-      isFormData ? {
-        headers: { "Content-Type": "multipart/form-data" }
-      } : undefined
+      isFormData
+        ? {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        : undefined,
     );
   },
   createLegacyCustomer: async (data: LegacyCustomerInput) => {
@@ -127,5 +145,16 @@ export const CustomerService = {
   seedLabels: async () => {
     return apiClient.post<{ message: string }>("/pelanggan/label/seed");
   },
+  exportExcel: async (query: CustomerQuery = {}) => {
+    const blob = (await apiInstance.get(`${ENDPOINT}/export-excel`, {
+      params: query,
+      responseType: "blob",
+    })) as unknown as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `data-pelanggan-${Date.now()}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
-
