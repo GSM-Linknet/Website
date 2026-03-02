@@ -156,20 +156,31 @@ export default function SuspendReviewPage() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40 space-y-4">
+
+            <div className="space-y-3">
                 {selectedIds.length > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-xl mb-4">
-                        <span className="text-sm font-semibold text-blue-700">
-                            {selectedIds.length} pelanggan dipilih
-                        </span>
+                    <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-rose-50 to-orange-50 border border-rose-100 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center">
+                                <PlayCircle className="w-4 h-4 text-rose-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-rose-800">
+                                    {selectedIds.length} pelanggan dipilih
+                                </p>
+                                <p className="text-xs text-rose-500 font-medium">
+                                    Siap untuk di-suspend sekaligus
+                                </p>
+                            </div>
+                        </div>
                         <Button
                             size="sm"
                             onClick={handleBulkApprove}
                             disabled={isProcessing}
-                            className="bg-rose-600 hover:bg-rose-700 text-white"
+                            className="bg-rose-600 hover:bg-rose-700 text-white shadow-sm shadow-rose-200 font-semibold"
                         >
                             <PlayCircle className="w-4 h-4 mr-2" />
-                            {isProcessing ? "Memproses..." : "Suspend Terpilih"}
+                            {isProcessing ? "Memproses..." : "Suspend Sekarang"}
                         </Button>
                     </div>
                 )}
@@ -192,3 +203,4 @@ export default function SuspendReviewPage() {
         </div>
     );
 }
+

@@ -408,7 +408,7 @@ export default function InvoicePage() {
                   Rollback ke Pending
                 </DropdownMenuItem>
               )}
-              {invoice.status !== "paid" && (
+              {invoice.status !== "paid" && user?.role === "SUPER_ADMIN" &&(
                 <DropdownMenuItem
                   onClick={() => {
                     setAlertConfig({
