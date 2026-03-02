@@ -41,8 +41,7 @@ export function CreateExpenseModal({
         unitId: "",
         subUnitId: undefined,
         amount: 0,
-        category: "OPERATIONAL",
-        sourceType: "FROM_UNIT_SHARE",
+        category: "BOP_UNIT",
         description: "",
         reference: "",
         expenseDate: new Date().toISOString().split("T")[0],
@@ -59,7 +58,6 @@ export function CreateExpenseModal({
                     subUnitId: expense.subUnitId,
                     amount: expense.amount,
                     category: expense.category,
-                    sourceType: expense.sourceType,
                     description: expense.description,
                     reference: expense.reference || "",
                     expenseDate: expense.expenseDate.split("T")[0],
@@ -69,8 +67,7 @@ export function CreateExpenseModal({
                     unitId: "",
                     subUnitId: undefined,
                     amount: 0,
-                    category: "OPERATIONAL",
-                    sourceType: "FROM_UNIT_SHARE",
+                    category: "BOP_UNIT",
                     description: "",
                     reference: "",
                     expenseDate: new Date().toISOString().split("T")[0],
@@ -200,7 +197,7 @@ export function CreateExpenseModal({
 
                     <div className="grid grid-cols-2 gap-4">
                         {/* Category */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 col-span-2">
                             <Label htmlFor="category">Kategori *</Label>
                             <Select
                                 value={formData.category}
@@ -212,29 +209,14 @@ export function CreateExpenseModal({
                                     <SelectValue placeholder="Pilih Kategori" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="OPERATIONAL">Operasional</SelectItem>
-                                    <SelectItem value="COMMISSION">Komisi</SelectItem>
-                                    <SelectItem value="EQUIPMENT">Peralatan</SelectItem>
-                                    <SelectItem value="OTHER">Lainnya</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Source Type */}
-                        <div className="space-y-2">
-                            <Label htmlFor="sourceType">Sumber Dana *</Label>
-                            <Select
-                                value={formData.sourceType}
-                                onValueChange={(value: any) =>
-                                    setFormData({ ...formData, sourceType: value })
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Sumber" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="FROM_UNIT_SHARE">Kas Unit (65%)</SelectItem>
-                                    <SelectItem value="FROM_CENTRAL_SHARE">Dana Pusat (35%)</SelectItem>
+                                    <SelectItem value="BOP_UNIT">BOP unit (transport, um, supervisi)</SelectItem>
+                                    <SelectItem value="ATK">ATK (kertas/brosur, tinta)</SelectItem>
+                                    <SelectItem value="KASBON_KARYAWAN">Kasbon Karyawan</SelectItem>
+                                    <SelectItem value="SEWA_KANTOR">Sewa Kantor</SelectItem>
+                                    <SelectItem value="EXPENSIVE_DIREKTUR">Expensive Direktur</SelectItem>
+                                    <SelectItem value="TRANSFER_PT">Transfer PT</SelectItem>
+                                    <SelectItem value="PIUTANG_PT">Piutang PT</SelectItem>
+                                    <SelectItem value="HUTANG_PT">Hutang PT</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -303,7 +285,7 @@ export function CreateExpenseModal({
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="bg-[#101D42] hover:bg-[#1a2b5e]"
+                            className="bg-[#101D42] hover:bg-[#1a2b5e] text-white"
                         >
                             {isLoading ? "Menyimpan..." : isEditMode ? "Update" : "Simpan"}
                         </Button>

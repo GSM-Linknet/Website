@@ -53,7 +53,8 @@ const MODULE_GROUPS: {
             resources: [
                 { key: "pelanggan.pendaftaran", label: "Pendaftaran Baru" },
                 { key: "pelanggan.kelola", label: "Kelola Pelanggan" },
-                { key: "pelanggan.layanan", label: "Layanan Mandiri" }
+                { key: "pelanggan.layanan", label: "Layanan Mandiri" },
+                { key: "pelanggan.suspend-queue", label: "Review Suspend" }
             ]
         },
         {
