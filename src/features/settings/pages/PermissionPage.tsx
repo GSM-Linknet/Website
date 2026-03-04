@@ -53,8 +53,7 @@ const MODULE_GROUPS: {
             resources: [
                 { key: "pelanggan.pendaftaran", label: "Pendaftaran Baru" },
                 { key: "pelanggan.kelola", label: "Kelola Pelanggan" },
-                { key: "pelanggan.layanan", label: "Layanan Mandiri" },
-                { key: "pelanggan.suspend-queue", label: "Review Suspend" }
+                { key: "pelanggan.layanan", label: "Layanan Mandiri" }
             ]
         },
         {
@@ -128,7 +127,6 @@ const ACTIONS: { id: AppAction; label: string }[] = [
     { id: "verify", label: "Ver" },
     { id: "export", label: "Exp" },
     { id: "impersonate", label: "Imp" },
-    { id: "suspend", label: "Sus" },
 ];
 
 export default function PermissionPage() {

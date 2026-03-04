@@ -75,18 +75,13 @@ export default function CustomerRegistrationPage() {
   // Update query when debounced search or filters change
   useEffect(() => {
     const searchParts: string[] = [];
-    // We send search directly to the search query, not as part of the where
-    let searchString: string | undefined = undefined;
-    if (debouncedSearchQuery) searchString = debouncedSearchQuery;
+    if (debouncedSearchQuery) searchParts.push(`name:${debouncedSearchQuery}`);
     if (filters.status !== "all") searchParts.push(`statusCust:${filters.status === "verified"}`);
     if (filters.internet !== "all") searchParts.push(`statusNet:${filters.internet === "online"}`);
     if (filters.wilayah !== "all") searchParts.push(`idWilayah:${filters.wilayah}`);
 
-    const whereParam = searchParts.join("+");
-    const payload = {
-      where: whereParam || undefined,
-      search: searchString || undefined
-    };
+    const searchParam = searchParts.join("+");
+    const payload = searchParam ? { search: searchParam } : { search: undefined };
     setQuery(payload);
   }, [debouncedSearchQuery, filters, setQuery]);
 
@@ -342,7 +337,7 @@ export default function CustomerRegistrationPage() {
               size={18}
             />
             <Input
-              placeholder="Cari nama, ID, no. telp..."
+              placeholder="Cari"
               className="pl-10 w-full sm:w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

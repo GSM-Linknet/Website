@@ -120,7 +120,6 @@ export function ManageCustomerModal({
     useEffect(() => {
         if (customer) {
             setFormData({
-                customerId: customer.customerId || '',
                 name: customer.name,
                 email: customer.email,
                 phone: customer.phone,
@@ -158,14 +157,9 @@ export function ManageCustomerModal({
             onSuccess();
             onClose();
         } catch (error: any) {
-            const errData = error.response?.data;
-            const errorMessage = Array.isArray(errData?.data)
-                ? errData.data.join(', ')
-                : (errData?.message || "Gagal memperbarui data");
-
             toast({
                 title: "Gagal",
-                description: errorMessage,
+                description: error.response?.data?.message || "Gagal memperbarui data",
                 variant: "destructive",
             });
         } finally {
@@ -189,14 +183,9 @@ export function ManageCustomerModal({
             onSuccess();
             onClose();
         } catch (error: any) {
-            const errData = error.response?.data;
-            const errorMessage = Array.isArray(errData?.data)
-                ? errData.data.join(', ')
-                : (errData?.message || "Gagal mengubah status legacy");
-
             toast({
                 title: "Gagal",
-                description: errorMessage,
+                description: error.response?.data?.message || "Gagal mengubah status legacy",
                 variant: "destructive",
             });
         } finally {
@@ -292,18 +281,19 @@ export function ManageCustomerModal({
                                             placeholder="08..."
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                            <Hash className="w-3.5 h-3.5" />
-                                            ID Pelanggan
-                                        </Label>
-                                        <Input
-                                            value={formData.customerId || ""}
-                                            onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-                                            className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors font-mono"
-                                            placeholder="Auto-generated jika kosong"
-                                        />
-                                    </div>
+                                    {customer?.customerId && (
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                                <Hash className="w-3.5 h-3.5" />
+                                                ID Pelanggan (Auto)
+                                            </Label>
+                                            <Input
+                                                value={customer.customerId}
+                                                readOnly
+                                                className="h-10 bg-slate-100 text-slate-500 border-slate-200 font-mono"
+                                            />
+                                        </div>
+                                    )}
                                     <div className="space-y-2">
                                         <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                             <Hash className="w-3.5 h-3.5" />
@@ -557,7 +547,7 @@ export function ManageCustomerModal({
                                         onChange={(val) => setFormData({ ...formData, statusNet: val })}
                                     />
                                 </div> */}
-
+                               
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-1">
                                         <Label className="text-sm font-semibold text-slate-900">Akun Gratis</Label>

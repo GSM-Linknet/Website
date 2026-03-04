@@ -109,30 +109,21 @@ export const FinanceService = {
   },
 
   createMonthlyBill: async (customerId: string, period: Date) => {
-    return apiClient.post(
-      `${ENDPOINTS.INVOICE}/create/monthly`,
-      {
-        customerId,
-        period,
-      },
-      { timeout: 120_000 },
-    );
+    return apiClient.post(`${ENDPOINTS.INVOICE}/create/monthly`, {
+      customerId,
+      period,
+    });
   },
 
   generateBulk: async (period: Date, unitId?: string) => {
-    return apiClient.post(
-      `${ENDPOINTS.INVOICE}/generate-bulk`,
-      { period, unitId },
-      { timeout: 120_000 }, // 2 menit — bulk process butuh waktu lebih lama
-    );
+    return apiClient.post(`${ENDPOINTS.INVOICE}/generate-bulk`, {
+      period,
+      unitId,
+    });
   },
 
   regeneratePaymentLink: async (id: string) => {
     return apiClient.post(`${ENDPOINTS.INVOICE}/regenerate-payment-link/${id}`);
-  },
-
-  rollbackInvoice: async (id: string) => {
-    return apiClient.post(`${ENDPOINTS.INVOICE}/rollback/${id}`);
   },
 
   downloadInvoicePdf: async (invoiceId: string, invoiceNumber: string) => {

@@ -25,7 +25,6 @@ export default function UserPage() {
     const canCreate = AuthService.hasPermission(userRole, resource, "create");
     const canEdit = AuthService.hasPermission(userRole, resource, "edit");
     const canDelete = AuthService.hasPermission(userRole, resource, "delete");
-    const canSuspend = AuthService.hasPermission(userRole, resource, "suspend");
     // Special permission for impersonating users
     const canImpersonate = AuthService.hasPermission(userRole, impersonateResource, "impersonate");
 
@@ -283,7 +282,7 @@ export default function UserPage() {
                                 <Edit2 size={14} />
                             </Button>
                         )}
-                        {canSuspend  && (
+                        {canEdit && row.role !== 'SUPER_ADMIN' && (
                             row.status ? (
                                 <Button
                                     variant="ghost"

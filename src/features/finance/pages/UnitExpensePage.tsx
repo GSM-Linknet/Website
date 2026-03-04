@@ -54,6 +54,7 @@ export default function UnitExpensePage() {
     // Filters state
     const [filters, setFilters] = useState({
         category: "all",
+        sourceType: "all",
         unit: "all",
     });
 
@@ -77,6 +78,7 @@ export default function UnitExpensePage() {
         const whereParts: string[] = [];
 
         if (filters.category !== "all") whereParts.push(`category:${filters.category}`);
+        if (filters.sourceType !== "all") whereParts.push(`sourceType:${filters.sourceType}`);
         if (filters.unit !== "all") whereParts.push(`unitId:${filters.unit}`);
 
         const queryParams: any = {};
@@ -106,28 +108,29 @@ export default function UnitExpensePage() {
 
     const getCategoryBadge = (category: string) => {
         const colors: Record<string, string> = {
-            BOP_UNIT: "bg-blue-100 text-blue-700",
-            ATK: "bg-emerald-100 text-emerald-700",
-            KASBON_KARYAWAN: "bg-amber-100 text-amber-700",
-            SEWA_KANTOR: "bg-purple-100 text-purple-700",
-            EXPENSIVE_DIREKTUR: "bg-red-100 text-red-700",
-            TRANSFER_PT: "bg-indigo-100 text-indigo-700",
-            PIUTANG_PT: "bg-pink-100 text-pink-700",
-            HUTANG_PT: "bg-orange-100 text-orange-700",
+            OPERATIONAL: "bg-blue-100 text-blue-700",
+            COMMISSION: "bg-green-100 text-green-700",
+            EQUIPMENT: "bg-purple-100 text-purple-700",
+            OTHER: "bg-gray-100 text-gray-700",
         };
         const labels: Record<string, string> = {
-            BOP_UNIT: "BOP Unit",
-            ATK: "ATK",
-            KASBON_KARYAWAN: "Kasbon Karyawan",
-            SEWA_KANTOR: "Sewa Kantor",
-            EXPENSIVE_DIREKTUR: "Expensive Direktur",
-            TRANSFER_PT: "Transfer PT",
-            PIUTANG_PT: "Piutang PT",
-            HUTANG_PT: "Hutang PT",
+            OPERATIONAL: "Operasional",
+            COMMISSION: "Komisi",
+            EQUIPMENT: "Peralatan",
+            OTHER: "Lainnya",
         };
         return (
             <Badge className={`${colors[category] || colors.OTHER} hover:${colors[category]}`}>
                 {labels[category] || category}
+            </Badge>
+        );
+    };
+
+    const getSourceBadge = (sourceType: string) => {
+        const isUnit = sourceType === "FROM_UNIT_SHARE";
+        return (
+            <Badge className={isUnit ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
+                {isUnit ? "Kas Unit" : "Dana Pusat"}
             </Badge>
         );
     };
@@ -148,7 +151,11 @@ export default function UnitExpensePage() {
             header: "Kategori",
             cell: (expense: UnitExpense) => getCategoryBadge(expense.category),
         },
-
+        {
+            accessorKey: "sourceType",
+            header: "Sumber Dana",
+            cell: (expense: UnitExpense) => getSourceBadge(expense.sourceType),
+        },
         {
             accessorKey: "description",
             header: "Keterangan",
@@ -161,7 +168,7 @@ export default function UnitExpensePage() {
             header: "Jumlah",
             cell: (expense: UnitExpense) => (
                 <span className="font-semibold text-red-600">
-                    {formatCurrency(expense.amount)}
+                    - {formatCurrency(expense.amount)}
                 </span>
             ),
         },
@@ -246,16 +253,22 @@ export default function UnitExpensePage() {
                     activeValue={filters.category}
                     options={[
                         { label: "Semua Kategori", value: "all" },
-                        { label: "BOP Unit", value: "BOP_UNIT" },
-                        { label: "ATK", value: "ATK" },
-                        { label: "Kasbon Karyawan", value: "KASBON_KARYAWAN" },
-                        { label: "Sewa Kantor", value: "SEWA_KANTOR" },
-                        { label: "Expensive Direktur", value: "EXPENSIVE_DIREKTUR" },
-                        { label: "Transfer PT", value: "TRANSFER_PT" },
-                        { label: "Piutang PT", value: "PIUTANG_PT" },
-                        { label: "Hutang PT", value: "HUTANG_PT" },
+                        { label: "Operasional", value: "OPERATIONAL" },
+                        { label: "Komisi", value: "COMMISSION" },
+                        { label: "Peralatan", value: "EQUIPMENT" },
+                        { label: "Lainnya", value: "OTHER" },
                     ]}
                     onSelect={(val) => handleFilterChange("category", val)}
+                />
+                <FilterDropdown
+                    label="Semua Sumber Dana"
+                    activeValue={filters.sourceType}
+                    options={[
+                        { label: "Semua Sumber Dana", value: "all" },
+                        { label: "Kas Unit", value: "FROM_UNIT_SHARE" },
+                        { label: "Dana Pusat", value: "FROM_CENTRAL_SHARE" },
+                    ]}
+                    onSelect={(val) => handleFilterChange("sourceType", val)}
                 />
                 <FilterDropdown
                     label="Semua Unit"

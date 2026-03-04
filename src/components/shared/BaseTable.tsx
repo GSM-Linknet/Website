@@ -11,7 +11,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BasePagination } from "./BasePagination";
 
 export interface Column<T> {
-  header: React.ReactNode;
+  header: string;
   accessorKey: keyof T | string;
   cell?: (item: T, meta?: any) => React.ReactNode;
   className?: string;

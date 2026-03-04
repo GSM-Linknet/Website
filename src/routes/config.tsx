@@ -15,15 +15,6 @@ const CustomerListPage = lazy(
 const CustomerRegistrationPage = lazy(
   () => import("@/features/customers/pages/CustomerRegistrationPage"),
 );
-const LinkNetPage = lazy(
-  () => import("@/features/customers/pages/LinkNetPage"),
-);
-const SuspendReviewPage = lazy(
-  () => import("@/features/customers/pages/SuspendReviewPage"),
-);
-const DeletedCustomersPage = lazy(
-  () => import("@/features/customers/pages/DeletedCustomersPage"),
-);
 const TechnicianPage = lazy(
   () => import("@/features/technicians/pages/TechnicianPage"),
 );
@@ -219,23 +210,7 @@ export const routes: RouteObject[] = [
             path: "layanan",
             element: (
               <Suspense fallback={<PageLoader />}>
-                <LinkNetPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "review-suspend",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <SuspendReviewPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "trash",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <DeletedCustomersPage />
+                <ComingSoonPage />
               </Suspense>
             ),
           },
