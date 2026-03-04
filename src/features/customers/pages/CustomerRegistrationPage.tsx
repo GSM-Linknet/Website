@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, XCircle } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { AddCustomerDialog } from "../components/AddCustomerDialog";
 import { CustomerModal } from "../components/CustomerModal";
 import { CustomerDetailModal } from "../components/CustomerDetailModal";
+import { CustomerVerifyModal } from "../components/CustomerVerifyModal";
+import { LinknetPipelineModal } from "../components/LinknetPipelineModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { AuthService } from "@/services/auth.service";
 import { CustomerService } from "@/services/customer.service";
@@ -61,6 +63,8 @@ export default function CustomerRegistrationPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerToView, setCustomerToView] = useState<Customer | null>(null);
+  const [customerToVerify, setCustomerToVerify] = useState<Customer | null>(null);
+  const [linknetCustomer, setLinknetCustomer] = useState<Customer | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
@@ -165,8 +169,6 @@ export default function CustomerRegistrationPage() {
   const handleVerify = async (idOrCustomer: string | Customer, isVerify: boolean = true, siteId?: string) => {
     const id = typeof idOrCustomer === 'string' ? idOrCustomer : idOrCustomer.id;
 
-    if (!confirm(`Apakah anda yakin ingin ${isVerify ? 'memverifikasi' : 'menolak'} pelanggan ini ? `)) return;
-
     setVerifyingId(id);
     try {
       if (isVerify) {
@@ -192,6 +194,7 @@ export default function CustomerRegistrationPage() {
       });
     } finally {
       setVerifyingId(null);
+      setCustomerToVerify(null);
     }
   };
 
@@ -230,6 +233,7 @@ export default function CustomerRegistrationPage() {
       className: "text-slate-500 font-bold text-[12px]",
       cell: (row: Customer) => row.siteId || "-"
     },
+
     {
       header: "PAKET",
       accessorKey: "paket",
@@ -280,23 +284,15 @@ export default function CustomerRegistrationPage() {
                 Lihat Detail
               </DropdownMenuItem>
               {canVerify && !row.siteId && (
-                <>
-                  <DropdownMenuItem
-                    className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
-                    onClick={() => handleVerifyAction(row.id, true)}
-                  >
-                    <CheckCircle size={14} className="mr-2" />
-                    Verifikasi
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600 focus:text-rose-700 bg-rose-50/50 mb-1"
-                    onClick={() => handleVerifyAction(row.id, false)}
-                  >
-                    <XCircle size={14} className="mr-2" />
-                    Tolak
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
+                  onClick={() => setCustomerToVerify(row)}
+                >
+                  <CheckCircle size={14} className="mr-2" />
+                  Verifikasi / Tolak
+                </DropdownMenuItem>
               )}
+
               {canEdit && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold"
@@ -409,6 +405,23 @@ export default function CustomerRegistrationPage() {
         canVerify={canVerify}
         verifying={!!verifyingId}
       />
+
+      <CustomerVerifyModal
+        isOpen={!!customerToVerify}
+        onClose={() => setCustomerToVerify(null)}
+        customer={customerToVerify}
+        onVerify={handleVerify}
+        loading={!!verifyingId}
+      />
+
+      {linknetCustomer && (
+        <LinknetPipelineModal
+          open={!!linknetCustomer}
+          onOpenChange={(op) => !op && setLinknetCustomer(null)}
+          customer={linknetCustomer}
+          onSuccess={refresh}
+        />
+      )}
 
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}

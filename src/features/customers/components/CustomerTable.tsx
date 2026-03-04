@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power} from "lucide-react";
+import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power } from "lucide-react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import type { Customer } from "@/services/customer.service";
 import { AuthService } from "@/services/auth.service";
 import { CustomerInvoiceDialog } from "./CustomerInvoiceDialog";
 import { CustomerDeviceDialog } from "./CustomerDeviceDialog";
+import { LinknetPipelineModal } from "./LinknetPipelineModal";
 import { LinkNetService } from "@/services/linknet.service";
 import { toast } from "sonner";
 import {
@@ -65,6 +66,14 @@ export const CustomerTable = ({
   const [deviceCustomer, setDeviceCustomer] = useState<Customer | null>(null);
   const [suspendingId, setSuspendingId] = useState<string | null>(null);
   const [suspendConfirm, setSuspendConfirm] = useState<{ customer: Customer; action: "suspend" | "unsuspend" } | null>(null);
+
+  const [linknetDialogOpen, setLinknetDialogOpen] = useState(false);
+  const [linknetCustomer, setLinknetCustomer] = useState<Customer | null>(null);
+
+  const handleLinknetPipeline = (customer: Customer) => {
+    setLinknetCustomer(customer);
+    setLinknetDialogOpen(true);
+  };
 
   const handleViewInvoices = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -215,6 +224,41 @@ export const CustomerTable = ({
         </Badge>
       ),
     },
+    {
+      header: "LINKNET",
+      accessorKey: "linknetStatus",
+      cell: (row: Customer) => {
+        if (!row.linknetStatus) return <span className="text-slate-400 text-xs font-semibold">-</span>;
+
+        const STATUS_MAP: Record<string, { label: string; color: string }> = {
+          PENDING_VERIFICATION: { label: "Menunggu Verif", color: "bg-slate-100 text-slate-600 border-slate-200" },
+          CREATE_ACCOUNT: { label: "Antrean Survei", color: "bg-blue-100 text-blue-700 border-blue-200" },
+          SURVEY_IN_PROGRESS: { label: "Survei Berjalan", color: "bg-amber-100 text-amber-700 border-amber-200" },
+          SURVEY_SUCCESS: { label: "Survei Sukses", color: "bg-teal-100 text-teal-700 border-teal-200" },
+          SURVEY_REJECTED: { label: "Survei Ditolak", color: "bg-rose-100 text-rose-700 border-rose-200" },
+          APPOINTMENT_PENDING: { label: "Booking Jadwal", color: "bg-orange-100 text-orange-700 border-orange-200" },
+          OM_SUBMITTED: { label: "Menunggu IKR", color: "bg-violet-100 text-violet-700 border-violet-200" },
+          ACTIVE: { label: "Aktif ✓", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
+        };
+
+        const config = STATUS_MAP[row.linknetStatus] ?? {
+          label: row.linknetStatus,
+          color: "bg-slate-100 text-slate-600 border-slate-200",
+        };
+
+        return (
+          <Badge
+            className={cn(
+              "rounded-md text-[10px] font-bold px-2 py-0.5 border cursor-pointer hover:opacity-80 transition-opacity",
+              config.color
+            )}
+            onClick={() => handleLinknetPipeline(row)}
+          >
+            {config.label}
+          </Badge>
+        );
+      },
+    },
 
     {
       header: "PAKET",
@@ -309,7 +353,7 @@ export const CustomerTable = ({
                   className="cursor-pointer rounded-lg text-xs font-semibold"
                   onClick={() => onEdit?.(row)}
                 >
-                  
+
                   Kelola
                 </DropdownMenuItem>
               )}
@@ -320,6 +364,15 @@ export const CustomerTable = ({
                 <FileText size={14} />
                 Lihat Tagihan
               </DropdownMenuItem>
+              {row.linknetStatus && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
+                  onClick={() => handleLinknetPipeline(row)}
+                >
+                  <Wifi size={14} />
+                  Kelola Linknet Pipeline
+                </DropdownMenuItem>
+              )}
               {row.customerId && canSuspend && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-purple-600 flex items-center gap-2"
@@ -351,7 +404,7 @@ export const CustomerTable = ({
                   Hapus
                 </DropdownMenuItem>
               )}
-             
+
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -383,6 +436,19 @@ export const CustomerTable = ({
           customerName={deviceCustomer.name}
           open={deviceDialogOpen}
           onOpenChange={setDeviceDialogOpen}
+        />
+      )}
+
+      {linknetCustomer && (
+        <LinknetPipelineModal
+          open={linknetDialogOpen}
+          onOpenChange={setLinknetDialogOpen}
+          customer={linknetCustomer}
+          onSuccess={() => {
+            // In a real scenario we might re-fetch table data here
+            // onPageChange?.(page || 1)
+            // or mutate the current customer directly
+          }}
         />
       )}
 

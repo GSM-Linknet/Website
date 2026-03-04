@@ -49,6 +49,11 @@ export interface Customer {
   isFreeAccount: boolean;
   billingDate: number;
 
+  // New: Linknet Pipeline Status
+  linknetStatus?: string;
+  appointmentId?: string;
+  appointmentDate?: string;
+
   // New: Customer Status
   customerStatus?:
     | "FREE_3_MONTHS"
@@ -139,6 +144,39 @@ export const CustomerService = {
   toggleLegacyStatus: async (id: string) => {
     return apiClient.patch<Customer>(`${ENDPOINT}/toggle-legacy/${id}`);
   },
+
+  // ─── Linknet Pipeline Endpoints ──────────────────────────────────────────
+  createLinknetAccount: async (id: string, notes?: string) => {
+    return apiClient.post(`${ENDPOINT}/create-account/${id}`, { notes });
+  },
+  updateSurveyResult: async (
+    id: string,
+    result: "SUCCESS" | "REJECTED",
+    data?: { siteId?: string },
+    notes?: string,
+  ) => {
+    return apiClient.patch(`${ENDPOINT}/survey-result/${id}`, {
+      result,
+      siteId: data?.siteId,
+      notes,
+    });
+  },
+  retrySurvey: async (id: string, notes?: string) => {
+    return apiClient.patch(`${ENDPOINT}/retry-survey/${id}`, { notes });
+  },
+  submitToLinknetOM: async (
+    id: string,
+    slotId: string,
+    startDate: string,
+    endDate: string,
+  ) => {
+    return apiClient.post(`${ENDPOINT}/submit-to-om/${id}`, {
+      slotId,
+      startDate,
+      endDate,
+    });
+  },
+  // ───────────────────────────────────────────────────────────────────────────
   getLabels: async () => {
     return apiClient.get<ApiResponse<Label[]>>("/pelanggan/label");
   },
