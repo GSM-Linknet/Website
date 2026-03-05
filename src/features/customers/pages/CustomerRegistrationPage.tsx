@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,7 +56,7 @@ export default function CustomerRegistrationPage() {
     remove,
     deleting,
     refetch: refresh
-  } = useCustomers();
+  } = useCustomers({ linknetPipeline: 'pending' });
 
   // Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -89,7 +89,8 @@ export default function CustomerRegistrationPage() {
     const whereParam = searchParts.join("+");
     const payload = {
       where: whereParam || undefined,
-      search: searchString || undefined
+      search: searchString || undefined,
+      linknetPipeline: 'pending' as const,
     };
     setQuery(payload);
   }, [debouncedSearchQuery, filters, setQuery]);
@@ -198,7 +199,11 @@ export default function CustomerRegistrationPage() {
     }
   };
 
-  // Table columns
+  // Handle Linknet Pipeline
+  const handleLinknetPipeline = (row: Customer) => {
+    setLinknetCustomer(row);
+  };
+
   const columns = [
     {
       header: "NAMA",
@@ -253,6 +258,41 @@ export default function CustomerRegistrationPage() {
       ),
     },
     {
+      header: "STATUS LINKNET",
+      accessorKey: "linknetStatus",
+      cell: (row: Customer) => {
+        if (!row.linknetStatus) return <span className="text-slate-400 text-xs font-semibold">Belum Diproses</span>;
+
+        const STATUS_MAP: Record<string, { label: string; color: string }> = {
+          PENDING_VERIFICATION: { label: "Menunggu Verif", color: "bg-slate-100 text-slate-600 border-slate-200" },
+          CREATE_ACCOUNT: { label: "Antrean Survei", color: "bg-blue-100 text-blue-700 border-blue-200" },
+          SURVEY_IN_PROGRESS: { label: "Survei Berjalan", color: "bg-amber-100 text-amber-700 border-amber-200" },
+          SURVEY_SUCCESS: { label: "Survei Sukses", color: "bg-teal-100 text-teal-700 border-teal-200" },
+          SURVEY_REJECTED: { label: "Survei Ditolak", color: "bg-rose-100 text-rose-700 border-rose-200" },
+          APPOINTMENT_PENDING: { label: "Booking Jadwal", color: "bg-orange-100 text-orange-700 border-orange-200" },
+          OM_SUBMITTED: { label: "Menunggu IKR", color: "bg-violet-100 text-violet-700 border-violet-200" },
+          ACTIVE: { label: "Aktif ✓", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
+        };
+
+        const config = STATUS_MAP[row.linknetStatus] ?? {
+          label: row.linknetStatus,
+          color: "bg-slate-100 text-slate-600 border-slate-200",
+        };
+
+        return (
+          <Badge
+            className={cn(
+              "rounded-md text-[10px] font-bold px-2 py-0.5 border cursor-pointer hover:opacity-80 transition-opacity",
+              config.color
+            )}
+            onClick={() => handleLinknetPipeline(row)}
+          >
+            {config.label}
+          </Badge>
+        );
+      },
+    },
+    {
       header: "TANGGAL DAFTAR",
       accessorKey: "createdAt",
       className: "min-w-[120px] text-slate-500 font-medium text-[12px]",
@@ -300,6 +340,15 @@ export default function CustomerRegistrationPage() {
                 >
                   <Edit2 size={14} className="mr-2" />
                   Edit
+                </DropdownMenuItem>
+              )}
+              {row.statusCust && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
+                  onClick={() => handleLinknetPipeline(row)}
+                >
+                  <Wifi size={14} />
+                  Kelola Linknet Pipeline
                 </DropdownMenuItem>
               )}
               {canDelete && (

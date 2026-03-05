@@ -364,15 +364,6 @@ export const CustomerTable = ({
                 <FileText size={14} />
                 Lihat Tagihan
               </DropdownMenuItem>
-              {row.linknetStatus && (
-                <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
-                  onClick={() => handleLinknetPipeline(row)}
-                >
-                  <Wifi size={14} />
-                  Kelola Linknet Pipeline
-                </DropdownMenuItem>
-              )}
               {row.customerId && canSuspend && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-purple-600 flex items-center gap-2"

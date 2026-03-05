@@ -101,6 +101,7 @@ export interface CustomerQuery extends BaseQuery {
   labelIds?: string | string[];
   gte?: string; // e.g., "createdAt:2025-01-01"
   lte?: string; // e.g., "createdAt:2025-12-31"
+  linknetPipeline?: "pending" | "done"; // Filter by Linknet pipeline status
 }
 
 const ENDPOINT = "/pelanggan/customer";

@@ -41,7 +41,7 @@ export default function CustomerListPage() {
     refetch: refresh,
     remove,
     deleting,
-  } = useCustomers();
+  } = useCustomers({ linknetPipeline: 'done' });
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -123,6 +123,7 @@ export default function CustomerListPage() {
       labelIds: selectedLabels.length > 0 ? selectedLabels : undefined,
       gte: dateFrom ? `createdAt:${dateFrom}` : undefined,
       lte: dateTo ? `createdAt:${dateTo}` : undefined,
+      linknetPipeline: 'done' as const,
     });
   }, [debouncedSearchQuery, filters, legacyFilter, selectedLabels, dateFrom, dateTo, setQuery]);
 
