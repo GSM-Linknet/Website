@@ -11,6 +11,10 @@ export interface TimeSlot {
     startDateTime: string;
     endDateTime: string;
   };
+  relatedParty?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface SearchTimeSlotResponse {

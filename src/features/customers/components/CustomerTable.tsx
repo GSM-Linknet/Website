@@ -48,6 +48,7 @@ const resource = "pelanggan.kelola";
 const canEdit = AuthService.hasPermission(userRole, resource, "edit");
 const canDelete = AuthService.hasPermission(userRole, resource, "delete");
 const canSuspend = AuthService.hasPermission(userRole, "pelanggan.layanan", "suspend");
+const canLinknet = AuthService.hasPermission(userRole, "pelanggan.pendaftaran", "linknet");
 
 export const CustomerTable = ({
   customers,
@@ -249,10 +250,11 @@ export const CustomerTable = ({
         return (
           <Badge
             className={cn(
-              "rounded-md text-[10px] font-bold px-2 py-0.5 border cursor-pointer hover:opacity-80 transition-opacity",
+              "rounded-md text-[10px] font-bold px-2 py-0.5 border transition-opacity",
+              canLinknet && "cursor-pointer hover:opacity-80",
               config.color
             )}
-            onClick={() => handleLinknetPipeline(row)}
+            onClick={() => canLinknet && handleLinknetPipeline(row)}
           >
             {config.label}
           </Badge>

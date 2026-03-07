@@ -74,7 +74,8 @@ export type AppAction =
   | "export"
   | "impersonate"
   | "suspend"
-  | "pay";
+  | "pay"
+  | "linknet";
 
 export interface User {
   id: string;
@@ -128,6 +129,7 @@ export const PERMISSIONS: PermissionMatrix = {
       "delete",
       "verify",
       "export",
+      "linknet",
     ],
     "pelanggan.kelola": ["view", "create", "edit", "delete", "export"],
     "pelanggan.suspend-queue": ["view", "edit", "suspend"],
@@ -161,7 +163,7 @@ export const PERMISSIONS: PermissionMatrix = {
     "master.paket": ["view", "create", "edit"],
     "master.diskon": ["view", "create", "edit"],
     "master.schedule": ["view", "create", "edit"],
-    "pelanggan.pendaftaran": ["view", "verify", "export"],
+    "pelanggan.pendaftaran": ["view", "verify", "export", "linknet"],
     "pelanggan.kelola": ["view", "edit", "export"],
     "pelanggan.layanan": ["view", "suspend"],
     "pelanggan.legacy": ["view", "create", "edit"],
@@ -186,7 +188,7 @@ export const PERMISSIONS: PermissionMatrix = {
     "master.wilayah": ["view"],
     "master.area": ["view"],
     "master.unit": ["view", "create", "edit"],
-    "pelanggan.pendaftaran": ["view", "verify"],
+    "pelanggan.pendaftaran": ["view", "verify", "linknet"],
     "pelanggan.kelola": ["view", "edit"],
     "teknisi.database": ["view"],
     "teknisi.tools": ["view"],
@@ -215,7 +217,7 @@ export const PERMISSIONS: PermissionMatrix = {
     "master.paket": ["view"],
     "master.diskon": ["view"],
     "master.schedule": ["view", "create", "edit"],
-    "pelanggan.pendaftaran": ["view", "create", "verify"],
+    "pelanggan.pendaftaran": ["view", "create", "verify", "linknet"],
     "pelanggan.kelola": ["view", "edit"],
     "pelanggan.layanan": [],
     "teknisi.database": ["view"],

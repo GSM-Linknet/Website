@@ -41,6 +41,7 @@ export default function CustomerRegistrationPage() {
   const canEdit = AuthService.hasPermission(userRole, resource, "edit");
   const canDelete = AuthService.hasPermission(userRole, resource, "delete");
   const canVerify = AuthService.hasPermission(userRole, resource, "verify");
+  const canLinknet = AuthService.hasPermission(userRole, resource, "linknet");
 
   const {
     data: customers,
@@ -233,6 +234,12 @@ export default function CustomerRegistrationPage() {
       ),
     },
     {
+      header: "ID Pelanggan",
+      accessorKey: "customerId",
+      className: "text-slate-500 font-bold text-[12px] text-center",
+      cell: (row: Customer) => row.customerId || "-"
+    },
+    {
       header: "SITE ID",
       accessorKey: "siteId",
       className: "text-slate-500 font-bold text-[12px]",
@@ -304,7 +311,7 @@ export default function CustomerRegistrationPage() {
       className: "w-10 text-center",
       cell: (row: Customer) => {
         const isPending = !row.statusCust;
-        const hasActions = canEdit || canDelete || (canVerify && isPending);
+        const hasActions = canEdit || canDelete || (canVerify && isPending) || (canLinknet && row.statusCust);
 
         if (!hasActions) return <span className="text-slate-400">-</span>;
 
@@ -342,7 +349,7 @@ export default function CustomerRegistrationPage() {
                   Edit
                 </DropdownMenuItem>
               )}
-              {row.statusCust && (
+              {canLinknet && row.statusCust && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
                   onClick={() => handleLinknetPipeline(row)}

@@ -129,6 +129,7 @@ const ACTIONS: { id: AppAction; label: string }[] = [
     { id: "export", label: "Exp" },
     { id: "impersonate", label: "Imp" },
     { id: "suspend", label: "Sus" },
+    { id: "linknet", label: "LNet" },
 ];
 
 export default function PermissionPage() {

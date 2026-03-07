@@ -52,6 +52,20 @@ const getStepIndex = (status?: string) => {
         case "APPOINTMENT_PENDING":
             return 2;
         case "OM_SUBMITTED":
+        case "WO_SCHEDULED":
+        case "WO_RESCHEDULED":
+        case "WO_ON_THE_WAY":
+        case "WO_ARRIVED":
+        case "WO_PROVISIONING":
+        case "WO_PROVISIONING_ERROR":
+        case "WO_TESTING":
+        case "WO_TESTING_DONE":
+        case "WO_DOC_PENDING":
+        case "WO_DOC_REVISED_NEEDED":
+        case "WO_DOC_REVISED":
+        case "WO_RETURN":
+        case "WO_FAILED":
+        case "WO_CANCELLED":
             return 3;
         case "ACTIVE":
             return 4;
@@ -242,7 +256,7 @@ export function LinknetPipelineModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl bg-white p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+            <DialogContent className="w-[95vw] md:max-w-2xl max-h-[95vh] overflow-y-auto bg-white p-0 rounded-2xl border-none shadow-2xl custom-scrollbar">
                 <div className="bg-slate-50 px-6 py-5 border-b border-slate-100">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -528,34 +542,56 @@ export function LinknetPipelineModal({
                                                 <Label className="text-sm font-bold text-slate-800 mb-3 block">
                                                     Pilih Slot Waktu Terbaik ({slots.length})
                                                 </Label>
-                                                <div className="max-h-[220px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-                                                    {slots.map((slot) => (
-                                                        <div
-                                                            key={slot.id}
-                                                            className="group flex flex-col md:flex-row md:items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md transition-all gap-4"
-                                                        >
-                                                            <div>
-                                                                <div className="text-[13px] font-bold text-slate-800">
-                                                                    {formatDateTime(slot.validFor.startDateTime)}
-                                                                </div>
-                                                                <div className="text-[11px] font-medium text-slate-500 mt-1 flex items-center gap-1.5">
-                                                                    <ArrowRight size={10} /> {formatDateTime(slot.validFor.endDateTime)}
-                                                                </div>
-                                                            </div>
-                                                            <Button
-                                                                size="sm"
-                                                                className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 shadow-sm"
-                                                                onClick={() => handleBookAppointment(slot)}
-                                                                disabled={bookingSlot === slot.id}
-                                                            >
-                                                                {bookingSlot === slot.id ? (
-                                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                                ) : (
-                                                                    <>Book & Submit <ChevronRight size={14} className="ml-1 -mr-1" /></>
+                                                <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                                    {slots.map((slot) => {
+                                                        const isFull = slot.relatedParty?.id === "0";
+                                                        const quota = isFull ? 0 : Number(slot.relatedParty?.id || 0);
+
+                                                        return (
+                                                            <div
+                                                                key={slot.id}
+                                                                className={cn(
+                                                                    "group flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border transition-all gap-4",
+                                                                    isFull ? "bg-slate-50 border-slate-200 opacity-70" : "bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md"
                                                                 )}
-                                                            </Button>
-                                                        </div>
-                                                    ))}
+                                                            >
+                                                                <div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="text-[14px] font-bold text-slate-800">
+                                                                            {formatDateTime(slot.validFor.startDateTime)}
+                                                                        </div>
+                                                                        {!isFull && quota > 0 && (
+                                                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-md">
+                                                                                Tersedia {quota} Slot
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-[12px] font-medium text-slate-500 mt-1.5 flex items-center gap-2">
+                                                                        <span>Hingga</span>
+                                                                        <ArrowRight size={12} className="text-slate-400" />
+                                                                        <span className="text-slate-700 font-semibold">{formatDateTime(slot.validFor.endDateTime)}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <Button
+                                                                    size="sm"
+                                                                    className={cn(
+                                                                        "shrink-0 font-medium h-10 px-4",
+                                                                        isFull ? "bg-slate-200 hover:bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                                                                    )}
+                                                                    onClick={() => !isFull && handleBookAppointment(slot)}
+                                                                    disabled={bookingSlot === slot.id || isFull}
+                                                                >
+                                                                    {bookingSlot === slot.id ? (
+                                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                                    ) : isFull ? (
+                                                                        "Slot Penuh"
+                                                                    ) : (
+                                                                        <>Book & Submit <ChevronRight size={16} className="ml-1 -mr-1" /></>
+                                                                    )}
+                                                                </Button>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}

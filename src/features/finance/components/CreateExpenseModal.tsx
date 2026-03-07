@@ -175,16 +175,16 @@ export function CreateExpenseModal({
                         <div className="space-y-2">
                             <Label htmlFor="subUnitId">Sub Unit (Opsional)</Label>
                             <Select
-                                value={formData.subUnitId || ""}
+                                value={formData.subUnitId || "none"}
                                 onValueChange={(value) =>
-                                    setFormData({ ...formData, subUnitId: value || undefined })
+                                    setFormData({ ...formData, subUnitId: value === "none" ? undefined : value })
                                 }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Pilih Sub Unit" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Tidak Ada</SelectItem>
+                                    <SelectItem value="none">Tidak Ada</SelectItem>
                                     {subUnits.map((subUnit) => (
                                         <SelectItem key={subUnit.id} value={subUnit.id}>
                                             {subUnit.name}
