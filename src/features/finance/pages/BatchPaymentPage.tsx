@@ -9,6 +9,9 @@ import type { BatchPayment } from "@/services/batch-payment.service";
 import { useBatchPayments } from "../hooks/useBatchPayments";
 import { CreateBatchPaymentModal } from "../components/CreateBatchPaymentModal";
 import { BatchPaymentDetailModal } from "../components/BatchPaymentDetailModal";
+import { DateRangeFilter } from "@/features/reporting/components/DateRangeFilter";
+import { DATE_RANGES } from "@/features/reporting/constants/report.constants";
+import { getDateRangePreset } from "@/features/reporting/utils/report.utils";
 
 /**
  * StatusBadge Component
@@ -35,6 +38,9 @@ const StatusBadge = ({ status }: { status: BatchPayment['status'] }) => {
  * Displays list of batch payments and provides summary of expense quotas
  */
 export default function BatchPaymentPage() {
+    const { startDate: defaultStart, endDate: defaultEnd } = getDateRangePreset(DATE_RANGES.THIS_MONTH);
+    const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
+
     const {
         data: batchPayments,
         loading,
@@ -42,8 +48,12 @@ export default function BatchPaymentPage() {
         page,
         totalPages,
         setPage,
+        setQuery,
         refetch,
-    } = useBatchPayments();
+    } = useBatchPayments({
+        gte: dateRange.start ? `createdAt:${moment(dateRange.start).format('YYYY-MM-DD')}` : undefined,
+        lte: dateRange.end ? `createdAt:${moment(dateRange.end).format('YYYY-MM-DD')}` : undefined,
+    });
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState<BatchPayment | null>(null);
@@ -155,13 +165,26 @@ export default function BatchPaymentPage() {
                         Kelola pembayaran tagihan massal menggunakan sisa kuota unit/subunit Anda.
                     </p>
                 </div>
-                <Button
-                    onClick={() => setIsCreateOpen(true)}
-                    className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-6 shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Buat Batch Baru
-                </Button>
+                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4">
+                    <DateRangeFilter
+                        defaultRange={DATE_RANGES.THIS_MONTH}
+                        onFilterChange={(start, end) => {
+                            setDateRange({ start, end });
+                            setQuery({
+                                gte: start ? `createdAt:${moment(start).format('YYYY-MM-DD')}` : undefined,
+                                lte: end ? `createdAt:${moment(end).format('YYYY-MM-DD')}` : undefined,
+                                page: 1, // Reset page on filter change
+                            });
+                        }}
+                    />
+                    <Button
+                        onClick={() => setIsCreateOpen(true)}
+                        className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold px-6 h-[42px] shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Buat Batch Baru
+                    </Button>
+                </div>
             </div>
 
 

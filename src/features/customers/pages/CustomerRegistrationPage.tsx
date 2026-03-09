@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -205,6 +205,24 @@ export default function CustomerRegistrationPage() {
     setLinknetCustomer(row);
   };
 
+  const handleRegenerateId = async (row: Customer) => {
+    if (!canEdit) return;
+    try {
+      await CustomerService.regenerateCustomerId(row.id);
+      toast({
+        title: "Berhasil",
+        description: `ID Pelanggan ${row.name} berhasil di-generate ulang`,
+      });
+      refresh();
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    }
+  };
+
   const columns = [
     {
       header: "NAMA",
@@ -337,6 +355,16 @@ export default function CustomerRegistrationPage() {
                 >
                   <CheckCircle size={14} className="mr-2" />
                   Verifikasi / Tolak
+                </DropdownMenuItem>
+              )}
+
+              {canEdit && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold"
+                  onClick={() => handleRegenerateId(row)}
+                >
+                  <RefreshCw size={14} className="mr-2" />
+                  Generate Ulang ID
                 </DropdownMenuItem>
               )}
 

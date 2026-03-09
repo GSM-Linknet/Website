@@ -89,6 +89,9 @@ const CommissionSettingsPage = lazy(
 const TemplateManagementPage = lazy(
   () => import("@/features/settings/pages/TemplateManagementPage"),
 );
+const LinkNetLogPage = lazy(
+  () => import("@/features/settings/pages/LinknetLogPage"),
+);
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
@@ -626,6 +629,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <TemplateManagementPage />
+              </Suspense>
+            )
+          },
+          {
+            path: "linknet-logs",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <LinkNetLogPage />
               </Suspense>
             )
           }

@@ -54,6 +54,47 @@ export interface ServiceCharacteristic {
   value: string | Record<string, unknown>;
 }
 
+export interface LinkNetLog {
+  id: string;
+  customerId: string;
+  event: string;
+  status: "SUCCESS" | "FAILED" | "PENDING";
+  payload: {
+    request_curl?: string;
+    response?: any;
+    error?: string;
+    rawResponse?: string;
+    [key: string]: any;
+  };
+  notes?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  customer: {
+    id: string;
+    name: string;
+    customerId?: string;
+    lnId?: string;
+  };
+}
+
+export interface GetLogsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  customerId?: string;
+}
+
+export interface GetLogsResponse {
+  logs: LinkNetLog[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 // ─── Service ───
 
 export const LinkNetService = {
@@ -161,9 +202,21 @@ export const LinkNetService = {
   },
 
   // Cancel WO
-  cancelWorkOrder: async (soId: string) => {
+  cancelWorkOrder: async (
+    soId: string,
+    updatedBy?: string,
+    reason?: string,
+    updatedDate?: string,
+  ) => {
     return apiClient.patch<ResponseData<unknown>>(
       `${ENDPOINT}/cancel-wo/${soId}`,
+      { updatedBy, reason, updatedDate },
     );
+  },
+
+  getLogs: async (params: GetLogsParams) => {
+    return apiClient.get<ResponseData<GetLogsResponse>>(`${ENDPOINT}/logs`, {
+      params,
+    });
   },
 };

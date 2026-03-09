@@ -46,6 +46,7 @@ export function CreateExpenseModal({
         reference: "",
         expenseDate: new Date().toISOString().split("T")[0],
     });
+    const [customCategory, setCustomCategory] = useState("");
 
     const isEditMode = !!expense;
 
@@ -53,15 +54,23 @@ export function CreateExpenseModal({
     useEffect(() => {
         if (isOpen) {
             if (expense) {
+                const PREDEFINED_CATEGORIES = [
+                    "BOP_UNIT", "ATK", "KASBON_KARYAWAN", "SEWA_KANTOR", 
+                    "EXPENSIVE_DIREKTUR", "TRANSFER_PT", "PIUTANG_PT", "HUTANG_PT"
+                ];
+                
+                const isCustom = !PREDEFINED_CATEGORIES.includes(expense.category);
+
                 setFormData({
                     unitId: expense.unitId,
                     subUnitId: expense.subUnitId,
                     amount: expense.amount,
-                    category: expense.category,
+                    category: isCustom ? "LAINNYA" : expense.category,
                     description: expense.description,
                     reference: expense.reference || "",
                     expenseDate: expense.expenseDate.split("T")[0],
                 });
+                setCustomCategory(isCustom ? expense.category : "");
             } else {
                 setFormData({
                     unitId: "",
@@ -72,6 +81,7 @@ export function CreateExpenseModal({
                     reference: "",
                     expenseDate: new Date().toISOString().split("T")[0],
                 });
+                setCustomCategory("");
             }
         }
     }, [isOpen, expense]);
@@ -113,11 +123,17 @@ export function CreateExpenseModal({
             return;
         }
 
+        if (formData.category === "LAINNYA" && !customCategory) {
+            toast.error("Mohon isi nama kategori kustom");
+            return;
+        }
+
         setIsLoading(true);
         try {
             const payload = {
                 ...formData,
                 amount: Number(formData.amount),
+                category: formData.category === "LAINNYA" ? customCategory : formData.category,
                 expenseDate: new Date(formData.expenseDate).toISOString(),
             };
 
@@ -217,9 +233,23 @@ export function CreateExpenseModal({
                                     <SelectItem value="TRANSFER_PT">Transfer PT</SelectItem>
                                     <SelectItem value="PIUTANG_PT">Piutang PT</SelectItem>
                                     <SelectItem value="HUTANG_PT">Hutang PT</SelectItem>
+                                    <SelectItem value="LAINNYA">Lainnya</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {formData.category === "LAINNYA" && (
+                            <div className="space-y-2 col-span-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <Label htmlFor="customCategory">Nama Kategori Kustom *</Label>
+                                <Input
+                                    id="customCategory"
+                                    placeholder="Masukkan nama kategori (misal: Biaya Sampah, Pajak, dll)"
+                                    value={customCategory}
+                                    onChange={(e) => setCustomCategory(e.target.value)}
+                                    className="bg-slate-50 border-slate-200"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

@@ -245,6 +245,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/settings/commission",
         resource: "settings.system",
       },
+      {
+        title: "Linknet Logs",
+        href: "/settings/linknet-logs",
+        resource: "settings.system",
+      },
     ],
   },
 

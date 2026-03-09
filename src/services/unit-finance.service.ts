@@ -57,15 +57,7 @@ export interface UnitExpense {
   unitId: string;
   subUnitId?: string;
   amount: number;
-  category:
-    | "BOP_UNIT"
-    | "ATK"
-    | "KASBON_KARYAWAN"
-    | "SEWA_KANTOR"
-    | "EXPENSIVE_DIREKTUR"
-    | "TRANSFER_PT"
-    | "PIUTANG_PT"
-    | "HUTANG_PT";
+  category: string;
   description: string;
   reference?: string;
   linkedPaymentId?: string;
@@ -81,15 +73,7 @@ export interface CreateExpensePayload {
   unitId: string;
   subUnitId?: string;
   amount: number;
-  category:
-    | "BOP_UNIT"
-    | "ATK"
-    | "KASBON_KARYAWAN"
-    | "SEWA_KANTOR"
-    | "EXPENSIVE_DIREKTUR"
-    | "TRANSFER_PT"
-    | "PIUTANG_PT"
-    | "HUTANG_PT";
+  category: string;
   description: string;
   reference?: string;
   expenseDate: string;

@@ -145,6 +145,9 @@ export const CustomerService = {
   toggleLegacyStatus: async (id: string) => {
     return apiClient.patch<Customer>(`${ENDPOINT}/toggle-legacy/${id}`);
   },
+  regenerateCustomerId: async (id: string) => {
+    return apiClient.post<Customer>(`${ENDPOINT}/regenerate-id/${id}`);
+  },
 
   // ─── Linknet Pipeline Endpoints ──────────────────────────────────────────
   createLinknetAccount: async (id: string, notes?: string) => {

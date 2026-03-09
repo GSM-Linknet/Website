@@ -9,7 +9,9 @@ import {
     Truck,
     ChevronRight,
     ClipboardList,
-    ArrowRight
+    ArrowRight,
+    RotateCcw,
+    X,
 } from "lucide-react";
 import {
     Dialog,
@@ -101,6 +103,18 @@ export function LinknetPipelineModal({
     const [bookingSlot, setBookingSlot] = useState<string | null>(null);
     const [bookingError, setBookingError] = useState<string | null>(null);
 
+    // Cancel WO
+    const [showCancelForm, setShowCancelForm] = useState(false);
+    const [cancelTechnician, setCancelTechnician] = useState("");
+    const [cancelReason, setCancelReason] = useState("");
+    const [cancelling, setCancelling] = useState(false);
+
+    // Change Service
+    const [showChangeForm, setShowChangeForm] = useState(false);
+    const [changePlan, setChangePlan] = useState("");
+    const [changeNotes, setChangeNotes] = useState("");
+    const [changing, setChanging] = useState(false);
+
     const currentStep = getStepIndex(localStatus);
 
     // Reset local state when opened with a new customer
@@ -117,6 +131,12 @@ export function LinknetPipelineModal({
             setSearchingSlots(false);
             setBookingSlot(null);
             setBookingError(null);
+            setShowCancelForm(false);
+            setCancelTechnician("");
+            setCancelReason("");
+            setShowChangeForm(false);
+            setChangePlan("");
+            setChangeNotes("");
         }
     }, [open, customer]);
 
@@ -236,6 +256,57 @@ export function LinknetPipelineModal({
         }
     };
 
+    const handleCancelWO = async () => {
+        if (!cancelTechnician || !cancelReason) {
+            toast.error("Nama Admin dan Alasan wajib diisi");
+            return;
+        }
+
+        setCancelling(true);
+        try {
+            const soId = customer.lnId;
+            if (!soId) throw new Error("ID Service Order (SOID) tidak ditemukan");
+
+            const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            await LinkNetService.cancelWorkOrder(
+                soId,
+                cancelTechnician,
+                cancelReason,
+                todayStr
+            );
+            toast.success("Work Order berhasil dibatalkan");
+            setShowCancelForm(false);
+            setLocalStatus(undefined);
+            onSuccess();
+        } catch (err: any) {
+            toast.error(err?.message || "Gagal membatalkan Work Order");
+        } finally {
+            setCancelling(false);
+        }
+    };
+
+    const handleChangeService = async () => {
+        setChanging(true);
+        try {
+            const characteristics = [
+                { name: "homepass_id", value: customer.siteId || "" },
+                { name: "product_plan", value: changePlan },
+                { name: "notes", value: changeNotes },
+                { name: "must_do", value: "no" },
+                { name: "no_schedule", value: "no" }
+            ].filter(c => c.value);
+
+            await LinkNetService.createChangeService(customer.id, characteristics as any);
+            toast.success("Request Change Service berhasil dikirim");
+            setShowChangeForm(false);
+            onSuccess();
+        } catch (err: any) {
+            toast.error(err?.message || "Gagal mengirim request Change Service");
+        } finally {
+            setChanging(false);
+        }
+    };
+
     const formatDateTime = (dt: string) => {
         // Linknet mengirim waktu WIB tanpa offset (misal: "2026-03-04T09:00:00")
         // new Date(string) akan menggiggapnya UTC dan menambah +7 jam saat display WIB
@@ -324,6 +395,60 @@ export function LinknetPipelineModal({
                                 <p className="text-sm text-slate-500 mt-2">
                                     Pelanggan sudah disubmit ke tim operasional pusat dan menunggu pengerjaan lapangan (Active/IKR Callback).
                                 </p>
+
+                                <div className="mt-8 flex flex-col gap-4">
+                                    <div className="flex items-center gap-2 text-slate-400">
+                                        <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest">Aksi Lanjutan</span>
+                                        <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                    </div>
+
+                                    {!showChangeForm ? (
+                                        <Button
+                                            variant="outline"
+                                            className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 h-11 transition-all group"
+                                            onClick={() => setShowChangeForm(true)}
+                                        >
+                                            <RotateCcw className="mr-2 h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
+                                            Change Service
+                                        </Button>
+                                    ) : (
+                                        <div className="space-y-4 p-5 bg-blue-50/50 rounded-2xl border border-blue-100 animate-in zoom-in-95 duration-200">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="font-bold text-blue-900 text-sm">Change Service</h4>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-400" onClick={() => setShowChangeForm(false)}>
+                                                    <X size={14} />
+                                                </Button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-bold text-blue-800">Paket Baru</Label>
+                                                <Input
+                                                    placeholder="Contoh: 30MB_BV"
+                                                    value={changePlan}
+                                                    onChange={(e) => setChangePlan(e.target.value)}
+                                                    className="bg-white border-blue-200"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-bold text-blue-800">Catatan</Label>
+                                                <Textarea
+                                                    placeholder="Alasan perubahan atau info tambahan"
+                                                    value={changeNotes}
+                                                    onChange={(e) => setChangeNotes(e.target.value)}
+                                                    className="bg-white border-blue-200 h-20 resize-none"
+                                                />
+                                            </div>
+                                            <Button
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                                onClick={handleChangeService}
+                                                disabled={changing || !changePlan}
+                                            >
+                                                {changing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                Kirim Request
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
@@ -612,6 +737,59 @@ export function LinknetPipelineModal({
                                         <div className="mt-6 bg-white border border-slate-200 rounded-lg p-3 text-left inline-block shadow-sm">
                                             <p className="text-[11px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Submitted Appt ID</p>
                                             <p className="text-sm font-mono text-slate-800 font-bold">{customer.appointmentId || "-"}</p>
+                                        </div>
+
+                                        <div className="mt-8 flex flex-col gap-4">
+                                            <div className="flex items-center gap-2 text-slate-400">
+                                                <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Aksi Bahaya</span>
+                                                <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                            </div>
+
+                                            {!showCancelForm ? (
+                                                <Button
+                                                    variant="ghost"
+                                                    className="w-full text-rose-600 hover:bg-rose-50 hover:text-rose-700 text-xs font-bold"
+                                                    onClick={() => setShowCancelForm(true)}
+                                                >
+                                                    Batalkan Work Order
+                                                </Button>
+                                            ) : (
+                                                <div className="space-y-4 p-5 bg-rose-50/50 rounded-2xl border border-rose-100 text-left animate-in zoom-in-95 duration-200">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <h4 className="font-bold text-rose-900 text-sm">Pembatalan WO</h4>
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-400" onClick={() => setShowCancelForm(false)}>
+                                                            <X size={14} />
+                                                        </Button>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs font-bold text-rose-800">Nama Admin</Label>
+                                                        <Input
+                                                            placeholder="Nama Admin yang melaporkan"
+                                                            value={cancelTechnician}
+                                                            onChange={(e) => setCancelTechnician(e.target.value)}
+                                                            className="bg-white border-rose-200"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs font-bold text-rose-800">Alasan Pembatalan</Label>
+                                                        <Textarea
+                                                            placeholder="Misal: Alamat tidak sesuai, FAT Penuh, dll"
+                                                            value={cancelReason}
+                                                            onChange={(e) => setCancelReason(e.target.value)}
+                                                            className="bg-white border-rose-200 h-20 resize-none"
+                                                        />
+                                                    </div>
+                                                    <Button
+                                                        className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                                                        onClick={handleCancelWO}
+                                                        disabled={cancelling}
+                                                    >
+                                                        {cancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                        Ya, Batalkan Sekarang
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
