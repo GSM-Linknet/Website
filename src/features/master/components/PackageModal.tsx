@@ -32,13 +32,13 @@ export function PackageModal({
         wilayahIds: [],
         duration: 30, // Default to 30 days
         costBandwidth: 0,
-        salesIncome: 0,
-        spvIncome: 0,
+        holdingIncome: 0,
+        unitGlobalIncome: 0,
         spCommission: 0,
         adminCommission: 0,
         unitCommission: 0,
-        spvCommission: 0,
-        salesCommission: 0,
+        unitGlobalCommission: 0,
+        holdingCommission: 0,
         otherCommission: 0,
     });
 
@@ -57,13 +57,13 @@ export function PackageModal({
                     wilayahIds: initialData.packagesWilayah?.map(pw => pw.wilayah.id) || [],
                     duration: initialData.duration || 30,
                     costBandwidth: initialData.costBandwidth || 0,
-                    salesIncome: initialData.salesIncome || 0,
-                    spvIncome: initialData.spvIncome || 0,
+                    holdingIncome: initialData.holdingIncome || 0,
+                    unitGlobalIncome: initialData.unitGlobalIncome || 0,
                     spCommission: initialData.spCommission || 0,
                     adminCommission: initialData.adminCommission || 0,
                     unitCommission: initialData.unitCommission || 0,
-                    spvCommission: initialData.spvCommission || 0,
-                    salesCommission: initialData.salesCommission || 0,
+                    unitGlobalCommission: initialData.unitGlobalCommission || 0,
+                    holdingCommission: initialData.holdingCommission || 0,
                     otherCommission: initialData.otherCommission || 0,
                 });
             } else {
@@ -76,13 +76,13 @@ export function PackageModal({
                     wilayahIds: [],
                     duration: 30,
                     costBandwidth: 0,
-                    salesIncome: 0,
-                    spvIncome: 0,
+                    holdingIncome: 0,
+                    unitGlobalIncome: 0,
                     spCommission: 0,
                     adminCommission: 0,
                     unitCommission: 0,
-                    spvCommission: 0,
-                    salesCommission: 0,
+                    unitGlobalCommission: 0,
+                    holdingCommission: 0,
                     otherCommission: 0,
                 });
             }
@@ -92,8 +92,8 @@ export function PackageModal({
     const totalCommission = (formData.spCommission || 0) +
         (formData.adminCommission || 0) +
         (formData.unitCommission || 0) +
-        (formData.spvCommission || 0) +
-        (formData.salesCommission || 0) +
+        (formData.unitGlobalCommission || 0) +
+        (formData.holdingCommission || 0) +
         (formData.otherCommission || 0);
 
     const handleSubmit = async () => {
@@ -272,26 +272,26 @@ export function PackageModal({
 
                         <div className="space-y-1">
                             <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                SPV (%)
+                                Unit Global (%)
                             </Label>
                             <Input
                                 type="number"
                                 placeholder="0"
                                 className="h-9 rounded-lg text-sm"
-                                value={formData.spvCommission}
-                                onChange={(e) => setFormData({ ...formData, spvCommission: parseInt(e.target.value) || 0 })}
+                                value={formData.unitGlobalCommission}
+                                onChange={(e) => setFormData({ ...formData, unitGlobalCommission: parseInt(e.target.value) || 0 })}
                             />
                         </div>
                         <div className="space-y-1">
                             <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Sales (%)
+                                Holding (%)
                             </Label>
                             <Input
                                 type="number"
                                 placeholder="0"
                                 className="h-9 rounded-lg text-sm"
-                                value={formData.salesCommission}
-                                onChange={(e) => setFormData({ ...formData, salesCommission: parseInt(e.target.value) || 0 })}
+                                value={formData.holdingCommission}
+                                onChange={(e) => setFormData({ ...formData, holdingCommission: parseInt(e.target.value) || 0 })}
                             />
                         </div>
 
@@ -307,26 +307,26 @@ export function PackageModal({
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Sales Income (Rp)
+                                Holding Income (Rp)
                             </Label>
                             <Input
                                 type="number"
                                 placeholder="0"
                                 className="h-9 rounded-lg text-sm"
-                                value={formData.salesIncome}
-                                onChange={(e) => setFormData({ ...formData, salesIncome: parseInt(e.target.value) || 0 })}
+                                value={formData.holdingIncome}
+                                onChange={(e) => setFormData({ ...formData, holdingIncome: parseInt(e.target.value) || 0 })}
                             />
                         </div>
                         <div className="space-y-1">
                             <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                SPV Income (Rp)
+                                Unit Global Income (Rp)
                             </Label>
                             <Input
                                 type="number"
                                 placeholder="0"
                                 className="h-9 rounded-lg text-sm"
-                                value={formData.spvIncome}
-                                onChange={(e) => setFormData({ ...formData, spvIncome: parseInt(e.target.value) || 0 })}
+                                value={formData.unitGlobalIncome}
+                                onChange={(e) => setFormData({ ...formData, unitGlobalIncome: parseInt(e.target.value) || 0 })}
                             />
                         </div>
                     </div>

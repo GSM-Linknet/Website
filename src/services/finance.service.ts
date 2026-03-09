@@ -181,6 +181,12 @@ export const FinanceService = {
       { params: query },
     );
   },
+  getCommissionRecap: async (query: BaseQuery = {}) => {
+    return apiClient.get<ApiResponse<any[]>>(
+      `${ENDPOINTS.COMMISSION}/recap`,
+      { params: query },
+    );
+  },
   getCommissionSummary: async () => {
     return apiClient.get<{
       data: {

@@ -250,6 +250,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/settings/linknet-logs",
         resource: "settings.system",
       },
+      {
+        title: "Pengaturan Notifikasi",
+        href: "/settings/notifications",
+        resource: "settings.system",
+      },
     ],
   },
 

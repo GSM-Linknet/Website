@@ -33,7 +33,7 @@ export function UnitModal({
     isLoading,
     initialData,
 }: UnitModalProps) {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<Partial<Unit> & { expenseQuota: number, wilayahIds: string[], areaIds: string[] }>({
         name: "",
         code: "",
         cabangId: "",
@@ -41,6 +41,14 @@ export function UnitModal({
         expenseQuota: 0,
         wilayahIds: [] as string[],
         areaIds: [] as string[],
+        salesRegCommType: "PERCENTAGE",
+        salesRegCommValue: 0,
+        spvRegCommType: "PERCENTAGE",
+        spvRegCommValue: 0,
+        salesRecCommType: "NOMINAL",
+        salesRecCommValue: 0,
+        spvRecCommType: "NOMINAL",
+        spvRecCommValue: 0,
     });
 
     const { data: cabangs, loading: loadingCabang } = useCabang({ paginate: false });
@@ -65,6 +73,14 @@ export function UnitModal({
                     expenseQuota: (initialData as any).expenseQuota || 0,
                     wilayahIds,
                     areaIds,
+                    salesRegCommType: (initialData as any).salesRegCommType || "PERCENTAGE",
+                    salesRegCommValue: (initialData as any).salesRegCommValue || 0,
+                    spvRegCommType: (initialData as any).spvRegCommType || "PERCENTAGE",
+                    spvRegCommValue: (initialData as any).spvRegCommValue || 0,
+                    salesRecCommType: (initialData as any).salesRecCommType || "NOMINAL",
+                    salesRecCommValue: (initialData as any).salesRecCommValue || 0,
+                    spvRecCommType: (initialData as any).spvRecCommType || "NOMINAL",
+                    spvRecCommValue: (initialData as any).spvRecCommValue || 0,
                 });
             } else {
                 setFormData({
@@ -75,6 +91,14 @@ export function UnitModal({
                     expenseQuota: 0,
                     wilayahIds: [],
                     areaIds: [],
+                    salesRegCommType: "PERCENTAGE",
+                    salesRegCommValue: 0,
+                    spvRegCommType: "PERCENTAGE",
+                    spvRegCommValue: 0,
+                    salesRecCommType: "NOMINAL",
+                    salesRecCommValue: 0,
+                    spvRecCommType: "NOMINAL",
+                    spvRecCommValue: 0,
                 });
             }
         }
@@ -257,6 +281,134 @@ export function UnitModal({
                         )}
                     </div>
                 )}
+
+                {/* Registration Commission Configuration */}
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                    <h4 className="text-sm font-bold text-slate-700">Komisi Registrasi</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Sales Registration */}
+                        <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <Label className="text-xs font-bold text-slate-600">Sales</Label>
+                            <div className="flex gap-2">
+                                <Select
+                                    value={formData.salesRegCommType}
+                                    onValueChange={(val) => setFormData({ ...formData, salesRegCommType: val as "PERCENTAGE" | "NOMINAL" })}
+                                    disabled={isLoading}
+                                >
+                                    <SelectTrigger className="w-[110px] bg-white h-9 text-xs">
+                                        <SelectValue placeholder="Tipe" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="PERCENTAGE">% Persen</SelectItem>
+                                        <SelectItem value="NOMINAL">Rp Nominal</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input
+                                    type="number"
+                                    value={formData.salesRegCommValue}
+                                    onChange={(e) => setFormData({ ...formData, salesRegCommValue: parseFloat(e.target.value) || 0 })}
+                                    className="h-9 text-sm"
+                                    placeholder="Nilai komisi"
+                                    disabled={isLoading}
+                                    min={0}
+                                />
+                            </div>
+                        </div>
+
+                        {/* SPV Registration */}
+                        <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <Label className="text-xs font-bold text-slate-600">Supervisor (SPV)</Label>
+                            <div className="flex gap-2">
+                                <Select
+                                    value={formData.spvRegCommType}
+                                    onValueChange={(val) => setFormData({ ...formData, spvRegCommType: val as "PERCENTAGE" | "NOMINAL" })}
+                                    disabled={isLoading}
+                                >
+                                    <SelectTrigger className="w-[110px] bg-white h-9 text-xs">
+                                        <SelectValue placeholder="Tipe" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="PERCENTAGE">% Persen</SelectItem>
+                                        <SelectItem value="NOMINAL">Rp Nominal</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input
+                                    type="number"
+                                    value={formData.spvRegCommValue}
+                                    onChange={(e) => setFormData({ ...formData, spvRegCommValue: parseFloat(e.target.value) || 0 })}
+                                    className="h-9 text-sm"
+                                    placeholder="Nilai komisi"
+                                    disabled={isLoading}
+                                    min={0}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Recurring Commission Configuration */}
+                <div className="space-y-4 pt-4 border-t border-slate-100 mb-4">
+                    <h4 className="text-sm font-bold text-slate-700">Komisi Bulanan (Recurring)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Sales Recurring */}
+                        <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <Label className="text-xs font-bold text-slate-600">Sales</Label>
+                            <div className="flex gap-2">
+                                <Select
+                                    value={formData.salesRecCommType}
+                                    onValueChange={(val) => setFormData({ ...formData, salesRecCommType: val as "PERCENTAGE" | "NOMINAL" })}
+                                    disabled={isLoading}
+                                >
+                                    <SelectTrigger className="w-[110px] bg-white h-9 text-xs">
+                                        <SelectValue placeholder="Tipe" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="PERCENTAGE">% Persen</SelectItem>
+                                        <SelectItem value="NOMINAL">Rp Nominal</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input
+                                    type="number"
+                                    value={formData.salesRecCommValue}
+                                    onChange={(e) => setFormData({ ...formData, salesRecCommValue: parseFloat(e.target.value) || 0 })}
+                                    className="h-9 text-sm"
+                                    placeholder="Nilai komisi"
+                                    disabled={isLoading}
+                                    min={0}
+                                />
+                            </div>
+                        </div>
+
+                        {/* SPV Recurring */}
+                        <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <Label className="text-xs font-bold text-slate-600">Supervisor (SPV)</Label>
+                            <div className="flex gap-2">
+                                <Select
+                                    value={formData.spvRecCommType}
+                                    onValueChange={(val) => setFormData({ ...formData, spvRecCommType: val as "PERCENTAGE" | "NOMINAL" })}
+                                    disabled={isLoading}
+                                >
+                                    <SelectTrigger className="w-[110px] bg-white h-9 text-xs">
+                                        <SelectValue placeholder="Tipe" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="PERCENTAGE">% Persen</SelectItem>
+                                        <SelectItem value="NOMINAL">Rp Nominal</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input
+                                    type="number"
+                                    value={formData.spvRecCommValue}
+                                    onChange={(e) => setFormData({ ...formData, spvRecCommValue: parseFloat(e.target.value) || 0 })}
+                                    className="h-9 text-sm"
+                                    placeholder="Nilai komisi"
+                                    disabled={isLoading}
+                                    min={0}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Wilayah Multi-Select */}
                 <div className="space-y-2">

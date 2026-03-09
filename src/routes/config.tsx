@@ -92,6 +92,9 @@ const TemplateManagementPage = lazy(
 const LinkNetLogPage = lazy(
   () => import("@/features/settings/pages/LinknetLogPage"),
 );
+const NotificationSettingsPage = lazy(
+  () => import("@/features/settings/pages/NotificationSettingsPage"),
+);
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
@@ -637,6 +640,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <LinkNetLogPage />
+              </Suspense>
+            )
+          },
+          {
+            path: "notifications",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <NotificationSettingsPage />
               </Suspense>
             )
           }

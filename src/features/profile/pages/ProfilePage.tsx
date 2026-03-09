@@ -3,6 +3,7 @@ import { LoadingState, EmptyState } from "../components/ProfileStates";
 import { ProfileSidebar } from "../components/ProfileSidebar";
 import { ProfileInfoForm } from "../components/ProfileInfoForm";
 import { PasswordChangeForm } from "../components/PasswordChangeForm";
+import { NotificationSettingsForm } from "@/components/shared/NotificationSettingsForm";
 
 export default function ProfilePage() {
     const {
@@ -100,6 +101,8 @@ export default function ProfilePage() {
                             onConfirmPasswordChange={setConfirmPassword}
                             onSubmit={handleChangePassword}
                         />
+
+                        <NotificationSettingsForm userId={profile.id} category="STAFF" />
                     </div>
                 </div>
             </div>
