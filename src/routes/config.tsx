@@ -118,6 +118,8 @@ const DailyJournalPage = lazy(() => import("@/features/finance/pages/DailyJourna
 const UnitRevenuePage = lazy(() => import("@/features/finance/pages/UnitRevenuePage"));
 const UnitBalancePage = lazy(() => import("@/features/finance/pages/UnitBalancePage"));
 const CustomersWithoutInvoicePage = lazy(() => import("@/features/finance/pages/CustomersWithoutInvoicePage"));
+const RABPage = lazy(() => import("@/features/finance/pages/RABPage"));
+
 
 /**
  * Loading component for Suspense fallback.
@@ -583,6 +585,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <UnitBalancePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "rab",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <RABPage />
               </Suspense>
             ),
           },

@@ -57,6 +57,11 @@ export type PermissionResource =
   | "keuangan.saldo"
   | "keuangan.invoice"
   | "keuangan.batch-payment"
+  | "keuangan.revenue-share"
+  | "keuangan.unit-expense"
+  | "keuangan.unit-balance"
+  | "keuangan.daily-journal"
+  | "keuangan.rab"
   // Settings
   | "settings.permissions"
   | "settings.whatsapp"

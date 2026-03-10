@@ -104,6 +104,7 @@ const MODULE_GROUPS: {
                 { key: "keuangan.batch-payment", label: "Pembayaran Batch" },
                 { key: "keuangan.aging", label: "Aging Reports" },
                 { key: "keuangan.saldo", label: "Saldo & Payout" },
+                { key: "keuangan.rab", label: "RAB Anggaran" },
                 { key: "payout", label: "Disbursement" }
             ]
         },
