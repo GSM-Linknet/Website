@@ -168,6 +168,9 @@ export const CustomerService = {
   retrySurvey: async (id: string, notes?: string) => {
     return apiClient.patch(`${ENDPOINT}/retry-survey/${id}`, { notes });
   },
+  setDocumentUploaded: async (id: string) => {
+    return apiClient.patch(`${ENDPOINT}/set-document-uploaded/${id}`);
+  },
   submitToLinknetOM: async (
     id: string,
     slotId: string,

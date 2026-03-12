@@ -3,7 +3,8 @@ import { useSuspendReviewPage } from "../hooks/useSuspendReviewPage";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { PlayCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { PlayCircle, Search, X } from "lucide-react";
 
 export default function SuspendReviewPage() {
     const {
@@ -17,6 +18,8 @@ export default function SuspendReviewPage() {
         isAutoSuspend,
         settingLoading,
         isProcessing,
+        search,
+        setSearch,
         handleToggleAutoSuspend,
         handleSelectAll,
         handleSelect,
@@ -70,6 +73,27 @@ export default function SuspendReviewPage() {
                 )}
             </div>
 
+            {/* Search Bar */}
+            <div className="relative group w-full md:w-72">
+                <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
+                    size={16}
+                />
+                <Input
+                    placeholder="Cari nama pelanggan"
+                    className="pl-9 pr-9 w-full rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm text-sm"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+                {search && (
+                    <button
+                        onClick={() => setSearch("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                        <X size={14} />
+                    </button>
+                )}
+            </div>
 
             <div className="space-y-3">
                 {selectedIds.length > 0 && (

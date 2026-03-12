@@ -211,4 +211,18 @@ export const DashboardService = {
     }>("/dashboard/chart-data", { params });
     return response.data;
   },
+
+  async getCommissionSummary(params?: { startDate?: string; endDate?: string }) {
+    const response = await apiClient.get<{
+      data: {
+        totalPending: number;
+        totalPaid: number;
+        totalCancelled: number;
+        totalCommission: number;
+        activeCustomers: number;
+      };
+    }>("/commission/summary", { params });
+    return response.data;
+  },
 };
+

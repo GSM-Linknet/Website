@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -74,6 +74,7 @@ export default function CustomerRegistrationPage() {
     status: "all",
     internet: "all",
     wilayah: "all",
+    linknetStatus: "all",
   });
 
 
@@ -86,6 +87,7 @@ export default function CustomerRegistrationPage() {
     if (filters.status !== "all") searchParts.push(`statusCust:${filters.status === "verified"}`);
     if (filters.internet !== "all") searchParts.push(`statusNet:${filters.internet === "online"}`);
     if (filters.wilayah !== "all") searchParts.push(`idWilayah:${filters.wilayah}`);
+    if (filters.linknetStatus !== "all") searchParts.push(`linknetStatus:${filters.linknetStatus}`);
 
     const whereParam = searchParts.join("+");
     const payload = {
@@ -212,6 +214,24 @@ export default function CustomerRegistrationPage() {
       toast({
         title: "Berhasil",
         description: `ID Pelanggan ${row.name} berhasil di-generate ulang`,
+      });
+      refresh();
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSetDocumentUploaded = async (row: Customer) => {
+    if (!canLinknet) return;
+    try {
+      await CustomerService.setDocumentUploaded(row.id);
+      toast({
+        title: "Berhasil",
+        description: `Status Linknet ${row.name} diubah ke DOCUMENT_UPLOADED`,
       });
       refresh();
     } catch (error) {
@@ -386,6 +406,15 @@ export default function CustomerRegistrationPage() {
                   Kelola Linknet Pipeline
                 </DropdownMenuItem>
               )}
+              {canLinknet && row.statusCust && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-teal-600 flex items-center gap-2"
+                  onClick={() => handleSetDocumentUploaded(row)}
+                >
+                  <FileCheck size={14} />
+                  Set Active
+                </DropdownMenuItem>
+              )}
               {canDelete && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
@@ -451,6 +480,21 @@ export default function CustomerRegistrationPage() {
           onSelect={(val) => handleFilterChange("status", val)}
         />
 
+        <FilterDropdown
+          label="Semua Status Linknet"
+          activeValue={filters.linknetStatus}
+          options={[
+            { label: "Semua Status Linknet", value: "all" },
+            { label: "Menunggu Verif", value: "PENDING_VERIFICATION" },
+            { label: "Antrean Survei", value: "CREATE_ACCOUNT" },
+            { label: "Survei Berjalan", value: "SURVEY_IN_PROGRESS" },
+            { label: "Survei Sukses", value: "SURVEY_SUCCESS" },
+            { label: "Survei Ditolak", value: "SURVEY_REJECTED" },
+            { label: "Booking Jadwal", value: "APPOINTMENT_PENDING" },
+            { label: "Menunggu IKR", value: "OM_SUBMITTED" },
+          ]}
+          onSelect={(val) => handleFilterChange("linknetStatus", val)}
+        />
 
       </div>
 
