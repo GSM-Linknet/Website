@@ -31,7 +31,9 @@ import {
     RefreshCw,
     Tag,
     Check,
+    Bell,
 } from "lucide-react";
+import { NotificationSettingsForm } from "@/components/shared/NotificationSettingsForm";
 import type { Customer } from "@/services/customer.service";
 import { usePackage } from "@/features/master/hooks/usePackage";
 import { useUser } from "@/features/master/hooks/useUser";
@@ -235,6 +237,13 @@ export function ManageCustomerModal({
                             >
                                 <MapPin className="w-3.5 h-3.5" />
                                 Lokasi
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="notifications"
+                                className="cursor-pointer flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider text-slate-500 transition-all duration-300 flex items-center justify-center gap-2"
+                            >
+                                <Bell className="w-3.5 h-3.5" />
+                                Notifikasi
                             </TabsTrigger>
                         </TabsList>
                     </div>
@@ -688,6 +697,10 @@ export function ManageCustomerModal({
                                     </div>
                                 </div>
                             </div>
+                        </TabsContent>
+
+                        <TabsContent value="notifications" className="p-0 m-0">
+                            <NotificationSettingsForm customerId={customer.id} category="CUSTOMER" />
                         </TabsContent>
                     </div>
 

@@ -113,11 +113,19 @@ export default function FinancialReportPage() {
     }, []);
 
     const handleExportExcel = async () => {
-        await reportService.exportFinancialReportExcel(activeTab, { ...filters, isLegacy: legacyFilter });
+        await reportService.exportFinancialReportExcel(activeTab, {
+            ...filters,
+            isLegacy: legacyFilter,
+            unitId: unitFilter !== 'all' ? unitFilter : undefined,
+        });
     };
 
     const handleExportPDF = async () => {
-        await reportService.exportFinancialReportPDF(activeTab, { ...filters, isLegacy: legacyFilter });
+        await reportService.exportFinancialReportPDF(activeTab, {
+            ...filters,
+            isLegacy: legacyFilter,
+            unitId: unitFilter !== 'all' ? unitFilter : undefined,
+        });
     };
 
     const tabs = [

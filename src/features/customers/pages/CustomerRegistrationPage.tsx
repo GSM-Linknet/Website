@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, XCircle } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { AddCustomerDialog } from "../components/AddCustomerDialog";
 import { CustomerModal } from "../components/CustomerModal";
 import { CustomerDetailModal } from "../components/CustomerDetailModal";
+import { CustomerVerifyModal } from "../components/CustomerVerifyModal";
+import { LinknetPipelineModal } from "../components/LinknetPipelineModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { AuthService } from "@/services/auth.service";
 import { CustomerService } from "@/services/customer.service";
@@ -39,6 +41,7 @@ export default function CustomerRegistrationPage() {
   const canEdit = AuthService.hasPermission(userRole, resource, "edit");
   const canDelete = AuthService.hasPermission(userRole, resource, "delete");
   const canVerify = AuthService.hasPermission(userRole, resource, "verify");
+  const canLinknet = AuthService.hasPermission(userRole, resource, "linknet");
 
   const {
     data: customers,
@@ -54,13 +57,15 @@ export default function CustomerRegistrationPage() {
     remove,
     deleting,
     refetch: refresh
-  } = useCustomers();
+  } = useCustomers({ linknetPipeline: 'pending' });
 
   // Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerToView, setCustomerToView] = useState<Customer | null>(null);
+  const [customerToVerify, setCustomerToVerify] = useState<Customer | null>(null);
+  const [linknetCustomer, setLinknetCustomer] = useState<Customer | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
@@ -69,19 +74,27 @@ export default function CustomerRegistrationPage() {
     status: "all",
     internet: "all",
     wilayah: "all",
+    linknetStatus: "all",
   });
 
 
   // Update query when debounced search or filters change
   useEffect(() => {
     const searchParts: string[] = [];
-    if (debouncedSearchQuery) searchParts.push(`name:${debouncedSearchQuery}`);
+    // We send search directly to the search query, not as part of the where
+    let searchString: string | undefined = undefined;
+    if (debouncedSearchQuery) searchString = debouncedSearchQuery;
     if (filters.status !== "all") searchParts.push(`statusCust:${filters.status === "verified"}`);
     if (filters.internet !== "all") searchParts.push(`statusNet:${filters.internet === "online"}`);
     if (filters.wilayah !== "all") searchParts.push(`idWilayah:${filters.wilayah}`);
+    if (filters.linknetStatus !== "all") searchParts.push(`linknetStatus:${filters.linknetStatus}`);
 
-    const searchParam = searchParts.join("+");
-    const payload = searchParam ? { search: searchParam } : { search: undefined };
+    const whereParam = searchParts.join("+");
+    const payload = {
+      where: whereParam || undefined,
+      search: searchString || undefined,
+      linknetPipeline: 'pending' as const,
+    };
     setQuery(payload);
   }, [debouncedSearchQuery, filters, setQuery]);
 
@@ -160,8 +173,6 @@ export default function CustomerRegistrationPage() {
   const handleVerify = async (idOrCustomer: string | Customer, isVerify: boolean = true, siteId?: string) => {
     const id = typeof idOrCustomer === 'string' ? idOrCustomer : idOrCustomer.id;
 
-    if (!confirm(`Apakah anda yakin ingin ${isVerify ? 'memverifikasi' : 'menolak'} pelanggan ini ? `)) return;
-
     setVerifyingId(id);
     try {
       if (isVerify) {
@@ -187,10 +198,51 @@ export default function CustomerRegistrationPage() {
       });
     } finally {
       setVerifyingId(null);
+      setCustomerToVerify(null);
     }
   };
 
-  // Table columns
+  // Handle Linknet Pipeline
+  const handleLinknetPipeline = (row: Customer) => {
+    setLinknetCustomer(row);
+  };
+
+  const handleRegenerateId = async (row: Customer) => {
+    if (!canEdit) return;
+    try {
+      await CustomerService.regenerateCustomerId(row.id);
+      toast({
+        title: "Berhasil",
+        description: `ID Pelanggan ${row.name} berhasil di-generate ulang`,
+      });
+      refresh();
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSetDocumentUploaded = async (row: Customer) => {
+    if (!canLinknet) return;
+    try {
+      await CustomerService.setDocumentUploaded(row.id);
+      toast({
+        title: "Berhasil",
+        description: `Status Linknet ${row.name} diubah ke DOCUMENT_UPLOADED`,
+      });
+      refresh();
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    }
+  };
+
   const columns = [
     {
       header: "NAMA",
@@ -220,11 +272,18 @@ export default function CustomerRegistrationPage() {
       ),
     },
     {
+      header: "ID Pelanggan",
+      accessorKey: "customerId",
+      className: "text-slate-500 font-bold text-[12px] text-center",
+      cell: (row: Customer) => row.customerId || "-"
+    },
+    {
       header: "SITE ID",
       accessorKey: "siteId",
       className: "text-slate-500 font-bold text-[12px]",
       cell: (row: Customer) => row.siteId || "-"
     },
+
     {
       header: "PAKET",
       accessorKey: "paket",
@@ -244,6 +303,41 @@ export default function CustomerRegistrationPage() {
       ),
     },
     {
+      header: "STATUS LINKNET",
+      accessorKey: "linknetStatus",
+      cell: (row: Customer) => {
+        if (!row.linknetStatus) return <span className="text-slate-400 text-xs font-semibold">Belum Diproses</span>;
+
+        const STATUS_MAP: Record<string, { label: string; color: string }> = {
+          PENDING_VERIFICATION: { label: "Menunggu Verif", color: "bg-slate-100 text-slate-600 border-slate-200" },
+          CREATE_ACCOUNT: { label: "Antrean Survei", color: "bg-blue-100 text-blue-700 border-blue-200" },
+          SURVEY_IN_PROGRESS: { label: "Survei Berjalan", color: "bg-amber-100 text-amber-700 border-amber-200" },
+          SURVEY_SUCCESS: { label: "Survei Sukses", color: "bg-teal-100 text-teal-700 border-teal-200" },
+          SURVEY_REJECTED: { label: "Survei Ditolak", color: "bg-rose-100 text-rose-700 border-rose-200" },
+          APPOINTMENT_PENDING: { label: "Booking Jadwal", color: "bg-orange-100 text-orange-700 border-orange-200" },
+          OM_SUBMITTED: { label: "Menunggu IKR", color: "bg-violet-100 text-violet-700 border-violet-200" },
+          ACTIVE: { label: "Aktif ✓", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
+        };
+
+        const config = STATUS_MAP[row.linknetStatus] ?? {
+          label: row.linknetStatus,
+          color: "bg-slate-100 text-slate-600 border-slate-200",
+        };
+
+        return (
+          <Badge
+            className={cn(
+              "rounded-md text-[10px] font-bold px-2 py-0.5 border cursor-pointer hover:opacity-80 transition-opacity",
+              config.color
+            )}
+            onClick={() => handleLinknetPipeline(row)}
+          >
+            {config.label}
+          </Badge>
+        );
+      },
+    },
+    {
       header: "TANGGAL DAFTAR",
       accessorKey: "createdAt",
       className: "min-w-[120px] text-slate-500 font-medium text-[12px]",
@@ -255,7 +349,7 @@ export default function CustomerRegistrationPage() {
       className: "w-10 text-center",
       cell: (row: Customer) => {
         const isPending = !row.statusCust;
-        const hasActions = canEdit || canDelete || (canVerify && isPending);
+        const hasActions = canEdit || canDelete || (canVerify && isPending) || (canLinknet && row.statusCust);
 
         if (!hasActions) return <span className="text-slate-400">-</span>;
 
@@ -275,23 +369,25 @@ export default function CustomerRegistrationPage() {
                 Lihat Detail
               </DropdownMenuItem>
               {canVerify && !row.siteId && (
-                <>
-                  <DropdownMenuItem
-                    className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
-                    onClick={() => handleVerifyAction(row.id, true)}
-                  >
-                    <CheckCircle size={14} className="mr-2" />
-                    Verifikasi
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600 focus:text-rose-700 bg-rose-50/50 mb-1"
-                    onClick={() => handleVerifyAction(row.id, false)}
-                  >
-                    <XCircle size={14} className="mr-2" />
-                    Tolak
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
+                  onClick={() => setCustomerToVerify(row)}
+                >
+                  <CheckCircle size={14} className="mr-2" />
+                  Verifikasi / Tolak
+                </DropdownMenuItem>
               )}
+
+              {canEdit && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold"
+                  onClick={() => handleRegenerateId(row)}
+                >
+                  <RefreshCw size={14} className="mr-2" />
+                  Generate Ulang ID
+                </DropdownMenuItem>
+              )}
+
               {canEdit && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold"
@@ -299,6 +395,24 @@ export default function CustomerRegistrationPage() {
                 >
                   <Edit2 size={14} className="mr-2" />
                   Edit
+                </DropdownMenuItem>
+              )}
+              {canLinknet && row.statusCust && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
+                  onClick={() => handleLinknetPipeline(row)}
+                >
+                  <Wifi size={14} />
+                  Kelola Linknet Pipeline
+                </DropdownMenuItem>
+              )}
+              {canLinknet && row.statusCust && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-teal-600 flex items-center gap-2"
+                  onClick={() => handleSetDocumentUploaded(row)}
+                >
+                  <FileCheck size={14} />
+                  Set Active
                 </DropdownMenuItem>
               )}
               {canDelete && (
@@ -337,7 +451,7 @@ export default function CustomerRegistrationPage() {
               size={18}
             />
             <Input
-              placeholder="Cari"
+              placeholder="Cari nama, ID, no. telp..."
               className="pl-10 w-full sm:w-64 md:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -366,6 +480,21 @@ export default function CustomerRegistrationPage() {
           onSelect={(val) => handleFilterChange("status", val)}
         />
 
+        <FilterDropdown
+          label="Semua Status Linknet"
+          activeValue={filters.linknetStatus}
+          options={[
+            { label: "Semua Status Linknet", value: "all" },
+            { label: "Menunggu Verif", value: "PENDING_VERIFICATION" },
+            { label: "Antrean Survei", value: "CREATE_ACCOUNT" },
+            { label: "Survei Berjalan", value: "SURVEY_IN_PROGRESS" },
+            { label: "Survei Sukses", value: "SURVEY_SUCCESS" },
+            { label: "Survei Ditolak", value: "SURVEY_REJECTED" },
+            { label: "Booking Jadwal", value: "APPOINTMENT_PENDING" },
+            { label: "Menunggu IKR", value: "OM_SUBMITTED" },
+          ]}
+          onSelect={(val) => handleFilterChange("linknetStatus", val)}
+        />
 
       </div>
 
@@ -404,6 +533,23 @@ export default function CustomerRegistrationPage() {
         canVerify={canVerify}
         verifying={!!verifyingId}
       />
+
+      <CustomerVerifyModal
+        isOpen={!!customerToVerify}
+        onClose={() => setCustomerToVerify(null)}
+        customer={customerToVerify}
+        onVerify={handleVerify}
+        loading={!!verifyingId}
+      />
+
+      {linknetCustomer && (
+        <LinknetPipelineModal
+          open={!!linknetCustomer}
+          onOpenChange={(op) => !op && setLinknetCustomer(null)}
+          customer={linknetCustomer}
+          onSuccess={refresh}
+        />
+      )}
 
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}

@@ -24,4 +24,11 @@ export const XenditService = {
     getPayouts: async (params: any) => {
         return await apiClient.get<any>("/xendit/payouts", { params });
     },
+
+    exportExcel: async (params: any) => {
+        return await apiClient.get<Blob>("/xendit/payouts/export", {
+            params,
+            responseType: "blob"
+        });
+    }
 };

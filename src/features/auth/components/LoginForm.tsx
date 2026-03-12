@@ -1,19 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { toast } from "sonner";
 
-/**
- * LoginForm provides a premium login experience with validation and GSM branding.
- */
 export const LoginForm = () => {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
     const [credentials, setCredentials] = useState({ email: "", password: "" });
+    const [focused, setFocused] = useState<"email" | "password" | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,21 +19,15 @@ export const LoginForm = () => {
         try {
             await AuthService.login(credentials);
             toast.success("Login berhasil! Selamat datang kembali.");
-            // Logic for storing token would go here
             navigate("/dashboard");
         } catch (error: unknown) {
             console.error("Login failed:", error);
             let errorMessage = "Email atau password salah. Silahkan coba lagi.";
 
-            if (error instanceof Error) {
-                errorMessage = error.message;
-            }
+            if (error instanceof Error) errorMessage = error.message;
 
-            // Check if it's an API error with nested message
             const apiError = error as { data?: { message?: string } };
-            if (apiError.data?.message) {
-                errorMessage = apiError.data.message;
-            }
+            if (apiError.data?.message) errorMessage = apiError.data.message;
 
             toast.error(errorMessage);
         } finally {
@@ -44,83 +35,124 @@ export const LoginForm = () => {
         }
     };
 
+    const inputBase =
+        "w-full h-12 pl-11 pr-4 text-sm text-slate-800 placeholder:text-slate-400 bg-white border rounded-xl outline-none transition-all duration-200";
+    const inputState = (field: "email" | "password") =>
+        focused === field
+            ? "border-blue-500 ring-4 ring-blue-500/10 shadow-sm"
+            : "border-slate-200 hover:border-slate-300";
+
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-                {/* Email Input */}
-                <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 ml-1">Email</label>
-                    <div className="relative group">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                            <Mail size={18} />
-                        </div>
-                        <Input
-                            type="email"
-                            placeholder="admin@gsm.co.id"
-                            required
-                            value={credentials.email}
-                            onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-                            className="pl-12 h-14 rounded-2xl border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-base"
-                        />
-                    </div>
-                </div>
-
-                {/* Password Input */}
-                <div className="space-y-2">
-                    <div className="flex justify-between items-center ml-1">
-                        <label className="text-sm font-bold text-slate-700">Password</label>
-                        <button type="button" className="text-xs font-bold text-blue-600 hover:text-blue-700">
-                            Lupa Password?
-                        </button>
-                    </div>
-                    <div className="relative group">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                            <Lock size={18} />
-                        </div>
-                        <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            required
-                            value={credentials.password}
-                            onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                            className="pl-12 pr-12 h-14 rounded-2xl border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-base"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                        >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex items-center space-x-2 ml-1">
-                <input
-                    type="checkbox"
-                    id="remember"
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="remember" className="text-sm font-medium text-slate-500 selection:bg-none cursor-pointer">
-                    Ingat saya di perangkat ini
+        <form onSubmit={handleSubmit} className="space-y-5">
+            {/* ── Email ── */}
+            <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Email
                 </label>
+                <div className="relative">
+                    <div
+                        className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 ${focused === "email" ? "text-blue-500" : "text-slate-400"
+                            }`}
+                    >
+                        <Mail size={16} />
+                    </div>
+                    <input
+                        type="email"
+                        placeholder="admin@gsm.co.id"
+                        required
+                        value={credentials.email}
+                        onChange={(e) =>
+                            setCredentials({ ...credentials, email: e.target.value })
+                        }
+                        onFocus={() => setFocused("email")}
+                        onBlur={() => setFocused(null)}
+                        className={`${inputBase} ${inputState("email")}`}
+                    />
+                </div>
             </div>
 
-            <Button
+            {/* ── Password ── */}
+            <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Password
+                    </label>
+                    <button
+                        type="button"
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline underline-offset-2 transition-colors"
+                    >
+                        Lupa Password?
+                    </button>
+                </div>
+                <div className="relative">
+                    <div
+                        className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 ${focused === "password" ? "text-blue-500" : "text-slate-400"
+                            }`}
+                    >
+                        <Lock size={16} />
+                    </div>
+                    <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••••"
+                        required
+                        value={credentials.password}
+                        onChange={(e) =>
+                            setCredentials({ ...credentials, password: e.target.value })
+                        }
+                        onFocus={() => setFocused("password")}
+                        onBlur={() => setFocused(null)}
+                        className={`${inputBase} pr-11 ${inputState("password")}`}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        tabIndex={-1}
+                    >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                </div>
+            </div>
+
+            {/* ── Remember me ── */}
+            <label className="flex items-center gap-2.5 cursor-pointer group">
+                <div
+                    onClick={() => setRememberMe(!rememberMe)}
+                    className={`w-4.5 h-4.5 rounded-[5px] border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${rememberMe
+                            ? "bg-blue-600 border-blue-600"
+                            : "border-slate-300 group-hover:border-blue-400"
+                        }`}
+                    style={{ width: 18, height: 18 }}
+                >
+                    {rememberMe && (
+                        <svg viewBox="0 0 10 8" fill="none" className="w-2.5 h-2.5">
+                            <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    )}
+                </div>
+                <span className="text-sm text-slate-500 group-hover:text-slate-700 transition-colors select-none">
+                    Ingat saya di perangkat ini
+                </span>
+            </label>
+
+            {/* ── Submit ── */}
+            <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-14 rounded-2xl bg-[#101D42] hover:bg-[#101D42]/90 text-white font-bold text-base shadow-lg shadow-[#101D42]/20 transition-all active:scale-[0.98]"
+                className="w-full h-12 bg-[#0B1739] hover:bg-[#162040] active:scale-[0.98] text-white font-bold text-sm rounded-xl shadow-lg shadow-[#0B1739]/25 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
             >
                 {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                        <Loader2 className="h-5 w-5 animate-spin" />
+                    <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         <span>Memproses...</span>
-                    </div>
+                    </>
                 ) : (
-                    "Masuk ke Dashboard"
+                    <>
+                        <span>Masuk ke Dashboard</span>
+                        <ArrowRight size={16} />
+                    </>
                 )}
-            </Button>
+            </button>
         </form>
     );
 };

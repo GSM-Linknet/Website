@@ -77,8 +77,8 @@ export function PackageDetailModal({
                         <div className="w-1 h-3 bg-green-500 rounded-full" /> Komisi Registrasi (Persentase)
                     </h4>
                     <div className="grid grid-cols-2 gap-3">
-                        <DetailItem icon={Percent} label="Komisi Sales" value={formatPercent(data.salesCommission)} />
-                        <DetailItem icon={Percent} label="Komisi SPV" value={formatPercent(data.spvCommission)} />
+                        <DetailItem icon={Percent} label="Komisi Sales" value={formatPercent(data.spCommission)} />
+                        <DetailItem icon={Percent} label="Komisi SPV" value={formatPercent(data.unitGlobalCommission)} />
                     </div>
                 </div>
 
@@ -88,8 +88,8 @@ export function PackageDetailModal({
                         <div className="w-1 h-3 bg-blue-500 rounded-full" /> Komisi Rutin (Fixed Price)
                     </h4>
                     <div className="grid grid-cols-2 gap-3">
-                        <DetailItem icon={CircleDollarSign} label="Sales Income" value={formatRupiah(data.salesIncome)} />
-                        <DetailItem icon={CircleDollarSign} label="SPV Income" value={formatRupiah(data.spvIncome)} />
+                        <DetailItem icon={CircleDollarSign} label="Sales Income" value={formatRupiah(data.holdingIncome)} />
+                        <DetailItem icon={CircleDollarSign} label="SPV Income" value={formatRupiah(data.unitGlobalIncome)} />
                     </div>
                 </div>
 

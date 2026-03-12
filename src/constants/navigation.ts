@@ -198,6 +198,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/keuangan/saldo",
         resource: "keuangan.saldo",
       },
+      { title: "RAB Anggaran", href: "/keuangan/rab", resource: "keuangan.rab" },
       { title: "Disbursement", href: "/keuangan/payout", resource: "payout" },
     ],
   },
@@ -231,13 +232,20 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/settings/commission",
         resource: "settings.system",
       },
+      {
+        title: "Pengaturan Notifikasi",
+        href: "/settings/notifications",
+        resource: "settings.system",
+      },
     ],
   },
-
   {
     title: "Logs",
     icon: History,
-    href: "/logs",
-    resource: "dashboard",
+    resource: "logs",
+    items: [
+      { title: "Linknet Logs", href: "/settings/linknet-logs", resource: "logs.linknet" },
+      { title: "Customer Logs", href: "/logs", resource: "logs.customer" },
+    ],
   },
 ];

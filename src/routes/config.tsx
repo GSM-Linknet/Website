@@ -80,6 +80,12 @@ const CommissionSettingsPage = lazy(
 const TemplateManagementPage = lazy(
   () => import("@/features/settings/pages/TemplateManagementPage"),
 );
+const LinkNetLogPage = lazy(
+  () => import("@/features/settings/pages/LinknetLogPage"),
+);
+const NotificationSettingsPage = lazy(
+  () => import("@/features/settings/pages/NotificationSettingsPage"),
+);
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
@@ -103,6 +109,8 @@ const DailyJournalPage = lazy(() => import("@/features/finance/pages/DailyJourna
 const UnitRevenuePage = lazy(() => import("@/features/finance/pages/UnitRevenuePage"));
 const UnitBalancePage = lazy(() => import("@/features/finance/pages/UnitBalancePage"));
 const CustomersWithoutInvoicePage = lazy(() => import("@/features/finance/pages/CustomersWithoutInvoicePage"));
+const RABPage = lazy(() => import("@/features/finance/pages/RABPage"));
+
 
 /**
  * Loading component for Suspense fallback.
@@ -556,6 +564,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "rab",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <RABPage />
+              </Suspense>
+            ),
+          },
+          {
             index: true,
             element: <Navigate to="saldo" replace />,
           },
@@ -601,6 +617,22 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <TemplateManagementPage />
+              </Suspense>
+            )
+          },
+          {
+            path: "linknet-logs",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <LinkNetLogPage />
+              </Suspense>
+            )
+          },
+          {
+            path: "notifications",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <NotificationSettingsPage />
               </Suspense>
             )
           }

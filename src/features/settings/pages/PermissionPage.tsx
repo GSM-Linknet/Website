@@ -53,7 +53,8 @@ const MODULE_GROUPS: {
             resources: [
                 { key: "pelanggan.pendaftaran", label: "Pendaftaran Baru" },
                 { key: "pelanggan.kelola", label: "Kelola Pelanggan" },
-                { key: "pelanggan.layanan", label: "Layanan Mandiri" }
+                { key: "pelanggan.layanan", label: "Layanan Mandiri" },
+                { key: "pelanggan.suspend-queue", label: "Review Suspend" }
             ]
         },
         {
@@ -103,6 +104,7 @@ const MODULE_GROUPS: {
                 { key: "keuangan.batch-payment", label: "Pembayaran Batch" },
                 { key: "keuangan.aging", label: "Aging Reports" },
                 { key: "keuangan.saldo", label: "Saldo & Payout" },
+                { key: "keuangan.rab", label: "RAB Anggaran" },
                 { key: "payout", label: "Disbursement" }
             ]
         },
@@ -127,6 +129,8 @@ const ACTIONS: { id: AppAction; label: string }[] = [
     { id: "verify", label: "Ver" },
     { id: "export", label: "Exp" },
     { id: "impersonate", label: "Imp" },
+    { id: "suspend", label: "Sus" },
+    { id: "linknet", label: "LNet" },
 ];
 
 export default function PermissionPage() {

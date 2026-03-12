@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Download, CircleDollarSign, Users } from "lucide-react";
+import { Search, Download, CircleDollarSign, Users, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable, type Column } from "@/components/shared/BaseTable";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { useCommissions } from "../hooks/useCommissions";
 import { FinanceService, type CommissionLedger } from "@/services/finance.service";
 import { useToast } from "@/hooks/useToast";
 import { cn, formatCurrency } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ==================== Column Definitions ====================
 
@@ -116,6 +117,49 @@ const columns: Column<CommissionLedger>[] = [
     }
 ];
 
+const recapColumns: Column<any>[] = [
+    {
+        header: "USER & ROLE",
+        accessorKey: "name",
+        className: "font-bold text-[#101D42]",
+        cell: (row: any) => (
+            <div className="flex flex-col">
+                <span>{row.name}</span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                    <span className="uppercase font-bold text-blue-500">{row.role}</span> &bull; {row.unitName}
+                </span>
+            </div>
+        )
+    },
+    {
+        header: "KOMISI PENDING",
+        accessorKey: "totalPending",
+        cell: (row: any) => (
+            <span className="font-mono text-yellow-600 font-bold">
+                {formatCurrency(row.totalPending)}
+            </span>
+        )
+    },
+    {
+        header: "KOMISI TERBAYAR (PAID)",
+        accessorKey: "totalPaid",
+        cell: (row: any) => (
+            <span className="font-mono text-green-600 font-bold">
+                {formatCurrency(row.totalPaid)}
+            </span>
+        )
+    },
+    {
+        header: "BATAL",
+        accessorKey: "totalCancelled",
+        cell: (row: any) => (
+            <span className="font-mono text-slate-400 line-through">
+                {formatCurrency(row.totalCancelled)}
+            </span>
+        )
+    }
+];
+
 // ==================== Page Component ====================
 
 export default function CommissionPage() {
@@ -140,9 +184,35 @@ export default function CommissionPage() {
         activeCustomers: 0
     });
 
+    // Recap State
+    const [recapData, setRecapData] = useState<any[]>([]);
+    const [recapLoading, setRecapLoading] = useState(false);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+
     useEffect(() => {
         fetchSummary();
+        fetchRecap();
     }, []);
+
+    const fetchRecap = async () => {
+        setRecapLoading(true);
+        try {
+            const query: any = {};
+            if (startDate) query.startDate = startDate;
+            if (endDate) query.endDate = endDate;
+            
+            const res = await FinanceService.getCommissionRecap(query);
+            if (res.data) {
+                setRecapData(res.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch recap:", error);
+            toast({ title: "Gagal", description: "Gagal memuat rekap komisi", variant: "destructive" });
+        } finally {
+            setRecapLoading(false);
+        }
+    };
 
     const fetchSummary = async () => {
         try {
@@ -251,51 +321,119 @@ export default function CommissionPage() {
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                    <div className="flex bg-slate-100/50 p-1 rounded-xl overflow-x-auto max-w-full no-scrollbar">
-                        {["all", "sales", "spv", "unit"].map((type) => (
-                            <button
-                                key={type}
-                                onClick={() => handleFilterChange(type)}
-                                className={cn(
-                                    "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-bold transition-all whitespace-nowrap",
-                                    activeFilter === type ? "bg-white text-[#101D42] shadow-sm" : "text-slate-400 hover:text-slate-600"
-                                )}
-                            >
-                                {type === "all" ? "Semua" : type.toUpperCase()}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="relative group w-full md:w-auto">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-                        <Input
-                            placeholder="Cari No. Invoice..."
-                            className="pl-10 w-full md:w-72 bg-slate-50 border-none rounded-xl focus:ring-blue-500/10 transition-all"
-                            value={searchQuery}
-                            onChange={(e) => handleSearch(e.target.value)}
+            {/* Content Tabs */}
+            <Tabs defaultValue="history" className="w-full">
+                <TabsList className="mb-4 bg-white border border-slate-100 shadow-sm p-1 rounded-xl">
+                    <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-none">
+                        Riwayat Transaksi
+                    </TabsTrigger>
+                    <TabsTrigger value="recap" className="rounded-lg data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-none">
+                        Rekap Saldo User
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="history" className="mt-0">
+                    <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <div className="flex bg-slate-100/50 p-1 rounded-xl overflow-x-auto max-w-full no-scrollbar">
+                                {["all", "sales", "spv", "unit"].map((type) => (
+                                    <button
+                                        key={type}
+                                        onClick={() => handleFilterChange(type)}
+                                        className={cn(
+                                            "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-bold transition-all whitespace-nowrap",
+                                            activeFilter === type ? "bg-white text-[#101D42] shadow-sm" : "text-slate-400 hover:text-slate-600"
+                                        )}
+                                    >
+                                        {type === "all" ? "Semua" : type.toUpperCase()}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="relative group w-full md:w-auto">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                                <Input
+                                    placeholder="Cari No. Invoice..."
+                                    className="pl-10 w-full md:w-72 bg-slate-50 border-none rounded-xl focus:ring-blue-500/10 transition-all"
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <BaseTable
+                            data={data}
+                            columns={columns}
+                            rowKey={(row: CommissionLedger) => row.id}
+                            className="border-none shadow-none"
+                            loading={loading}
+                            page={page}
+                            totalPages={totalPages}
+                            totalItems={totalItems}
+                            onPageChange={setPage}
+                            meta={{
+                                onUpdateStatus: handleUpdateStatus,
+                                isLoading: loading
+                            }}
                         />
                     </div>
-                </div>
+                </TabsContent>
 
-                <BaseTable
-                    data={data}
-                    columns={columns}
-                    rowKey={(row: CommissionLedger) => row.id}
-                    className="border-none shadow-none"
-                    loading={loading}
-                    page={page}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    onPageChange={setPage}
-                    // Meta object to pass extra props to cell renderers
-                    meta={{
-                        onUpdateStatus: handleUpdateStatus,
-                        isLoading: loading
-                    }}
-                />
-            </div>
+                <TabsContent value="recap" className="mt-0">
+                    <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <div className="flex items-center gap-3 w-full md:w-auto">
+                                <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2">
+                                    <CalendarDays className="text-slate-400" size={16} />
+                                    <input 
+                                        type="date" 
+                                        className="bg-transparent border-none text-sm outline-none text-slate-600 focus:ring-0"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                    />
+                                    <span className="text-slate-300">-</span>
+                                    <input 
+                                        type="date" 
+                                        className="bg-transparent border-none text-sm outline-none text-slate-600 focus:ring-0"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                    />
+                                </div>
+                                <Button 
+                                    onClick={fetchRecap} 
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+                                    disabled={recapLoading}
+                                >
+                                    Filter
+                                </Button>
+                                {(startDate || endDate) && (
+                                    <Button 
+                                        onClick={() => { setStartDate(""); setEndDate(""); setTimeout(fetchRecap, 100); }} 
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-slate-500 hover:text-slate-700"
+                                        disabled={recapLoading}
+                                    >
+                                        Reset
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+
+                        <BaseTable
+                            data={recapData}
+                            columns={recapColumns}
+                            rowKey={(row: any) => row.userId}
+                            className="border-none shadow-none"
+                            loading={recapLoading}
+                            page={1}
+                            totalPages={1}
+                            totalItems={recapData.length}
+                            onPageChange={() => {}}
+                        />
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

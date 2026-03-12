@@ -71,9 +71,18 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess }: CreatePayoutMo
                 description: "",
             });
         } catch (error: any) {
+            console.error("Payout error:", error);
+            
+            // Extract error message specifically for standard backend validation/API error format
+            const errorMessage = 
+                error?.data?.message || 
+                error?.response?.data?.message || 
+                error?.message || 
+                "Gagal mengajukan permintaan payout";
+
             toast({
-                title: "Gagal",
-                description: error.response?.data?.message || "Gagal mengajukan permintaan payout",
+                title: "Gagal Mengajukan Payout",
+                description: errorMessage,
                 variant: "destructive",
             });
         } finally {

@@ -42,6 +42,16 @@ export interface Unit extends BaseEntity {
   areaIds?: string[];
   unitWilayah?: { wilayah: Wilayah }[];
   unitArea?: { area: Area }[];
+
+  // Commission configurations
+  salesRegCommType?: 'PERCENTAGE' | 'NOMINAL';
+  salesRegCommValue?: number;
+  spvRegCommType?: 'PERCENTAGE' | 'NOMINAL';
+  spvRegCommValue?: number;
+  salesRecCommType?: 'PERCENTAGE' | 'NOMINAL';
+  salesRecCommValue?: number;
+  spvRecCommType?: 'PERCENTAGE' | 'NOMINAL';
+  spvRecCommValue?: number;
 }
 
 export interface SubUnit extends BaseEntity {
@@ -67,13 +77,13 @@ export interface Package extends BaseEntity {
   packagesWilayah?: { wilayah: Wilayah }[]; // Relation for reading
   duration?: number; // Days
   costBandwidth?: number;
-  salesIncome?: number;
-  spvIncome?: number;
+  holdingIncome?: number;
+  unitGlobalIncome?: number;
   spCommission?: number;
   adminCommission?: number;
   unitCommission?: number;
-  spvCommission?: number;
-  salesCommission?: number;
+  unitGlobalCommission?: number;
+  holdingCommission?: number;
   otherCommission?: number;
 }
 

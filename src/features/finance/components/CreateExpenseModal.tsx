@@ -41,12 +41,12 @@ export function CreateExpenseModal({
         unitId: "",
         subUnitId: undefined,
         amount: 0,
-        category: "OPERATIONAL",
-        sourceType: "FROM_UNIT_SHARE",
+        category: "BOP_UNIT",
         description: "",
         reference: "",
         expenseDate: new Date().toISOString().split("T")[0],
     });
+    const [customCategory, setCustomCategory] = useState("");
 
     const isEditMode = !!expense;
 
@@ -54,27 +54,34 @@ export function CreateExpenseModal({
     useEffect(() => {
         if (isOpen) {
             if (expense) {
+                const PREDEFINED_CATEGORIES = [
+                    "BOP_UNIT", "ATK", "KASBON_KARYAWAN", "SEWA_KANTOR", 
+                    "EXPENSIVE_DIREKTUR", "TRANSFER_PT", "PIUTANG_PT", "HUTANG_PT"
+                ];
+                
+                const isCustom = !PREDEFINED_CATEGORIES.includes(expense.category);
+
                 setFormData({
                     unitId: expense.unitId,
                     subUnitId: expense.subUnitId,
                     amount: expense.amount,
-                    category: expense.category,
-                    sourceType: expense.sourceType,
+                    category: isCustom ? "LAINNYA" : expense.category,
                     description: expense.description,
                     reference: expense.reference || "",
                     expenseDate: expense.expenseDate.split("T")[0],
                 });
+                setCustomCategory(isCustom ? expense.category : "");
             } else {
                 setFormData({
                     unitId: "",
                     subUnitId: undefined,
                     amount: 0,
-                    category: "OPERATIONAL",
-                    sourceType: "FROM_UNIT_SHARE",
+                    category: "BOP_UNIT",
                     description: "",
                     reference: "",
                     expenseDate: new Date().toISOString().split("T")[0],
                 });
+                setCustomCategory("");
             }
         }
     }, [isOpen, expense]);
@@ -116,11 +123,17 @@ export function CreateExpenseModal({
             return;
         }
 
+        if (formData.category === "LAINNYA" && !customCategory) {
+            toast.error("Mohon isi nama kategori kustom");
+            return;
+        }
+
         setIsLoading(true);
         try {
             const payload = {
                 ...formData,
                 amount: Number(formData.amount),
+                category: formData.category === "LAINNYA" ? customCategory : formData.category,
                 expenseDate: new Date(formData.expenseDate).toISOString(),
             };
 
@@ -178,16 +191,16 @@ export function CreateExpenseModal({
                         <div className="space-y-2">
                             <Label htmlFor="subUnitId">Sub Unit (Opsional)</Label>
                             <Select
-                                value={formData.subUnitId || ""}
+                                value={formData.subUnitId || "none"}
                                 onValueChange={(value) =>
-                                    setFormData({ ...formData, subUnitId: value || undefined })
+                                    setFormData({ ...formData, subUnitId: value === "none" ? undefined : value })
                                 }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Pilih Sub Unit" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Tidak Ada</SelectItem>
+                                    <SelectItem value="none">Tidak Ada</SelectItem>
                                     {subUnits.map((subUnit) => (
                                         <SelectItem key={subUnit.id} value={subUnit.id}>
                                             {subUnit.name}
@@ -200,7 +213,7 @@ export function CreateExpenseModal({
 
                     <div className="grid grid-cols-2 gap-4">
                         {/* Category */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 col-span-2">
                             <Label htmlFor="category">Kategori *</Label>
                             <Select
                                 value={formData.category}
@@ -212,32 +225,31 @@ export function CreateExpenseModal({
                                     <SelectValue placeholder="Pilih Kategori" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="OPERATIONAL">Operasional</SelectItem>
-                                    <SelectItem value="COMMISSION">Komisi</SelectItem>
-                                    <SelectItem value="EQUIPMENT">Peralatan</SelectItem>
-                                    <SelectItem value="OTHER">Lainnya</SelectItem>
+                                    <SelectItem value="BOP_UNIT">BOP unit (transport, um, supervisi)</SelectItem>
+                                    <SelectItem value="ATK">ATK (kertas/brosur, tinta)</SelectItem>
+                                    <SelectItem value="KASBON_KARYAWAN">Kasbon Karyawan</SelectItem>
+                                    <SelectItem value="SEWA_KANTOR">Sewa Kantor</SelectItem>
+                                    <SelectItem value="EXPENSIVE_DIREKTUR">Expensive Direktur</SelectItem>
+                                    <SelectItem value="TRANSFER_PT">Transfer PT</SelectItem>
+                                    <SelectItem value="PIUTANG_PT">Piutang PT</SelectItem>
+                                    <SelectItem value="HUTANG_PT">Hutang PT</SelectItem>
+                                    <SelectItem value="LAINNYA">Lainnya</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {/* Source Type */}
-                        <div className="space-y-2">
-                            <Label htmlFor="sourceType">Sumber Dana *</Label>
-                            <Select
-                                value={formData.sourceType}
-                                onValueChange={(value: any) =>
-                                    setFormData({ ...formData, sourceType: value })
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Sumber" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="FROM_UNIT_SHARE">Kas Unit (65%)</SelectItem>
-                                    <SelectItem value="FROM_CENTRAL_SHARE">Dana Pusat (35%)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {formData.category === "LAINNYA" && (
+                            <div className="space-y-2 col-span-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <Label htmlFor="customCategory">Nama Kategori Kustom *</Label>
+                                <Input
+                                    id="customCategory"
+                                    placeholder="Masukkan nama kategori (misal: Biaya Sampah, Pajak, dll)"
+                                    value={customCategory}
+                                    onChange={(e) => setCustomCategory(e.target.value)}
+                                    className="bg-slate-50 border-slate-200"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -303,7 +315,7 @@ export function CreateExpenseModal({
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="bg-[#101D42] hover:bg-[#1a2b5e]"
+                            className="bg-[#101D42] hover:bg-[#1a2b5e] text-white"
                         >
                             {isLoading ? "Menyimpan..." : isEditMode ? "Update" : "Simpan"}
                         </Button>

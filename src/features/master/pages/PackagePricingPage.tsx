@@ -175,21 +175,21 @@ export default function PackagePricingPage() {
         },
         {
             header: "KOMISI",
-            accessorKey: "salesCommission",
+            accessorKey: "spCommission",
             cell: (row: Package) => (
                 <div className="space-y-1 text-xs">
                     <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-bold text-slate-400 uppercase">Registrasi</span>
                         <div className="flex gap-2">
-                            <span className="text-green-600 font-semibold">Sales: {row.salesCommission || 0}%</span>
-                            <span className="text-blue-600 font-semibold">SPV: {row.spvCommission || 0}%</span>
+                            <span className="text-green-600 font-semibold">Sales: {row.spCommission || 0}%</span>
+                            <span className="text-blue-600 font-semibold">SPV: {row.unitGlobalCommission || 0}%</span>
                         </div>
                     </div>
                     <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-bold text-slate-400 uppercase">Rutin</span>
                         <div className="flex gap-2">
-                            <span className="text-green-600 font-mono">Sales : Rp {(row.salesIncome || 0).toLocaleString("id-ID")}</span>
-                            <span className="text-blue-600 font-mono">SPV : Rp {(row.spvIncome || 0).toLocaleString("id-ID")}</span>
+                            <span className="text-green-600 font-mono">Sales : Rp {(row.holdingIncome || 0).toLocaleString("id-ID")}</span>
+                            <span className="text-blue-600 font-mono">SPV : Rp {(row.unitGlobalIncome || 0).toLocaleString("id-ID")}</span>
                         </div>
                     </div>
                 </div>
