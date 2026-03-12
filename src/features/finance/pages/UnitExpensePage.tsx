@@ -126,7 +126,7 @@ export default function UnitExpensePage() {
         );
     };
 
-    const getSourceBadge = (sourceType: string) => {
+    const getSourceBadge = (sourceType: string | undefined) => {
         const isUnit = sourceType === "FROM_UNIT_SHARE";
         return (
             <Badge className={isUnit ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>

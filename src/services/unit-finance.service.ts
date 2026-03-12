@@ -61,6 +61,7 @@ export interface UnitExpense {
   description: string;
   reference?: string;
   linkedPaymentId?: string;
+  sourceType?: string;
   recordedBy: string;
   expenseDate: string;
   createdAt: string;
