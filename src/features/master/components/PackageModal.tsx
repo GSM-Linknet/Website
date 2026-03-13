@@ -28,6 +28,7 @@ export function PackageModal({
         code: "",
         speed: 0,
         price: 0,
+        poId: "",
         description: "",
         wilayahIds: [],
         duration: 30, // Default to 30 days
@@ -183,6 +184,19 @@ export function PackageModal({
                         placeholder="Contoh: 150000"
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                        className="rounded-xl h-11"
+                        disabled={isLoading}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                        <Hash size={14} className="text-blue-500" /> PO ID Linknet
+                    </Label>
+                    <Input
+                        type="text"
+                        placeholder="Contoh: 0032332234"
+                        value={formData.poId}
+                        onChange={(e) => setFormData({ ...formData, poId: e.target.value })}
                         className="rounded-xl h-11"
                         disabled={isLoading}
                     />
