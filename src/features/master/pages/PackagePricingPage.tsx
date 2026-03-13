@@ -130,6 +130,11 @@ export default function PackagePricingPage() {
             className: "font-mono text-[10px] font-bold text-slate-400",
         },
         {
+            header: "PO ID",
+            accessorKey: "poId",
+            className: "font-mono text-[10px] font-bold text-slate-400",
+        },
+        {
             header: "NAMA PAKET",
             accessorKey: "name",
             className: "font-bold text-brand-blue",

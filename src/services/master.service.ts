@@ -72,6 +72,7 @@ export interface Package extends BaseEntity {
   code: string;
   speed: number;
   price: number;
+  poId: string;
   description?: string;
   wilayahIds?: string[];
   packagesWilayah?: { wilayah: Wilayah }[]; // Relation for reading
