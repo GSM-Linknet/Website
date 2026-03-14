@@ -24,6 +24,7 @@ const SuspendReviewPage = lazy(
 const DeletedCustomersPage = lazy(
   () => import("@/features/customers/pages/DeletedCustomersPage"),
 );
+
 const TechnicianPage = lazy(
   () => import("@/features/technicians/pages/TechnicianPage"),
 );
@@ -247,6 +248,7 @@ export const routes: RouteObject[] = [
               </Suspense>
             ),
           },
+         
           {
             index: true,
             element: <Navigate to="kelola" replace />,

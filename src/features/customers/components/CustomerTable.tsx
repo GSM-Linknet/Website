@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power } from "lucide-react";
+import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power, LogIn } from "lucide-react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Customer } from "@/services/customer.service";
+import { CustomerService, type Customer } from "@/services/customer.service";
 import { AuthService } from "@/services/auth.service";
 import { CustomerInvoiceDialog } from "./CustomerInvoiceDialog";
 import { CustomerDeviceDialog } from "./CustomerDeviceDialog";
@@ -49,6 +49,7 @@ const canEdit = AuthService.hasPermission(userRole, resource, "edit");
 const canDelete = AuthService.hasPermission(userRole, resource, "delete");
 const canSuspend = AuthService.hasPermission(userRole, "pelanggan.layanan", "suspend");
 const canLinknet = AuthService.hasPermission(userRole, "pelanggan.pendaftaran", "linknet");
+const canImp = AuthService.hasPermission(userRole, "pelanggan.kelola", "impersonate");
 
 export const CustomerTable = ({
   customers,
@@ -70,6 +71,7 @@ export const CustomerTable = ({
 
   const [linknetDialogOpen, setLinknetDialogOpen] = useState(false);
   const [linknetCustomer, setLinknetCustomer] = useState<Customer | null>(null);
+  const [impersonatingMap, setImpersonatingMap] = useState<Record<string, boolean>>({});
 
   const handleLinknetPipeline = (customer: Customer) => {
     setLinknetCustomer(customer);
@@ -107,6 +109,31 @@ export const CustomerTable = ({
       setSuspendingId(null);
     }
   };
+
+  const handleImpersonate = async (customerId: string, identifier: string) => {
+    if (impersonatingMap[customerId]) return;
+    
+    try {
+      setImpersonatingMap(prev => ({ ...prev, [customerId]: true }));
+      const UrlPortal = import.meta.env.VITE_PORTAL_URL;
+      const response = await CustomerService.impersonatePortal(customerId);
+      const urlParams = new URLSearchParams();
+      // @ts-ignore
+      const data: any = response.data || response; 
+      urlParams.append("token", data.accessToken);
+      urlParams.append("refresh", data.refreshToken);
+      
+      const portalPath = `${UrlPortal}/impersonate?${urlParams.toString()}`;
+      window.open(portalPath, "_blank");
+      
+      toast.success(`Membuka akses portal untuk ${identifier} di tab baru.`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Terjadi kesalahan sistem saat mencoba akses.");
+    } finally {
+      setImpersonatingMap(prev => ({ ...prev, [customerId]: false }));
+    }
+  };
+
   const columns = [
 
     {
@@ -376,6 +403,16 @@ export const CustomerTable = ({
                   Lihat Perangkat
                 </DropdownMenuItem>
               )}
+              {row.customerId && canImp && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-cyan-600 flex items-center gap-2"
+                  onClick={() => handleImpersonate(row.id, row.customerId || row.name)}
+                  disabled={impersonatingMap[row.id]}
+                >
+                  <LogIn size={14} />
+                  {impersonatingMap[row.id] ? "Memproses..." : "Login Sebagai Pelanggan"}
+                </DropdownMenuItem>
+              )}
               {row.customerId && canSuspend && (
                 <DropdownMenuItem
                   className={cn(
@@ -389,6 +426,7 @@ export const CustomerTable = ({
                   {row.statusNet ? "Suspend" : "Unsuspend"}
                 </DropdownMenuItem>
               )}
+             
               {canDelete && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
