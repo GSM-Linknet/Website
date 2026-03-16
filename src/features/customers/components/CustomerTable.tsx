@@ -126,6 +126,8 @@ export const CustomerTable = ({
       const portalPath = `${UrlPortal}/impersonate?${urlParams.toString()}`;
       window.open(portalPath, "_blank");
       
+      console.log(portalPath);
+      
       toast.success(`Membuka akses portal untuk ${identifier} di tab baru.`);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Terjadi kesalahan sistem saat mencoba akses.");
