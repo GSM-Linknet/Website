@@ -108,6 +108,7 @@ export const API_ENDPOINTS = {
   ACTIVITY_LOGS: '/reporting/reports/activity/logs',
   ACTIVITY_AUDIT: '/reporting/reports/activity/audit',
   ACTIVITY_UNIT: '/reporting/reports/activity-unit',
+  KPI: '/reporting/reports/kpi',
 } as const;
 
 // Loading messages

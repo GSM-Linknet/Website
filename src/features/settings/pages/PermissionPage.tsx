@@ -91,7 +91,8 @@ const MODULE_GROUPS: {
                 { key: "reporting.produksi", label: "Laporan Produksi" },
                 { key: "reporting.teknisi", label: "Laporan Teknisi" },
                 { key: "reporting.master", label: "Laporan Master Data" },
-                { key: "reporting.activity", label: "Laporan Aktivitas" }
+                { key: "reporting.activity", label: "Laporan Aktivitas" },
+                { key: "reporting.kpi", label: "Laporan KPI" }
             ]
         },
         {

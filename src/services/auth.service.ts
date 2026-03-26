@@ -51,6 +51,7 @@ export type PermissionResource =
   | "reporting.teknisi"
   | "reporting.master"
   | "reporting.activity"
+  | "reporting.kpi"
   // Keuangan
   | "keuangan.history"
   | "keuangan.aging"

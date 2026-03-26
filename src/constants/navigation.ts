@@ -161,6 +161,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/reporting/unit",
         resource: "reporting.unit",
       },
+      {
+        title: "Laporan Kinerja",
+        href: "/reporting/kpi",
+        resource: "reporting.kpi",
+      },
     ],
   },
   {

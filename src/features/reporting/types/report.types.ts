@@ -18,6 +18,7 @@ export interface CustomerSummary {
   active: number;
   inactive: number;
   pending: number;
+  wajibBayar: number;
 }
 
 export interface PackageBreakdown {
@@ -55,6 +56,7 @@ export interface CustomerDetail {
   statusNet: boolean;
   totalBilling: number;
   outstandingBilling: number;
+  exemptionReason?: string;
   createdAt: string;
 }
 
@@ -63,6 +65,7 @@ export interface CustomerReportData {
   byPackage: PackageBreakdown[];
   byLocation: LocationBreakdown[];
   byUpline: UplineBreakdown[];
+  exemptedBreakdown: { reason: string; count: number }[];
   customers: CustomerDetail[];
 }
 
@@ -309,4 +312,69 @@ export interface ChartData {
     backgroundColor?: string | string[];
     borderColor?: string | string[];
   }[];
+}
+
+// KPI Report types
+export interface KpiSummary {
+  totalCustomers: number;
+  activeCustomers: number;
+  inactiveCustomers: number;
+  isolirCustomers: number;
+  totalRevenue: number;
+  collectedRevenue: number;
+  overdueRevenue: number;
+  collectionRate: number;
+}
+
+export interface UnitKpi {
+  unitId: string;
+  unitName: string;
+  subUnitName: string;
+  // Customer stats
+  totalCustomers: number;
+  activeCustomers: number;
+  inactiveCustomers: number;
+  isolirCustomers: number;
+  // Invoice stats
+  paidInvoices: number;
+  pendingInvoices: number;
+  overdueInvoices: number;
+  totalInvoices: number;
+  // Revenue stats
+  totalRevenue: number;
+  collectedRevenue: number;
+  potentialRevenue: number;
+  collectionRate: number;
+  // Other
+  customersWithoutInvoice: number;
+  uniqueSalesCount: number;
+}
+
+export interface SalesKpi {
+  salesId: string;
+  salesName: string;
+  salesRole: string;
+  // Customer stats
+  totalCustomers: number;
+  activeCustomers: number;
+  inactiveCustomers: number;
+  isolirCustomers: number;
+  // Invoice stats
+  paidInvoices: number;
+  pendingInvoices: number;
+  overdueInvoices: number;
+  totalInvoices: number;
+  // Revenue stats
+  totalRevenue: number;
+  collectedRevenue: number;
+  potentialRevenue: number;
+  collectionRate: number;
+  // Other
+  customersWithoutInvoice: number;
+}
+
+export interface KpiReportData {
+  summary: KpiSummary;
+  unitKpis: UnitKpi[];
+  salesKpis: SalesKpi[];
 }
