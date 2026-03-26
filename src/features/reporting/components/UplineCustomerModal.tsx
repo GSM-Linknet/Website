@@ -24,11 +24,13 @@ export default function UplineCustomerModal({
 }: UplineCustomerModalProps) {
     if (!uplineId || !reportData) return null;
 
-    const selectedUpline = reportData.byUpline.find((u) => u.uplineId === uplineId);
+    const uplineArray = Array.isArray(reportData.byUpline) ? reportData.byUpline : reportData.byUpline.items;
+    const selectedUpline = uplineArray.find((u) => u.uplineId === uplineId);
     if (!selectedUpline) return null;
 
     // Filter customers by selected upline
-    const filteredCustomers = reportData.customers.filter(
+    const customersArray = Array.isArray(reportData.customers) ? reportData.customers : reportData.customers.items;
+    const filteredCustomers = customersArray.filter(
         (customer) => customer.upline === selectedUpline.uplineName
     );
 

@@ -32,19 +32,35 @@ export default function SalesReportPage() {
     const [reportData, setReportData] =
         useState<SalesPerformanceReportData | null>(null);
     const [loading, setLoading] = useState(true);
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
     });
 
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filters.startDate, filters.endDate]);
+
     useEffect(() => {
         fetchReportData();
-    }, [filters]);
+    }, [filters, currentPage, pageSize]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            const data = await reportService.getSalesPerformance(filters);
+            const reportFilters = {
+                ...filters,
+                page: currentPage,
+                limit: pageSize,
+                paginate: true
+            };
+            const data = await reportService.getSalesPerformance(reportFilters);
             setReportData(data);
         } catch (error) {
             console.error("Failed to fetch sales report:", error);
@@ -68,10 +84,11 @@ export default function SalesReportPage() {
 
     // Calculate summary from performance data since backend returns only performance array
     const summary = useMemo(() => {
-        if (!reportData?.performance) return null;
+        const salesData = Array.isArray(reportData?.sales) ? reportData?.sales : (reportData?.sales as any)?.items || [];
+        if (!salesData.length) return null;
 
-        const totalSales = reportData.performance.length;
-        const totalRevenue = reportData.performance.reduce((sum, item) => sum + item.totalRevenue, 0);
+        const totalSales = salesData.length;
+        const totalRevenue = salesData.reduce((sum: number, item: any) => sum + item.totalRevenue, 0);
 
         // Mocking achievement metrics for UI consistency
         return {
@@ -160,7 +177,7 @@ export default function SalesReportPage() {
                             {LOADING_MESSAGES.FETCHING_REPORT}
                         </p>
                     </div>
-                ) : !reportData || !reportData.performance ? (
+                ) : !reportData || !((Array.isArray(reportData.sales) ? reportData.sales : reportData.sales.items).length > 0) ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-white/50 backdrop-blur-sm rounded-2xl border border-dashed border-gray-300">
                         <div className="w-24 h-24 mb-4 bg-gray-100 rounded-full flex items-center justify-center">
                             <TrendingUp className="w-12 h-12 text-gray-400" />
@@ -211,8 +228,14 @@ export default function SalesReportPage() {
                                 Detail Performance
                             </h2>
                             <ReportDataTable
-                                data={reportData.performance}
+                                serverSide={true}
+                                data={reportData?.sales || []}
                                 columns={columns}
+                                page={currentPage}
+                                limit={pageSize}
+                                loading={loading}
+                                onPageChange={setCurrentPage}
+                                onPageSizeChange={setPageSize}
                                 searchPlaceholder="Cari sales..."
                             />
                         </div>

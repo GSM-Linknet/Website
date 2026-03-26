@@ -32,10 +32,28 @@ export default function KpiReportPage() {
         activeTab,
         setActiveTab,
         handleDateRangeChange,
-        fetchData
+        fetchData,
+        unitPage,
+        setUnitPage,
+        unitLimit,
+        setUnitLimit,
+        salesPage,
+        setSalesPage,
+        salesLimit,
+        setSalesLimit
     } = useKpiReport();
 
     const summary = data?.summary;
+
+    const unitKpis = useMemo(() => {
+        if (!data?.unitKpis) return [];
+        return Array.isArray(data.unitKpis) ? data.unitKpis : data.unitKpis.items;
+    }, [data?.unitKpis]);
+
+    const salesKpis = useMemo(() => {
+        if (!data?.salesKpis) return [];
+        return Array.isArray(data.salesKpis) ? data.salesKpis : data.salesKpis.items;
+    }, [data?.salesKpis]);
 
     const activeRateDisplay = useMemo(() => {
         if (!summary) return "0%";
@@ -171,7 +189,7 @@ export default function KpiReportPage() {
                                     <Building2 className={`w-4 h-4 transition-transform duration-300 ${activeTab === "unit" ? "scale-110" : "scale-100"}`} />
                                     KPI per Unit
                                     <span className={`ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider transition-colors ${activeTab === 'unit' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-500'}`}>
-                                        {data.unitKpis.length}
+                                        {unitKpis.length}
                                     </span>
                                 </button>
                                 <button
@@ -184,7 +202,7 @@ export default function KpiReportPage() {
                                     <UserCheck className={`w-4 h-4 transition-transform duration-300 ${activeTab === "sales" ? "scale-110" : "scale-100"}`} />
                                     KPI per Sales / Upline
                                     <span className={`ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider transition-colors ${activeTab === 'sales' ? 'bg-violet-100 text-violet-700' : 'bg-slate-200 text-slate-500'}`}>
-                                        {data.salesKpis.length}
+                                        {salesKpis.length}
                                     </span>
                                 </button>
                             </div>
@@ -198,11 +216,17 @@ export default function KpiReportPage() {
                                             <div>
                                                 <h2 className="text-lg font-black text-slate-800 tracking-tight">Kinerja Kuantitatif Unit</h2>
                                                 <p className="text-xs text-slate-500 font-medium">
-                                                    Daftar {data.unitKpis.length} unit yang diurutkan berdasarkan portofolio pelanggan terbesar
+                                                    Daftar {unitKpis.length} unit yang diurutkan berdasarkan portofolio pelanggan terbesar
                                                 </p>
                                             </div>
                                         </div>
-                                        <UnitKpiTable data={data.unitKpis} />
+                                        <UnitKpiTable 
+                                            data={data.unitKpis} 
+                                            page={unitPage}
+                                            limit={unitLimit}
+                                            onPageChange={setUnitPage}
+                                            onPageSizeChange={setUnitLimit}
+                                        />
                                     </div>
                                 ) : (
                                     <div className="animate-in fade-in slide-in-from-right-4 duration-500">
@@ -211,11 +235,17 @@ export default function KpiReportPage() {
                                             <div>
                                                 <h2 className="text-lg font-black text-slate-800 tracking-tight">Kinerja Individu (Sales & Upline)</h2>
                                                 <p className="text-xs text-slate-500 font-medium">
-                                                    Daftar {data.salesKpis.length} personel yang diurutkan berdasarkan kontribusi pelanggan baru
+                                                    Daftar personel yang diurutkan berdasarkan kontribusi pelanggan baru
                                                 </p>
                                             </div>
                                         </div>
-                                        <SalesKpiTable data={data.salesKpis} />
+                                        <SalesKpiTable 
+                                            data={data.salesKpis} 
+                                            page={salesPage}
+                                            limit={salesLimit}
+                                            onPageChange={setSalesPage}
+                                            onPageSizeChange={setSalesLimit}
+                                        />
                                     </div>
                                 )}
                             </div>

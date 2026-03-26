@@ -23,19 +23,35 @@ export default function ActivityReportPage() {
         null
     );
     const [loading, setLoading] = useState(true);
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
     });
 
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filters.startDate, filters.endDate]);
+
     useEffect(() => {
         fetchReportData();
-    }, [filters]);
+    }, [filters, currentPage, pageSize]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            const data = await reportService.getActivityLogReport(filters);
+            const reportFilters = {
+                ...filters,
+                page: currentPage,
+                limit: pageSize,
+                paginate: true
+            };
+            const data = await reportService.getActivityLogReport(reportFilters);
             setReportData(data);
         } catch (error) {
             console.error("Failed to fetch activity report:", error);
@@ -231,9 +247,15 @@ export default function ActivityReportPage() {
                                 Activity Logs
                             </h2>
                             <ReportDataTable
-                                data={reportData.activities}
+                                serverSide={true}
+                                data={reportData.logs}
                                 columns={columns}
-                                searchPlaceholder="Cari activity logs..."
+                                page={currentPage}
+                                limit={pageSize}
+                                loading={loading}
+                                onPageChange={setCurrentPage}
+                                onPageSizeChange={setPageSize}
+                                searchPlaceholder="Cari aktivitas..."
                             />
                         </div>
                     </>

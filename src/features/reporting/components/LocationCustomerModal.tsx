@@ -23,12 +23,14 @@ export default function LocationCustomerModal({
 }: LocationCustomerModalProps) {
     if (!locationName || !reportData) return null;
 
-    const selectedLoc = reportData.byLocation.find((l) => l.name === locationName);
+    const locationArray = Array.isArray(reportData.byLocation) ? reportData.byLocation : reportData.byLocation.items;
+    const selectedLoc = locationArray.find((l) => l.name === locationName);
     if (!selectedLoc) return null;
 
     // Filter customers by selected location
     // Server logic: location = subUnit?.name || unit?.name || 'Unknown'
-    const filteredCustomers = reportData.customers.filter((customer) => {
+    const customersArray = Array.isArray(reportData.customers) ? reportData.customers : reportData.customers.items;
+    const filteredCustomers = customersArray.filter((customer) => {
         const custLoc = (customer.subUnit && customer.subUnit !== "-")
             ? customer.subUnit
             : customer.unit;

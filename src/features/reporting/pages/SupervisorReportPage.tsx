@@ -2,36 +2,100 @@ import { useEffect, useState } from "react";
 import { TrendingUp, Users, Target, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart } from "@/components/shared/Charts";
+import { BaseTable } from "@/components/shared/BaseTable";
+import { Badge } from "@/components/ui/badge";
 import { reportService } from "@/services/reporting.service";
 
 export default function SupervisorReportPage() {
     const [stats, setStats] = useState({
-        totalProspects: 124,
-        candidates: 45,
-        visits: 12,
-        closingRate: "18%"
+        totalProspects: 0,
+        candidates: 0,
+        visits: 0,
+        closingRate: "0%"
     });
+    const [sales, setSales] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [meta, setMeta] = useState<any>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const response = await reportService.getSalesPerformance({
+                page: currentPage,
+                limit: pageSize,
+                paginate: true
+            });
+            
+            const data = (response as any);
+            const salesData = data.sales;
+            
+            if (Array.isArray(salesData)) {
+                setSales(salesData);
+            } else if (salesData?.items) {
+                setSales(salesData.items);
+                setMeta(salesData.meta);
+            }
+
+            if (data.summary) {
+                setStats({
+                    totalProspects: data.summary.totalSales || 0,
+                    candidates: data.summary.targetMet || 0,
+                    avgAchievement: data.summary.avgAchievement || 0,
+                    totalRevenue: data.summary.totalRevenue || 0
+                } as any);
+            }
+        } catch (error) {
+            console.error("Failed to fetch reports", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Fetch report data
-                const response = await reportService.getSalesPerformance();
-                // Handle wrapped response: { status, message, data: { items, ... } }
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const apiResponse = response as any;
-                const paginatedData = apiResponse.data ?? apiResponse;
-                const items = paginatedData.items ?? [];
-                if (items.length > 0) {
-                    console.log("Reports fetched:", items);
-                    setStats(prev => ({ ...prev }));
-                }
-            } catch (error) {
-                console.error("Failed to fetch reports", error);
-            }
-        };
         fetchData();
-    }, []);
+    }, [currentPage]);
+
+    const salesColumns = [
+        {
+            header: "SALES",
+            accessorKey: "salesName",
+            cell: (item: any) => (
+                <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-[10px]">
+                        {item.salesName?.substring(0, 2).toUpperCase()}
+                    </div>
+                    <span className="font-bold text-slate-700">{item.salesName}</span>
+                </div>
+            )
+        },
+        {
+            header: "TOTAL PELANGGAN",
+            accessorKey: "totalCustomers",
+            cell: (item: any) => (
+                <span className="font-mono font-bold">{item.totalCustomers}</span>
+            )
+        },
+        {
+            header: "AKTIF",
+            accessorKey: "activeCustomers",
+            cell: (item: any) => (
+                <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none">
+                    {item.activeCustomers} Aktif
+                </Badge>
+            )
+        },
+        {
+            header: "REVENUE",
+            accessorKey: "totalRevenue",
+            cell: (item: any) => (
+                <span className="font-mono text-blue-600 font-bold">
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.totalRevenue)}
+                </span>
+            )
+        }
+    ];
 
     return (
         <div className="space-y-8 pb-10">
@@ -48,25 +112,23 @@ export default function SupervisorReportPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Card className="lg:col-span-2 border-slate-100 shadow-xl shadow-slate-200/40 rounded-[2rem]">
-                    <CardHeader>
-                        <CardTitle className="text-lg font-bold">Aktivitas Team</CardTitle>
+                <Card className="lg:col-span-2 border-slate-100 shadow-xl shadow-slate-200/40 rounded-[2rem] overflow-hidden">
+                    <CardHeader className="border-b border-slate-50 bg-white px-8 py-6">
+                        <CardTitle className="text-lg font-bold">Aktivitas & Performance Team</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">S{i}</div>
-                                        <div>
-                                            <p className="font-bold text-slate-800">Sales Lapangan {i}</p>
-                                            <p className="text-xs text-slate-500">6 Prospek hari ini</p>
-                                        </div>
-                                    </div>
-                                    <Badge className="bg-blue-500">Aktif</Badge>
-                                </div>
-                            ))}
-                        </div>
+                    <CardContent className="p-0">
+                        <BaseTable
+                            data={sales}
+                            columns={salesColumns}
+                            rowKey={(item: any) => item.salesId}
+                            loading={loading}
+                            page={currentPage}
+                            onPageChange={setCurrentPage}
+                            totalItems={meta?.totalItems || 0}
+                            totalPages={meta?.totalPages || (sales.length > 0 ? 1 : 0)}
+                            limit={pageSize}
+                            onLimitChange={setPageSize}
+                        />
                     </CardContent>
                 </Card>
 
@@ -107,8 +169,3 @@ function StatsCard({ title, value, icon, change }: any) {
     );
 }
 
-const Badge = ({ children, className }: any) => (
-    <span className={`px-3 py-1 rounded-lg text-[10px] font-bold text-white ${className}`}>
-        {children}
-    </span>
-);

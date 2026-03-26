@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { BaseTable, type Column } from "@/components/shared/BaseTable";
-import type { UnitKpi, SalesKpi } from "../../types/report.types";
+
+import type { UnitKpi, SalesKpi, PaginatedData } from "../../types/report.types";
 import { formatCurrency } from "../../utils/report.utils";
 import { CollectionBar, CollectionTooltip, RoleBadge } from "./KpiIndicators";
-import { Building2, UserCheck, CheckCircle, XCircle, AlertTriangle, Clock, TrendingDown, FileX } from "lucide-react";
+import { Building2, UserCheck, CheckCircle, XCircle, AlertTriangle, Clock, TrendingDown, FileX, ShieldAlert, Wallet } from "lucide-react";
 
 // Columns for Unit Table
 const unitColumns: Column<UnitKpi>[] = [
@@ -34,6 +36,18 @@ const unitColumns: Column<UnitKpi>[] = [
         accessorKey: "activeCustomers",
         cell: (item) => <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">{item.activeCustomers}</span>,
         className: "text-center min-w-[90px]"
+    },
+    {
+        header: <span className="flex items-center justify-center gap-1.5"><Wallet className="w-3.5 h-3.5 text-cyan-500" />Wajib Bayar</span>,
+        accessorKey: "wajibBayarCustomers",
+        cell: (item) => <span className="font-bold text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-md">{item.wajibBayarCustomers}</span>,
+        className: "text-center min-w-[115px]"
+    },
+    {
+        header: <span className="flex items-center justify-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5 text-purple-500" />Tdk Wajib Bayar</span>,
+        accessorKey: "exemptedCustomers",
+        cell: (item) => <span className="font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md">{item.exemptedCustomers}</span>,
+        className: "text-center min-w-[125px]"
     },
     {
         header: <span className="flex items-center justify-center gap-1.5"><XCircle className="w-3.5 h-3.5 text-amber-500" />Non-Aktif</span>,
@@ -89,13 +103,40 @@ const unitColumns: Column<UnitKpi>[] = [
     }
 ];
 
-export function UnitKpiTable({ data }: { data: UnitKpi[] }) {
+interface KpiTableProps<T> {
+    data: T[] | PaginatedData<T>;
+    page?: number;
+    limit?: number;
+    onPageChange?: (page: number) => void;
+    onPageSizeChange?: (size: number) => void;
+}
+
+export function UnitKpiTable({ data, onPageSizeChange, ...pagination }: KpiTableProps<UnitKpi>) {
+    const { items, meta } = useMemo(() => {
+        if (Array.isArray(data)) return { items: data, meta: undefined };
+        const items = data.items;
+        const meta = data.meta || {
+            page: (data as any).page,
+            limit: (data as any).limit,
+            totalItems: (data as any).totalItems,
+            totalPages: (data as any).totalPages,
+        };
+        return { 
+            items, 
+            meta: meta.totalItems !== undefined ? meta : undefined 
+        };
+    }, [data]);
+
     return (
         <BaseTable<UnitKpi> 
-            data={data}
+            data={items}
             columns={unitColumns}
             rowKey={(item) => item.unitId}
             className="w-full mt-4"
+            totalItems={meta?.totalItems}
+            totalPages={meta?.totalPages}
+            onLimitChange={onPageSizeChange}
+            {...pagination}
         />
     );
 }
@@ -128,6 +169,18 @@ const salesColumns: Column<SalesKpi>[] = [
         accessorKey: "activeCustomers",
         cell: (item) => <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">{item.activeCustomers}</span>,
         className: "text-center min-w-[90px]"
+    },
+    {
+        header: <span className="flex items-center justify-center gap-1.5"><Wallet className="w-3.5 h-3.5 text-cyan-500" />Wajib Bayar</span>,
+        accessorKey: "wajibBayarCustomers",
+        cell: (item) => <span className="font-bold text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-md">{item.wajibBayarCustomers}</span>,
+        className: "text-center min-w-[115px]"
+    },
+    {
+        header: <span className="flex items-center justify-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5 text-purple-500" />Tdk Wajib Bayar</span>,
+        accessorKey: "exemptedCustomers",
+        cell: (item) => <span className="font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md">{item.exemptedCustomers}</span>,
+        className: "text-center min-w-[125px]"
     },
     {
         header: <span className="flex items-center justify-center gap-1.5"><XCircle className="w-3.5 h-3.5 text-amber-500" />Non-Aktif</span>,
@@ -183,13 +236,32 @@ const salesColumns: Column<SalesKpi>[] = [
     }
 ];
 
-export function SalesKpiTable({ data }: { data: SalesKpi[] }) {
+export function SalesKpiTable({ data, onPageSizeChange, ...pagination }: KpiTableProps<SalesKpi>) {
+    const { items, meta } = useMemo(() => {
+        if (Array.isArray(data)) return { items: data, meta: undefined };
+        const items = data.items;
+        const meta = data.meta || {
+            page: (data as any).page,
+            limit: (data as any).limit,
+            totalItems: (data as any).totalItems,
+            totalPages: (data as any).totalPages,
+        };
+        return { 
+            items, 
+            meta: meta.totalItems !== undefined ? meta : undefined 
+        };
+    }, [data]);
+
     return (
         <BaseTable<SalesKpi> 
-            data={data}
+            data={items}
             columns={salesColumns}
             rowKey={(item) => item.salesId}
             className="w-full mt-4"
+            totalItems={meta?.totalItems}
+            totalPages={meta?.totalPages}
+            onLimitChange={onPageSizeChange}
+            {...pagination}
         />
     );
 }

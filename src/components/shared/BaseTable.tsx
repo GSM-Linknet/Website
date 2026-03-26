@@ -2,6 +2,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -30,7 +31,9 @@ interface BaseTableProps<T> {
   totalItems?: number;
   onPageChange?: (page: number) => void;
   limit?: number;
+  onLimitChange?: (limit: number) => void;
   meta?: any;
+  footer?: React.ReactNode;
 }
 
 /**
@@ -48,7 +51,9 @@ export function BaseTable<T>({
   totalItems,
   onPageChange,
   limit,
+  onLimitChange,
   meta,
+  footer,
 }: BaseTableProps<T>) {
   const showPagination =
     page !== undefined &&
@@ -124,6 +129,7 @@ export function BaseTable<T>({
                 ))
               )}
             </TableBody>
+            {footer && <TableFooter>{footer}</TableFooter>}
           </Table>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
@@ -137,6 +143,7 @@ export function BaseTable<T>({
           totalItems={totalItems}
           onPageChange={onPageChange}
           limit={limit}
+          onLimitChange={onLimitChange}
         />
       )}
     </div>

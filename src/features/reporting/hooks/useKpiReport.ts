@@ -9,6 +9,13 @@ export function useKpiReport() {
     const [data, setData] = useState<KpiReportData | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<"unit" | "sales">("unit");
+    
+    // Pagination state for both tabs
+    const [unitPage, setUnitPage] = useState(1);
+    const [unitLimit, setUnitLimit] = useState(25);
+    const [salesPage, setSalesPage] = useState(1);
+    const [salesLimit, setSalesLimit] = useState(25);
+
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
@@ -17,14 +24,21 @@ export function useKpiReport() {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const result = await reportService.getKpiReport(filters);
+            const reportFilters = {
+                ...filters,
+                // Pass current tab's pagination to API
+                page: activeTab === 'unit' ? unitPage : salesPage,
+                limit: activeTab === 'unit' ? unitLimit : salesLimit,
+                paginate: true
+            };
+            const result = await reportService.getKpiReport(reportFilters);
             setData(result);
         } catch {
             toast.error(ERROR_MESSAGES.FETCH_FAILED);
         } finally {
             setLoading(false);
         }
-    }, [filters]);
+    }, [filters, activeTab, unitPage, unitLimit, salesPage, salesLimit]);
 
     useEffect(() => {
         fetchData();
@@ -32,6 +46,8 @@ export function useKpiReport() {
 
     const handleDateRangeChange = useCallback((startDate: Date, endDate: Date) => {
         setFilters((prev: ReportFilters) => ({ ...prev, startDate, endDate }));
+        setUnitPage(1);
+        setSalesPage(1);
     }, []);
 
     return {
@@ -41,6 +57,15 @@ export function useKpiReport() {
         setActiveTab,
         filters,
         handleDateRangeChange,
-        fetchData
+        fetchData,
+        // Pagination
+        unitPage,
+        setUnitPage,
+        unitLimit,
+        setUnitLimit,
+        salesPage,
+        setSalesPage,
+        salesLimit,
+        setSalesLimit
     };
 }

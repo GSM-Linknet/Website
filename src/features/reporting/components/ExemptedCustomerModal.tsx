@@ -21,13 +21,14 @@ export default function ExemptedCustomerModal({
     exemptionName,
     reportData,
 }: ExemptedCustomerModalProps) {
-    if (!exemptionName || !reportData || !reportData.exemptedBreakdown) return null;
+    if (!exemptionName || !reportData || !reportData.exemptedBreakdown?.items) return null;
 
-    const selectedExemption = reportData.exemptedBreakdown.find((l) => l.reason === exemptionName);
+    const selectedExemption = reportData.exemptedBreakdown.items.find((l) => l.reason === exemptionName);
     if (!selectedExemption) return null;
 
     // Filter customers by selected exemption reason
-    const filteredCustomers = reportData.customers.filter(
+    const customersArray = Array.isArray(reportData.customers) ? reportData.customers : reportData.customers.items;
+    const filteredCustomers = customersArray.filter(
         (customer) => customer.exemptionReason === exemptionName
     );
 

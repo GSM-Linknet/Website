@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { ClipboardList, TrendingUp, Lightbulb, Box, AlertTriangle, MessageSquare, Clock, User, CheckCircle, ChevronRight } from "lucide-react";
+import { ClipboardList, TrendingUp, Lightbulb, Box, AlertTriangle, MessageSquare, Clock, CheckCircle, ChevronRight, MessageCircle } from "lucide-react";
+import { BaseTable } from "@/components/shared/BaseTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +37,9 @@ export default function UnitActivityPage() {
     // List State
     const [reports, setReports] = useState<ActivityReportDetail[]>([]);
     const [listLoading, setListLoading] = useState(true);
+    const [meta, setMeta] = useState<any>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const [selectedReport, setSelectedReport] = useState<ActivityReportDetail | null>(null);
     const [feedback, setFeedback] = useState("");
     const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
@@ -44,8 +48,12 @@ export default function UnitActivityPage() {
     const fetchReports = async () => {
         setListLoading(true);
         try {
-            const data = await reportService.getActivityReports();
-            setReports(data || []);
+            const data = await reportService.getActivityReports({
+                page: currentPage,
+                limit: pageSize
+            });
+            setReports((data as any)?.items || []);
+            setMeta((data as any)?.meta || null);
         } catch (error) {
             console.error("Failed to fetch reports", error);
             toast.error("Gagal memuat daftar laporan");
@@ -56,7 +64,7 @@ export default function UnitActivityPage() {
 
     useEffect(() => {
         fetchReports();
-    }, []);
+    }, [currentPage]);
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -133,11 +141,79 @@ export default function UnitActivityPage() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'reviewed':
-                return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none">Selesai Review</Badge>;
+                return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none px-3 py-1">Selesai Review</Badge>;
             default:
-                return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none">Menunggu Review</Badge>;
+                return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-3 py-1">Menunggu Review</Badge>;
         }
     };
+
+    const historyColumns = [
+        {
+            header: "TANGGAL",
+            accessorKey: "createdAt",
+            cell: (item: ActivityReportDetail) => (
+                <div className="flex flex-col">
+                    <span className="font-bold text-slate-900">
+                        {new Date(item.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium tracking-tight">
+                        {new Date(item.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                    </span>
+                </div>
+            )
+        },
+        {
+            header: "PELAPOR",
+            accessorKey: "user.name",
+            cell: (item: ActivityReportDetail) => (
+                <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                        {item.user?.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <span className="font-semibold text-slate-700">{item.user?.name}</span>
+                </div>
+            )
+        },
+        {
+            header: "AKTIVITAS UTAMA",
+            accessorKey: "activity",
+            className: "max-w-[300px]",
+            cell: (item: ActivityReportDetail) => (
+                <p className="line-clamp-1 font-medium text-slate-600">{item.activity}</p>
+            )
+        },
+        {
+            header: "STATUS",
+            accessorKey: "status",
+            cell: (item: ActivityReportDetail) => getStatusBadge(item.status)
+        },
+        {
+            header: "OPSI",
+            accessorKey: "actions",
+            cell: (item: ActivityReportDetail) => (
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 text-blue-600"
+                        onClick={() => handleOpenDetail(item)}
+                    >
+                        <ChevronRight size={16} />
+                    </Button>
+                    {isAdmin && item.status !== 'reviewed' && (
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 rounded-lg hover:bg-amber-50 text-amber-600"
+                            onClick={(e) => { e.stopPropagation(); handleOpenFeedback(item); }}
+                        >
+                            <MessageCircle size={16} />
+                        </Button>
+                    )}
+                </div>
+            )
+        }
+    ];
 
     return (
         <div className="space-y-8 pb-10">
@@ -219,45 +295,29 @@ export default function UnitActivityPage() {
                 </TabsContent>
 
                 <TabsContent value="history">
-                    <div className="grid grid-cols-1 gap-4">
-                        {listLoading ? (
-                            <div className="text-center py-20 text-slate-400">Memuat laporan...</div>
-                        ) : reports.length === 0 ? (
-                            <Card className="border-dashed border-2 py-12 text-center text-slate-400 rounded-[2rem]">
-                                <CardContent>Belum ada laporan yang diajukan</CardContent>
-                            </Card>
-                        ) : (
-                            reports.map((report) => (
-                                <Card key={report.id} className="border-slate-100 shadow-md hover:shadow-lg transition-shadow rounded-[1.5rem] cursor-pointer" onClick={() => handleOpenDetail(report)}>
-                                    <CardContent className="p-6">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
-                                                    <ClipboardList size={24} />
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-bold text-slate-800 line-clamp-1">{report.activity}</h3>
-                                                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 font-medium">
-                                                        <span className="flex items-center gap-1"><User size={12} /> {report.user?.name}</span>
-                                                        <span className="flex items-center gap-1"><Clock size={12} /> {new Date(report.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-4 ml-auto md:ml-0">
-                                                {getStatusBadge(report.status)}
-                                                {isAdmin && report.status !== 'reviewed' && (
-                                                    <Button variant="outline" size="sm" className="rounded-lg font-bold" onClick={(e) => { e.stopPropagation(); handleOpenFeedback(report); }}>
-                                                        Beri Feedback
-                                                    </Button>
-                                                )}
-                                                <ChevronRight className="text-slate-300" size={20} />
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))
-                        )}
-                    </div>
+                    <Card className="border-slate-100 shadow-xl shadow-slate-200/40 rounded-[2rem] overflow-hidden">
+                        <CardHeader className="border-b border-slate-50 bg-white px-8 py-6">
+                            <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                <Clock size={18} className="text-blue-500" />
+                                Riwayat Laporan Aktivitas
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <BaseTable
+                                data={reports}
+                                columns={historyColumns}
+                                rowKey={(item: ActivityReportDetail) => item.id}
+                                loading={listLoading}
+                                page={currentPage}
+                                onPageChange={setCurrentPage}
+                                totalItems={meta?.totalItems || 0}
+                                totalPages={meta?.totalPages || 1}
+                                limit={pageSize}
+                                onLimitChange={setPageSize}
+                                onRowClick={handleOpenDetail}
+                            />
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
 

@@ -39,6 +39,7 @@ import {
   ERROR_MESSAGES,
 } from "../constants/report.constants";
 import { BaseTable, type Column } from "@/components/shared/BaseTable";
+import { TableRow, TableCell } from "@/components/ui/table";
 
 export default function CustomerReportPage() {
   const [reportData, setReportData] = useState<CustomerReportData | null>(null);
@@ -55,15 +56,25 @@ export default function CustomerReportPage() {
   const [selectedExemption, setSelectedExemption] = useState<string | null>(
     null,
   );
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   const [filters, setFilters] = useState<ReportFilters>(() => {
     const { startDate, endDate } = getDateRangePreset("month");
     return { startDate, endDate };
   });
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.startDate, filters.endDate, legacyFilter]);
+
   // Fetch report data
   useEffect(() => {
     fetchReportData();
-  }, [filters, legacyFilter]);
+  }, [filters, legacyFilter, currentPage, pageSize]);
 
   const fetchReportData = async () => {
     try {
@@ -71,6 +82,9 @@ export default function CustomerReportPage() {
       const reportFilters = {
         ...filters,
         isLegacy: legacyFilter,
+        page: currentPage,
+        limit: pageSize,
+        paginate: true
       };
       const data = await reportService.getCustomerReport(reportFilters);
       setReportData(data);
@@ -454,7 +468,7 @@ export default function CustomerReportPage() {
                 icon={Wallet}
                 variant="default"
                 format="number"
-                subtitle={`${((reportData.summary.wajibBayar / reportData.summary.total) * 100).toFixed(1)}% dari total`}
+                subtitle={`${((reportData.summary.wajibBayar / reportData.summary.active) * 100).toFixed(1)}% dari pelanggan aktif`}
               />
               <ReportCard
                 title="Pelanggan Aktif"
@@ -499,8 +513,8 @@ export default function CustomerReportPage() {
             {activeTab === "ringkasan" ? (
               <>
                 {/* Exempted Breakdown */}
-                {reportData.exemptedBreakdown &&
-                  reportData.exemptedBreakdown.length > 0 && (
+                {reportData.exemptedBreakdown?.items &&
+                  reportData.exemptedBreakdown.items.length > 0 && (
                     <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-rose-100/60 mt-6">
                       <div className="flex items-center gap-2 mb-6">
                         <div className="p-2 bg-gradient-to-br from-rose-500 to-orange-500 rounded-lg">
@@ -508,23 +522,33 @@ export default function CustomerReportPage() {
                         </div>
                         <div>
                           <h2 className="text-xl font-bold text-gray-900">
-                            Analisis Pengecualian Tagihan (Selisih Data)
+                            Analisis Pengecualian Tagihan (Pelanggan Aktif)
                           </h2>
                           <p className="text-sm text-gray-500 mt-0.5">
                             Total{" "}
-                            {reportData.summary.total -
+                            {reportData.summary.active -
                               reportData.summary.wajibBayar}{" "}
-                            pelanggan yang terlepas dari kewajiban tagihan
+                            pelanggan aktif yang terlepas dari kewajiban tagihan
                             secara sistem.
                           </p>
                         </div>
                       </div>
                       <BaseTable
-                        data={reportData.exemptedBreakdown}
+                        data={reportData.exemptedBreakdown.items}
                         columns={exemptedColumns}
                         rowKey={(item: any) => item.reason}
                         onRowClick={(item: any) =>
                           setSelectedExemption(item.reason)
+                        }
+                        footer={
+                          <TableRow className="bg-rose-50/50 hover:bg-rose-50/50">
+                            <TableCell className="font-bold text-rose-700 py-4 px-5">Total Pelanggan Tidak Wajib Bayar</TableCell>
+                            <TableCell className="text-right py-4 px-5">
+                              <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold tracking-wide bg-rose-100 text-rose-800 border border-rose-200">
+                                {(reportData.summary.active - reportData.summary.wajibBayar).toLocaleString("id-ID")}
+                              </span>
+                            </TableCell>
+                          </TableRow>
                         }
                       />
                     </div>
@@ -540,7 +564,7 @@ export default function CustomerReportPage() {
                     </h2>
                   </div>
                   <BaseTable
-                    data={reportData.byPackage}
+                    data={Array.isArray(reportData.byPackage) ? reportData.byPackage : reportData.byPackage.items}
                     columns={packageColumns}
                     rowKey={(item: any) => item.name}
                     onRowClick={(item: any) => setSelectedPackage(item.name)}
@@ -558,7 +582,7 @@ export default function CustomerReportPage() {
                     </h2>
                   </div>
                   <BaseTable
-                    data={reportData.byLocation}
+                    data={Array.isArray(reportData.byLocation) ? reportData.byLocation : reportData.byLocation.items}
                     columns={locationColumns}
                     rowKey={(item: any) => item.name}
                     onRowClick={(item: any) => setSelectedLocation(item.name)}
@@ -576,7 +600,7 @@ export default function CustomerReportPage() {
                     </h2>
                   </div>
                   <BaseTable
-                    data={reportData.byUpline}
+                    data={Array.isArray(reportData.byUpline) ? reportData.byUpline : reportData.byUpline.items}
                     columns={uplineColumns}
                     rowKey={(item: any) => item.uplineId}
                     onRowClick={(item: any) => setSelectedUpline(item.uplineId)}
@@ -590,8 +614,14 @@ export default function CustomerReportPage() {
                     Detail Pelanggan
                   </h2>
                   <ReportDataTable
+                    serverSide={true}
                     data={reportData.customers}
                     columns={columns}
+                    page={currentPage}
+                    limit={pageSize}
+                    loading={loading}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
                     searchPlaceholder="Cari berdasarkan nama, email, atau customer ID..."
                   />
                 </div>

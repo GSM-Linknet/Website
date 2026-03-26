@@ -43,7 +43,14 @@ export const SalesTargetService = {
     return response.data;
   },
 
-  getAllTargets: async (params?: { month?: number; year?: number; userId?: string }) => {
+  getAllTargets: async (params?: { 
+    month?: number; 
+    year?: number; 
+    userId?: string; 
+    page?: number; 
+    limit?: number; 
+    paginate?: boolean 
+  }) => {
     const response = await apiClient.get<any>("/reporting/sales-target", { params });
     return response.data;
   },

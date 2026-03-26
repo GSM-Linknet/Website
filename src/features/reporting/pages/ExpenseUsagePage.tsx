@@ -34,21 +34,30 @@ export default function ExpenseUsagePage() {
     const [data, setData] = useState<ExpenseReportData | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'units' | 'subunits'>('units');
-
-    useEffect(() => {
-        fetchData();
-    }, []);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const response: any = await apiClient.get('/reporting/expense-usage');
+            const typeParam = activeTab === 'units' ? 'UNIT' : 'SUB_UNIT';
+            const response: any = await apiClient.get(`/reporting/expense-usage?page=${currentPage}&limit=${pageSize}&type=${typeParam}`);
             setData(response.data.data);
         } catch (error) {
             console.error('Failed to fetch expense usage report:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [activeTab, currentPage, pageSize]);
+
+    // Reset to page 1 when tab changes
+    const handleTabChange = (v: string) => {
+        setActiveTab(v as 'units' | 'subunits');
+        setCurrentPage(1);
     };
 
     const getStatusColor = (percentage: number) => {
@@ -134,8 +143,9 @@ export default function ExpenseUsagePage() {
         },
     ];
 
-    const currentData = activeTab === 'units' ? data?.units || [] : data?.subUnits || [];
-    const overQuotaItems = currentData.filter(item => parseFloat(item.usagePercentage) >= 90);
+    const currentData = (data as any)?.items || [];
+    const meta = (data as any)?.meta;
+    const summary = (data as any)?.summary;
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -150,14 +160,14 @@ export default function ExpenseUsagePage() {
             </div>
 
             {/* Summary Cards */}
-            {data && (
+            {summary && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
                         <div className="flex items-center justify-between mb-2">
                             <Building2 className="h-8 w-8 opacity-80" />
                             <span className="text-xs font-medium opacity-80">Total Unit</span>
                         </div>
-                        <div className="text-2xl font-bold">{data.summary.totalUnits + data.summary.totalSubUnits}</div>
+                        <div className="text-2xl font-bold">{summary.totalUnits + summary.totalSubUnits}</div>
                     </div>
 
                     <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
@@ -165,7 +175,7 @@ export default function ExpenseUsagePage() {
                             <TrendingDown className="h-8 w-8 opacity-80" />
                             <span className="text-xs font-medium opacity-80">Total Quota</span>
                         </div>
-                        <div className="text-2xl font-bold">{formatCurrency(data.summary.totalExpenseQuota)}</div>
+                        <div className="text-2xl font-bold">{formatCurrency(summary.totalExpenseQuota)}</div>
                     </div>
 
                     <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
@@ -173,27 +183,27 @@ export default function ExpenseUsagePage() {
                             <TrendingDown className="h-8 w-8 opacity-80" />
                             <span className="text-xs font-medium opacity-80">Total Terpakai</span>
                         </div>
-                        <div className="text-2xl font-bold">{formatCurrency(data.summary.totalExpenseUsed)}</div>
+                        <div className="text-2xl font-bold">{formatCurrency(summary.totalExpenseUsed)}</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg">
+                    <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg">
                         <div className="flex items-center justify-between mb-2">
                             <AlertTriangle className="h-8 w-8 opacity-80" />
-                            <span className="text-xs font-medium opacity-80">≥90% Quota</span>
+                            <span className="text-xs font-medium opacity-80">Monitoring Quota</span>
                         </div>
-                        <div className="text-2xl font-bold">{overQuotaItems.length}</div>
+                        <div className="text-sm font-medium opacity-90">Sistem memantau penggunaan quota secara real-time</div>
                     </div>
                 </div>
             )}
 
             {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'units' | 'subunits')}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
                 <TabsList className="bg-slate-100">
                     <TabsTrigger value="units" className="data-[state=active]:bg-white">
-                        Unit ({data?.units.length || 0})
+                        Unit {summary && `(${summary.totalUnits})`}
                     </TabsTrigger>
                     <TabsTrigger value="subunits" className="data-[state=active]:bg-white">
-                        Sub Unit ({data?.subUnits.length || 0})
+                        Sub Unit {summary && `(${summary.totalSubUnits})`}
                     </TabsTrigger>
                 </TabsList>
             </Tabs>
@@ -206,6 +216,13 @@ export default function ExpenseUsagePage() {
                     rowKey={(row: ExpenseUsageItem) => row.id}
                     loading={loading}
                     className="border-none shadow-none"
+                    // Server-side pagination props
+                    onPageChange={setCurrentPage}
+                    page={currentPage}
+                    limit={pageSize}
+                    onLimitChange={setPageSize}
+                    totalItems={meta?.totalItems || 0}
+                    totalPages={meta?.totalPages || 1}
                 />
             </div>
         </div>

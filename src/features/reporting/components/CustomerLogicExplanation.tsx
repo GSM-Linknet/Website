@@ -1,4 +1,4 @@
-import { Info, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Info, CheckCircle2, AlertCircle, Wallet, ShieldAlert } from 'lucide-react';
 
 export default function CustomerLogicExplanation() {
   return (
@@ -94,6 +94,57 @@ export default function CustomerLogicExplanation() {
 
             {/* Section 3 */}
             <section>
+                <h3 className="text-xl font-bold border-b border-gray-200 pb-3 mb-5 text-gray-800">
+                    3. Wajib Bayar vs. Tidak Wajib Bayar (Exempeted)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-cyan-50 p-6 rounded-2xl border border-cyan-100 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-cyan-600 rounded-lg text-white">
+                                <Wallet className="w-5 h-5" />
+                            </div>
+                            <h4 className="font-bold text-cyan-900 text-lg">Wajib Bayar (Billable)</h4>
+                        </div>
+                        <p className="text-sm text-cyan-800 leading-relaxed">
+                            Pelanggan aktif yang <strong>wajib dan eligible</strong> mendapatkan tagihan bulanan pada periode berjalan. 
+                            <br/><br/>
+                            Status ini diberikan jika pelanggan sudah melewati masa promo, bukan akun gratis, dan sistem mendeteksi mereka belum memiliki tagihan (baik Registrasi maupun Bulanan) di bulan yang sama.
+                        </p>
+                    </div>
+                    <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 shadow-sm">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-purple-600 rounded-lg text-white">
+                                <ShieldAlert className="w-5 h-5" />
+                            </div>
+                            <h4 className="font-bold text-purple-900 text-lg">Tidak Wajib Bayar (Exempted)</h4>
+                        </div>
+                        <p className="text-sm text-purple-800 leading-relaxed">
+                            Pelanggan aktif yang <strong>dikecualikan</strong> dari tagihan bulanan periode ini karena:
+                        </p>
+                        <ul className="mt-3 space-y-2">
+                            <li className="flex items-start gap-2 text-xs text-purple-700 font-medium">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0"></div>
+                                <span><b>Baru Registrasi:</b> Sudah membayar biaya pasang di bulan ini (Sistem membatasi 1 invoice per bulan).</span>
+                            </li>
+                            <li className="flex items-start gap-2 text-xs text-purple-700 font-medium">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0"></div>
+                                <span><b>Masa Promo:</b> Masih dalam periode gratis (Free 3/6/12 Bulan).</span>
+                            </li>
+                            <li className="flex items-start gap-2 text-xs text-purple-700 font-medium">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0"></div>
+                                <span><b>Akun Gratis:</b> Ditandai sebagai "Free Account" (Karyawan/Corporate).</span>
+                            </li>
+                            <li className="flex items-start gap-2 text-xs text-purple-700 font-medium">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0"></div>
+                                <span><b>Label Khusus:</b> Memiliki label pengecualian manual dari admin.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            {/* Section 4 */}
+            <section>
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 shadow-sm flex flex-col md:flex-row items-start gap-4">
                     <div className="p-3 bg-white rounded-xl shadow-sm md:shrink-0">
                         <Info className="w-8 h-8 text-blue-600" />
@@ -101,9 +152,9 @@ export default function CustomerLogicExplanation() {
                     <div>
                         <h4 className="text-lg font-bold text-blue-900 mb-3">Memahami Selisih Data "Total Pelanggan" VS "Wajib Bayar"</h4>
                         <p className="text-sm text-blue-800 leading-relaxed">
-                            Anda mungkin menyadari bahwa angka <strong>Total Pelanggan</strong> di Laporan ini mencakup seluruh entitas populasi database di GSM tanpa pandang bulu (termasuk pelanggan mati, dicabut sementera, belum tervalidasi). 
+                            Secara periodik, <strong>Wajib Bayar</strong> adalah target penagihan riil bulan ini. Jika angka Wajib Bayar lebih kecil dari Total Aktif, itu berarti sebagian pelanggan Anda sedang dalam masa "Exempted" (misal: baru pasang atau sedang promo).
                             <br/><br/>
-                            Sedangkan data <strong>Wajib Bayar</strong> di layar Dashboard utama <em>secara sangat ketat menyortir filter agar hanya proyeksi potensi tagihan nyata</em> yang difokuskan. Disitulah keakurasian data Wajib Bayar digunakan oleh sistem *Automated Bulk Billing* bulanan.
+                            Data ini disinkronkan langsung dengan API <code>customers-without-invoice</code> untuk memastikan daftar pelanggan yang muncul di modul Keuangan sama persis dengan proyeksi di Laporan ini.
                         </p>
                     </div>
                 </div>
