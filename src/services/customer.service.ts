@@ -148,6 +148,9 @@ export const CustomerService = {
   regenerateCustomerId: async (id: string) => {
     return apiClient.post<Customer>(`${ENDPOINT}/regenerate-id/${id}`);
   },
+  impersonatePortal: async (id: string) => {
+    return apiClient.post<{ accessToken: string; refreshToken: string }>(`${ENDPOINT}/impersonate-portal/${id}`);
+  },
 
   // ─── Linknet Pipeline Endpoints ──────────────────────────────────────────
   createLinknetAccount: async (id: string, notes?: string) => {

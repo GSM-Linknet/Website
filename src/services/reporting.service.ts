@@ -16,6 +16,7 @@ import type {
   SalesPerformanceReportData,
   ActivityLogReportData,
   ActivityReportDetail,
+  KpiReportData,
 } from '@/features/reporting/types/report.types';
 import { API_ENDPOINTS } from '@/features/reporting/constants/report.constants';
 import { buildQueryParams, downloadBlob, generateExportFilename } from '@/features/reporting/utils/report.utils';
@@ -232,6 +233,15 @@ class ReportingService {
 
   async addActivityFeedback(id: string, feedback: string): Promise<ActivityReportDetail> {
     const response = await apiClient.patch<{data: ActivityReportDetail}>(`${API_ENDPOINTS.ACTIVITY_UNIT}/${id}/feedback`, { feedback }) as any;
+    return response.data;
+  }
+
+  /**
+   * KPI Reports
+   */
+  async getKpiReport(filters?: ReportFilters): Promise<KpiReportData> {
+    const queryString = filters ? buildQueryParams(filters) : '';
+    const response = await apiClient.get<{data: KpiReportData}>(`${API_ENDPOINTS.KPI}?${queryString}`) as any;
     return response.data;
   }
 }

@@ -8,6 +8,7 @@ interface BasePaginationProps {
     onPageChange: (page: number) => void;
     totalItems: number;
     limit?: number;
+    onLimitChange?: (limit: number) => void;
     className?: string;
 }
 
@@ -17,6 +18,7 @@ export function BasePagination({
     onPageChange,
     totalItems,
     limit = 10,
+    onLimitChange,
     className,
 }: BasePaginationProps) {
     if (totalPages <= 1) return null;
@@ -44,8 +46,25 @@ export function BasePagination({
     return (
         <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4", className)}>
             {/* Search Info */}
-            <div className="text-sm text-slate-500 font-medium order-2 sm:order-1">
-                Menampilkan <span className="text-[#101D42] font-bold">{startItem}-{endItem}</span> dari <span className="text-[#101D42] font-bold">{totalItems}</span> data
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 font-medium order-2 sm:order-1">
+                <div>
+                    Menampilkan <span className="text-[#101D42] font-bold">{startItem}-{endItem}</span> dari <span className="text-[#101D42] font-bold">{totalItems}</span> data
+                </div>
+                
+                {onLimitChange && (
+                    <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-0 sm:ml-2">
+                        <span>Tampilkan:</span>
+                        <select
+                            value={limit}
+                            onChange={(e) => onLimitChange(Number(e.target.value))}
+                            className="bg-transparent font-bold text-[#101D42] focus:outline-none cursor-pointer"
+                        >
+                            {[10, 25, 50, 100].map(val => (
+                                <option key={val} value={val}>{val}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             {/* Pagination Controls */}

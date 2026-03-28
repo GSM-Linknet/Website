@@ -11,13 +11,35 @@ export interface ReportFilters {
   status?: string;
   type?: string;
   isLegacy?: "all" | "new" | "legacy";
+  page?: number;
+  limit?: number;
+  paginate?: boolean;
 }
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface PaginatedData<T> {
+  items: T[];
+  meta?: PaginationMeta;
+  // Flat metadata properties from backend BaseService.paginate
+  page?: number;
+  limit?: number;
+  totalItems?: number;
+  totalPages?: number;
+}
+
 
 export interface CustomerSummary {
   total: number;
   active: number;
   inactive: number;
   pending: number;
+  wajibBayar: number;
 }
 
 export interface PackageBreakdown {
@@ -55,15 +77,17 @@ export interface CustomerDetail {
   statusNet: boolean;
   totalBilling: number;
   outstandingBilling: number;
+  exemptionReason?: string;
   createdAt: string;
 }
 
 export interface CustomerReportData {
   summary: CustomerSummary;
-  byPackage: PackageBreakdown[];
-  byLocation: LocationBreakdown[];
-  byUpline: UplineBreakdown[];
-  customers: CustomerDetail[];
+  byPackage: PaginatedData<PackageBreakdown> | PackageBreakdown[];
+  byLocation: PaginatedData<LocationBreakdown> | LocationBreakdown[];
+  byUpline: PaginatedData<UplineBreakdown> | UplineBreakdown[];
+  exemptedBreakdown: PaginatedData<{ reason: string; count: number }>;
+  customers: PaginatedData<CustomerDetail> | CustomerDetail[];
 }
 
 export interface InvoiceSummary {
@@ -92,7 +116,7 @@ export interface InvoiceDetail {
 
 export interface InvoiceReportData {
   summary: InvoiceSummary;
-  invoices: InvoiceDetail[];
+  invoices: PaginatedData<InvoiceDetail> | InvoiceDetail[];
 }
 
 export interface PaymentSummary {
@@ -126,7 +150,7 @@ export interface PaymentDetail {
 
 export interface PaymentReportData {
   summary: PaymentSummary;
-  payments: PaymentDetail[];
+  payments: PaginatedData<PaymentDetail> | PaymentDetail[];
 }
 
 export interface RevenueSummary {
@@ -149,8 +173,8 @@ export interface UnitRevenue {
 
 export interface RevenueReportData {
   summary: RevenueSummary;
-  byMonth: MonthlyRevenue[];
-  byUnit: UnitRevenue[];
+  byMonth: PaginatedData<MonthlyRevenue> | MonthlyRevenue[];
+  byUnit: PaginatedData<UnitRevenue> | UnitRevenue[];
 }
 
 export interface AgingSummary {
@@ -179,7 +203,7 @@ export interface AgingInvoiceDetail {
 
 export interface AgingReportData {
   summary: AgingSummary;
-  invoices: AgingInvoiceDetail[];
+  invoices: PaginatedData<AgingInvoiceDetail> | AgingInvoiceDetail[];
 }
 
 export interface TechnicianPerformance {
@@ -226,7 +250,7 @@ export interface WorkOrderDetail {
 
 export interface WorkOrderReportData {
   summary: WorkOrderSummary;
-  workOrders: WorkOrderDetail[];
+  workOrders: PaginatedData<WorkOrderDetail> | WorkOrderDetail[];
 }
 
 export interface SalesPerformance {
@@ -246,7 +270,7 @@ export interface SalesPerformanceSummary {
 
 export interface SalesPerformanceReportData {
   summary: SalesPerformanceSummary;
-  performance: SalesPerformance[];
+  sales: PaginatedData<SalesPerformance> | SalesPerformance[];
 }
 
 export interface ActivityLogSummary {
@@ -269,7 +293,7 @@ export interface ActivityLogDetail {
 
 export interface ActivityLogReportData {
   summary: ActivityLogSummary;
-  activities: ActivityLogDetail[];
+  logs: PaginatedData<ActivityLogDetail> | ActivityLogDetail[];
   byUser: { userName: string; count: number }[];
   byAction: { action: string; count: number }[];
 }
@@ -309,4 +333,73 @@ export interface ChartData {
     backgroundColor?: string | string[];
     borderColor?: string | string[];
   }[];
+}
+
+// KPI Report types
+export interface KpiSummary {
+  totalCustomers: number;
+  activeCustomers: number;
+  inactiveCustomers: number;
+  isolirCustomers: number;
+  totalRevenue: number;
+  collectedRevenue: number;
+  overdueRevenue: number;
+  collectionRate: number;
+}
+
+export interface UnitKpi {
+  unitId: string;
+  unitName: string;
+  subUnitName: string;
+  // Customer stats
+  totalCustomers: number;
+  activeCustomers: number;
+  inactiveCustomers: number;
+  isolirCustomers: number;
+  wajibBayarCustomers: number;
+  exemptedCustomers: number;
+  // Invoice stats
+  paidInvoices: number;
+  pendingInvoices: number;
+  overdueInvoices: number;
+  totalInvoices: number;
+  // Revenue stats
+  totalRevenue: number;
+  collectedRevenue: number;
+  potentialRevenue: number;
+  collectionRate: number;
+  // Other
+  customersWithoutInvoice: number;
+  uniqueSalesCount: number;
+}
+
+export interface SalesKpi {
+  salesId: string;
+  salesName: string;
+  salesRole: string;
+  // Customer stats
+  totalCustomers: number;
+  activeCustomers: number;
+  inactiveCustomers: number;
+  isolirCustomers: number;
+  wajibBayarCustomers: number;
+  exemptedCustomers: number;
+  // Invoice stats
+  paidInvoices: number;
+  pendingInvoices: number;
+  overdueInvoices: number;
+  totalInvoices: number;
+  // Revenue stats
+  totalRevenue: number;
+  collectedRevenue: number;
+  potentialRevenue: number;
+  collectionRate: number;
+  // Other
+  customersWithoutInvoice: number;
+}
+
+export interface KpiReportData {
+  summary: KpiSummary;
+  unitKpis: PaginatedData<UnitKpi> | UnitKpi[];
+  salesKpis: PaginatedData<SalesKpi> | SalesKpi[];
 }

@@ -11,3 +11,5 @@ export { ReportDataTable } from "./ReportDataTable";
 export { default as UplineCustomerModal } from "./UplineCustomerModal";
 export { default as PackageCustomerModal } from "./PackageCustomerModal";
 export { default as LocationCustomerModal } from "./LocationCustomerModal";
+export { default as ExemptedCustomerModal } from "./ExemptedCustomerModal";
+export { default as CustomerLogicExplanation } from "./CustomerLogicExplanation";

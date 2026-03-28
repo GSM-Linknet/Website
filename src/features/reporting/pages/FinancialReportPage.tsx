@@ -47,10 +47,20 @@ export default function FinancialReportPage() {
     const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
     const [unitFilter, setUnitFilter] = useState<string>('all');
     const [units, setUnits] = useState<Unit[]>([]);
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
     });
+
+    // Reset page when tab or other filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab, legacyFilter, unitFilter, filters.startDate, filters.endDate]);
 
     // Fetch units on mount
     useEffect(() => {
@@ -66,9 +76,8 @@ export default function FinancialReportPage() {
     }, []);
 
     useEffect(() => {
-        setReportData(null); // Clear data when tab or filters change to prevent type mismatch crashes
         fetchReportData();
-    }, [filters, activeTab, legacyFilter, unitFilter]);
+    }, [filters, activeTab, legacyFilter, unitFilter, currentPage, pageSize]);
 
     const fetchReportData = async () => {
         try {
@@ -76,7 +85,10 @@ export default function FinancialReportPage() {
             const reportFilters = {
                 ...filters,
                 isLegacy: legacyFilter,
-                unitId: unitFilter !== 'all' ? unitFilter : undefined
+                unitId: unitFilter !== 'all' ? unitFilter : undefined,
+                page: currentPage,
+                limit: pageSize,
+                paginate: true
             };
 
             let data: FinancialData;
@@ -142,6 +154,16 @@ export default function FinancialReportPage() {
                 return [
                     { key: "paidAt", header: "Waktu", render: (v: string) => formatDate(v), width: "150px" },
                     { key: "invoiceNumber", header: "No. Invoice", width: "150px" },
+                    { 
+                        key: "type", 
+                        header: "Tipe", 
+                        width: "100px",
+                        render: (v: string) => (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${v === 'REGISTRATION' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {v === 'REGISTRATION' ? 'Instalasi' : 'Bulanan'}
+                            </span>
+                        )
+                    },
                     { key: "customerName", header: "Pelanggan", width: "200px" },
                     { key: "unit", header: "Unit", width: "150px" },
                     { key: "amount", header: "Jumlah", render: (v: number) => formatCurrency(v), width: "150px" },
@@ -203,6 +225,16 @@ export default function FinancialReportPage() {
                             </span>
                         ),
                     },
+                    { 
+                        key: "type", 
+                        header: "Tipe", 
+                        width: "100px",
+                        render: (v: string) => (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${v === 'REGISTRATION' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {v === 'REGISTRATION' ? 'Instalasi' : 'Bulanan'}
+                            </span>
+                        )
+                    },
                     {
                         key: "customerName",
                         header: "Pelanggan",
@@ -245,19 +277,19 @@ export default function FinancialReportPage() {
         }
     };
 
-    const getTableData = () => {
+    const getTableRawData = () => {
         if (!reportData) return [];
         switch (activeTab) {
             case "payment":
-                return (reportData as PaymentReportData).payments || [];
+                return (reportData as any).payments;
             case "revenue":
-                return (reportData as RevenueReportData).byMonth || [];
+                return (reportData as any).byMonth;
             case "aging":
-                return (reportData as AgingReportData).invoices || [];
+                return (reportData as any).invoices;
             case "invoice":
-                return (reportData as InvoiceReportData).invoices || [];
+                return (reportData as any).invoices;
             case "summary":
-                return reportData?.breakdown?.commissionDetails || [];
+                return reportData?.breakdown?.commissionDetails;
             default:
                 return [];
         }
@@ -473,8 +505,14 @@ export default function FinancialReportPage() {
                                 Detail {tabs.find((t) => t.id === activeTab)?.label}
                             </h2>
                             <ReportDataTable
-                                data={getTableData() as any[]}
+                                serverSide={true}
+                                data={getTableRawData()}
                                 columns={getColumns()}
+                                page={currentPage}
+                                limit={pageSize}
+                                loading={loading}
+                                onPageChange={setCurrentPage}
+                                onPageSizeChange={setPageSize}
                                 searchPlaceholder={`Cari ${tabs.find(t => t.id === activeTab)?.label.toLowerCase()}...`}
                             />
                         </div>

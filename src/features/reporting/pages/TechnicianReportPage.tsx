@@ -28,19 +28,35 @@ import {
 export default function TechnicianReportPage() {
     const [reportData, setReportData] = useState<WorkOrderReportData | null>(null);
     const [loading, setLoading] = useState(true);
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+
     const [filters, setFilters] = useState<ReportFilters>(() => {
         const { startDate, endDate } = getDateRangePreset("month");
         return { startDate, endDate };
     });
 
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filters.startDate, filters.endDate]);
+
     useEffect(() => {
         fetchReportData();
-    }, [filters]);
+    }, [filters, currentPage, pageSize]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
-            const data = await reportService.getWorkOrderReport(filters);
+            const reportFilters = {
+                ...filters,
+                page: currentPage,
+                limit: pageSize,
+                paginate: true
+            };
+            const data = await reportService.getWorkOrderReport(reportFilters);
             setReportData(data);
         } catch (error) {
             console.error("Failed to fetch technician report:", error);
@@ -205,8 +221,14 @@ export default function TechnicianReportPage() {
                                 Detail Work Orders
                             </h2>
                             <ReportDataTable
+                                serverSide={true}
                                 data={reportData.workOrders || []}
                                 columns={columns}
+                                page={currentPage}
+                                limit={pageSize}
+                                loading={loading}
+                                onPageChange={setCurrentPage}
+                                onPageSizeChange={setPageSize}
                                 searchPlaceholder="Cari work order atau teknisi..."
                             />
                         </div>

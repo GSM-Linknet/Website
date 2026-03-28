@@ -24,11 +24,13 @@ export default function PackageCustomerModal({
 }: PackageCustomerModalProps) {
     if (!packageName || !reportData) return null;
 
-    const selectedPkg = reportData.byPackage.find((p) => p.name === packageName);
+    const packageArray = Array.isArray(reportData.byPackage) ? reportData.byPackage : reportData.byPackage.items;
+    const selectedPkg = packageArray.find((p) => p.name === packageName);
     if (!selectedPkg) return null;
 
     // Filter customers by selected package
-    const filteredCustomers = reportData.customers.filter(
+    const customersArray = Array.isArray(reportData.customers) ? reportData.customers : reportData.customers.items;
+    const filteredCustomers = customersArray.filter(
         (customer) => customer.package === packageName
     );
 

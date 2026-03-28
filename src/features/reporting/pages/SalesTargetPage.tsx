@@ -46,6 +46,9 @@ export default function SalesTargetPage() {
     const [targets, setTargets] = useState<SalesTarget[]>([]);
     const [managedUsers, setManagedUsers] = useState<ManagedSalesUser[]>([]);
     const [loading, setLoading] = useState(true);
+    const [meta, setMeta] = useState<any>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedTarget, setSelectedTarget] = useState<SalesTarget | null>(null);
 
@@ -86,16 +89,20 @@ export default function SalesTargetPage() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [managedUsersData, targetsData] = await Promise.all([
+            const [managedUsersData, targetsResponse] = await Promise.all([
                 SalesTargetService.getManagedSales(),
                 SalesTargetService.getAllTargets({
                     month: filters.month,
                     year: filters.year,
-                    userId: filters.userId === "all" ? undefined : filters.userId
+                    userId: filters.userId === "all" ? undefined : filters.userId,
+                    page: currentPage,
+                    limit: pageSize,
+                    paginate: true
                 })
             ]);
             setManagedUsers(managedUsersData || []);
-            setTargets(targetsData || []);
+            setTargets((targetsResponse as any)?.items || []);
+            setMeta((targetsResponse as any)?.meta || null);
         } catch (error) {
             console.error("Failed to fetch data:", error);
             toast.error("Gagal memuat data target sales");
@@ -106,6 +113,11 @@ export default function SalesTargetPage() {
 
     useEffect(() => {
         fetchData();
+    }, [filters, currentPage]);
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
     }, [filters]);
 
     const handleCreateOrUpdate = async () => {
@@ -345,8 +357,14 @@ export default function SalesTargetPage() {
                     <BaseTable
                         data={targets}
                         columns={columns}
-                        rowKey={(item) => item.id}
+                        rowKey={(item: SalesTarget) => item.id}
                         loading={loading}
+                        page={currentPage}
+                        onPageChange={setCurrentPage}
+                        totalItems={meta?.totalItems || 0}
+                        totalPages={meta?.totalPages || 1}
+                        limit={pageSize}
+                        onLimitChange={setPageSize}
                     />
                 </CardContent>
             </Card>

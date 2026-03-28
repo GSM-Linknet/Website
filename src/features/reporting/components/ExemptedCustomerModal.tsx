@@ -1,4 +1,4 @@
-import { MapPin, Users } from "lucide-react";
+import { ShieldAlert, Users } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -8,34 +8,29 @@ import {
 import { ReportDataTable, StatusBadge } from "../components";
 import type { CustomerReportData, CustomerDetail } from "../types/report.types";
 
-interface LocationCustomerModalProps {
+interface ExemptedCustomerModalProps {
     open: boolean;
     onClose: () => void;
-    locationName: string | null;
+    exemptionName: string | null;
     reportData: CustomerReportData | null;
 }
 
-export default function LocationCustomerModal({
+export default function ExemptedCustomerModal({
     open,
     onClose,
-    locationName,
+    exemptionName,
     reportData,
-}: LocationCustomerModalProps) {
-    if (!locationName || !reportData) return null;
+}: ExemptedCustomerModalProps) {
+    if (!exemptionName || !reportData || !reportData.exemptedBreakdown?.items) return null;
 
-    const locationArray = Array.isArray(reportData.byLocation) ? reportData.byLocation : reportData.byLocation.items;
-    const selectedLoc = locationArray.find((l) => l.name === locationName);
-    if (!selectedLoc) return null;
+    const selectedExemption = reportData.exemptedBreakdown.items.find((l) => l.reason === exemptionName);
+    if (!selectedExemption) return null;
 
-    // Filter customers by selected location
-    // Server logic: location = subUnit?.name || unit?.name || 'Unknown'
+    // Filter customers by selected exemption reason
     const customersArray = Array.isArray(reportData.customers) ? reportData.customers : reportData.customers.items;
-    const filteredCustomers = customersArray.filter((customer) => {
-        const custLoc = (customer.subUnit && customer.subUnit !== "-")
-            ? customer.subUnit
-            : customer.unit;
-        return custLoc === locationName;
-    });
+    const filteredCustomers = customersArray.filter(
+        (customer) => customer.exemptionReason === exemptionName
+    );
 
     // Table columns configuration
     const columns = [
@@ -45,7 +40,7 @@ export default function LocationCustomerModal({
             sortable: true,
             width: "120px",
             render: (value: string) => (
-                <span className="font-mono text-xs font-semibold text-blue-600">
+                <span className="font-mono text-xs font-semibold text-rose-600">
                     {value}
                 </span>
             ),
@@ -90,7 +85,7 @@ export default function LocationCustomerModal({
         },
         {
             key: "statusNet",
-            header: "Status",
+            header: "Status Jaringan",
             render: (_: any, row: CustomerDetail) => {
                 if (!row.statusCust)
                     return <StatusBadge status="Pending" variant="warning" />;
@@ -107,23 +102,23 @@ export default function LocationCustomerModal({
             <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden flex flex-col bg-white">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                            <MapPin className="w-5 h-5 text-blue-600" />
+                        <div className="p-2 bg-rose-100 rounded-lg">
+                            <ShieldAlert className="w-5 h-5 text-rose-600" />
                         </div>
-                        <span>Detail Pelanggan - Lokasi {locationName}</span>
+                        <span>Daftar Pelanggan - {exemptionName}</span>
                     </DialogTitle>
                 </DialogHeader>
                 <div className="flex-1 overflow-auto p-1">
                     <div className="space-y-6">
                         {/* Summary Card */}
-                        <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl flex items-center gap-4">
+                        <div className="p-5 bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-100 rounded-2xl flex items-center gap-4">
                             <div className="p-3 bg-white rounded-xl shadow-sm">
-                                <Users className="w-6 h-6 text-blue-600" />
+                                <Users className="w-6 h-6 text-rose-600" />
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-blue-600">Total Pelanggan</p>
+                                <p className="text-sm font-medium text-rose-600">Total Pelanggan {exemptionName}</p>
                                 <p className="text-2xl font-bold text-gray-900">
-                                    {selectedLoc.count}
+                                    {selectedExemption.count}
                                 </p>
                             </div>
                         </div>

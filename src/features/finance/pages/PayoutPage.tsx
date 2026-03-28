@@ -13,6 +13,7 @@ import {
   Download,
   CalendarRange,
   X,
+  Smartphone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CreatePayoutModal } from "../components/CreatePayoutModal";
@@ -163,30 +164,51 @@ export default function PayoutPage() {
     {
       accessorKey: "bankCode",
       header: "Informasi Bank",
-      cell: (payout: any) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
-            <Landmark size={18} />
+      cell: (payout: any) => {
+        const isEWallet = [
+          "ID_DANA",
+          "ID_OVO",
+          "ID_GOPAY",
+          "ID_SHOPEEPAY",
+          "ID_LINKAJA",
+        ].includes(payout.bankCode);
+        return (
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "w-11 h-11 rounded-2xl border flex items-center justify-center transition-all duration-300",
+                isEWallet
+                  ? "bg-indigo-50 border-indigo-100 text-indigo-500 shadow-sm shadow-indigo-500/5"
+                  : "bg-blue-50 border-blue-100 text-blue-600 shadow-sm shadow-blue-500/5",
+              )}
+            >
+              {isEWallet ? <Smartphone size={18} /> : <Landmark size={18} />}
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-slate-800 flex items-center gap-2 text-sm">
+                {payout.bankCode?.replace("ID_", "")}
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[8px] px-1.5 py-0 h-4 uppercase tracking-tighter border-none font-black",
+                    isEWallet
+                      ? "bg-indigo-500/10 text-indigo-600"
+                      : "bg-blue-500/10 text-blue-600",
+                  )}
+                >
+                  {isEWallet ? "E-Wallet" : "Bank"}
+                </Badge>
+              </span>
+              <span className="text-xs text-slate-500 font-semibold tracking-wide uppercase truncate max-w-[150px]">
+                {payout.accountName}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono leading-none mt-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 w-fit">
+                {payout.accountNumber}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-slate-700 flex items-center gap-1.5">
-              {payout.bankCode?.replace("ID_", "")}
-              <Badge
-                variant="secondary"
-                className="text-[9px] py-0 h-4 bg-slate-100 uppercase"
-              >
-                Bank
-              </Badge>
-            </span>
-            <span className="text-xs text-slate-500 font-medium tracking-wide uppercase">
-              {payout.accountName}
-            </span>
-            <span className="text-[10px] text-slate-400 font-mono leading-none mt-0.5">
-              {payout.accountNumber}
-            </span>
-          </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       accessorKey: "amount",

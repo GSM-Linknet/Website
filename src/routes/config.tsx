@@ -24,6 +24,7 @@ const SuspendReviewPage = lazy(
 const DeletedCustomersPage = lazy(
   () => import("@/features/customers/pages/DeletedCustomersPage"),
 );
+
 const TechnicianPage = lazy(
   () => import("@/features/technicians/pages/TechnicianPage"),
 );
@@ -113,6 +114,7 @@ const MaintenancePage = lazy(() => import("@/pages/MaintenancePage"));
 const PublicPaymentPage = lazy(() => import("@/features/finance/pages/PublicPaymentPage"));
 const BatchPaymentPage = lazy(() => import("@/features/finance/pages/BatchPaymentPage"));
 const ExpenseUsagePage = lazy(() => import("@/features/reporting/pages/ExpenseUsagePage"));
+const KpiReportPage = lazy(() => import("@/features/reporting/pages/KpiReportPage"));
 const UnitExpensePage = lazy(() => import("@/features/finance/pages/UnitExpensePage"));
 const DailyJournalPage = lazy(() => import("@/features/finance/pages/DailyJournalPage"));
 const UnitRevenuePage = lazy(() => import("@/features/finance/pages/UnitRevenuePage"));
@@ -247,6 +249,7 @@ export const routes: RouteObject[] = [
               </Suspense>
             ),
           },
+         
           {
             index: true,
             element: <Navigate to="kelola" replace />,
@@ -341,6 +344,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <ExpenseUsagePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "kpi",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <KpiReportPage />
               </Suspense>
             ),
           },
