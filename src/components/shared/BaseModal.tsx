@@ -19,7 +19,7 @@ interface BaseModalProps {
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "6xl" | "full";
   showFooter?: boolean;
   primaryActionLabel?: string;
   primaryActionOnClick?: () => void;
@@ -33,6 +33,9 @@ const sizeClasses = {
   lg: "sm:max-w-lg",
   xl: "sm:max-w-xl",
   "2xl": "sm:max-w-2xl",
+  "4xl": "sm:max-w-4xl",
+  "6xl": "sm:max-w-6xl",
+  full: "sm:max-w-[95vw]",
 };
 
 export function BaseModal({
@@ -64,7 +67,7 @@ export function BaseModal({
         <DialogHeader className="p-6 pb-2 space-y-3 flex-shrink-0">
           <div className="flex items-center gap-3">
             {Icon && (
-              <div className="p-2.5 bg-blue-50 text-[#101D42] rounded-xl ring-1 ring-blue-100/50">
+              <div className="p-2.5 bg-blue-50 text-blue-500 rounded-xl ring-1 ring-blue-100/50">
                 <Icon size={20} />
               </div>
             )}

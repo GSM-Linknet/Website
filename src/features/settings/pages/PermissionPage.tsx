@@ -101,6 +101,7 @@ const MODULE_GROUPS: {
             icon: TrendingUp,
             resources: [
                 { key: "keuangan.invoice", label: "Tagihan" },
+                { key: "keuangan.review", label: "Review Tagihan" },
                 { key: "keuangan.history", label: "History Pembayaran" },
                 { key: "keuangan.batch-payment", label: "Pembayaran Batch" },
                 { key: "keuangan.aging", label: "Aging Reports" },

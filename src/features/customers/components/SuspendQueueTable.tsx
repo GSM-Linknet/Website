@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { SuspendQueueItem } from "@/services/suspend-queue.service";
-import { PlayCircle, XCircle, Clock, FileText, User } from "lucide-react";
+import { PlayCircle, XCircle, Clock, FileText, User, AlertTriangle } from "lucide-react";
 import moment from "moment";
+import { useState } from "react";
+import { BaseModal } from "@/components/shared/BaseModal";
 
 export interface SuspendQueueTableProps {
     data: SuspendQueueItem[];
@@ -35,6 +37,28 @@ export function SuspendQueueTable({
     onSelectAll,
     isAllSelected,
 }: SuspendQueueTableProps) {
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        type: 'approve' | 'reject' | null;
+        item: SuspendQueueItem | null;
+    }>({
+        isOpen: false,
+        type: null,
+        item: null
+    });
+
+    const handleConfirm = () => {
+        if (!confirmModal.item || !confirmModal.type) return;
+
+        if (confirmModal.type === 'approve') {
+            onApprove(confirmModal.item.id);
+        } else {
+            onReject(confirmModal.item.id);
+        }
+
+        setConfirmModal({ isOpen: false, type: null, item: null });
+    };
+
     const columns: Column<SuspendQueueItem>[] = [
         {
             header: (
@@ -155,7 +179,11 @@ export function SuspendQueueTable({
                         size="sm"
                         onClick={(e) => {
                             e.stopPropagation();
-                            onApprove(item.id);
+                            setConfirmModal({
+                                isOpen: true,
+                                type: 'approve',
+                                item: item
+                            });
                         }}
                         className="bg-rose-600 hover:bg-rose-700 text-white border-0 shadow-sm shadow-rose-200 h-8 px-3 text-xs font-semibold"
                     >
@@ -167,7 +195,11 @@ export function SuspendQueueTable({
                         variant="outline"
                         onClick={(e) => {
                             e.stopPropagation();
-                            onReject(item.id);
+                            setConfirmModal({
+                                isOpen: true,
+                                type: 'reject',
+                                item: item
+                            });
                         }}
                         className="h-8 px-3 text-xs font-semibold border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800"
                     >
@@ -180,15 +212,62 @@ export function SuspendQueueTable({
     ];
 
     return (
-        <BaseTable<SuspendQueueItem>
-            data={data}
-            columns={columns}
-            rowKey={(item) => item.id}
-            loading={loading}
-            page={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            onPageChange={onPageChange}
-        />
+        <>
+            <BaseTable<SuspendQueueItem>
+                data={data}
+                columns={columns}
+                rowKey={(item) => item.id}
+                loading={loading}
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                onPageChange={onPageChange}
+            />
+
+            <BaseModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                title={confirmModal.type === 'approve' ? "Konfirmasi Suspend" : "Konfirmasi Abaikan"}
+                description={
+                    confirmModal.type === 'approve'
+                        ? `Apakah Anda yakin ingin mensuspend layanan pelanggan ${confirmModal.item?.customer?.name}?`
+                        : `Apakah Anda yakin ingin mengabaikan antrean suspend untuk pelanggan ${confirmModal.item?.customer?.name}?`
+                }
+                icon={AlertTriangle}
+                primaryActionLabel={confirmModal.type === 'approve' ? "Ya, Suspend" : "Ya, Abaikan"}
+                primaryActionOnClick={handleConfirm}
+                secondaryActionLabel="Batal"
+            >
+                <div className="py-4">
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-500 font-medium">Pelanggan</span>
+                            <span className="text-slate-900 font-bold">{confirmModal.item?.customer?.name}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-500 font-medium">No. Tagihan</span>
+                            <span className="text-slate-900 font-bold font-mono text-xs">{confirmModal.item?.invoice?.invoiceNumber}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-500 font-medium">Total Tagihan</span>
+                            <span className="text-slate-900 font-bold">
+                                {confirmModal.item?.invoice?.amount.toLocaleString('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    maximumFractionDigits: 0
+                                })}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    {confirmModal.type === 'approve' && (
+                        <p className="mt-4 text-xs text-rose-500 font-semibold flex items-start gap-2 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            Aksi ini akan langsung memutuskan koneksi internet pelanggan tersebut jika terhubung ke sistem LinkNet.
+                        </p>
+                    )}
+                </div>
+            </BaseModal>
+        </>
     );
 }

@@ -28,6 +28,7 @@ interface CreateBatchPaymentModalProps {
     onClose: () => void;
     onSuccess: () => void;
     quotaAvailable: number;
+    initialSelectedCustomers?: string[];
 }
 
 /**
@@ -39,10 +40,11 @@ export function CreateBatchPaymentModal({
     onClose,
     onSuccess,
     quotaAvailable,
+    initialSelectedCustomers = [],
 }: CreateBatchPaymentModalProps) {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
-    const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
+    const [selectedCustomers, setSelectedCustomers] = useState<string[]>(initialSelectedCustomers);
     const [totalSetor, setTotalSetor] = useState("");
     const [notes, setNotes] = useState("");
     const [summary, setSummary] = useState<any>(null);

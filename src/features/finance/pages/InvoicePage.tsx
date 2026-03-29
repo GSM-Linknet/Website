@@ -408,6 +408,36 @@ export default function InvoicePage() {
                   Rollback ke Pending
                 </DropdownMenuItem>
               )}
+              {invoice.status !== "paid" &&
+                invoice.status !== "cancelled" &&
+                !invoice.isReportedPaid && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setAlertConfig({
+                        title: "Laporkan Sudah Bayar",
+                        description: `Apakah Anda yakin ingin melaporkan bahwa invoice ${invoice.invoiceNumber} sudah dibayar? Ini akan melindungi pelanggan dari isolir otomatis hingga pembayaran batch diproses.`,
+                        variant: "default",
+                        onConfirm: async () => {
+                          try {
+                            await FinanceService.reportPaid(invoice.id);
+                            await refetch();
+                            toast.success(
+                              "Tagihan berhasil dilaporkan sudah bayar",
+                            );
+                          } catch (error) {
+                            console.error(error);
+                            toast.error("Gagal melaporkan pembayaran");
+                          }
+                        },
+                      });
+                      setAlertOpen(true);
+                    }}
+                    className="cursor-pointer text-blue-600 focus:text-blue-600"
+                  >
+                    <Receipt className="mr-2 h-4 w-4" />
+                    Laporkan Sudah Bayar
+                  </DropdownMenuItem>
+                )}
               {invoice.status !== "paid" && user?.role === "SUPER_ADMIN" &&(
                 <DropdownMenuItem
                   onClick={() => {

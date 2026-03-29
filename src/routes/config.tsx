@@ -121,6 +121,7 @@ const UnitRevenuePage = lazy(() => import("@/features/finance/pages/UnitRevenueP
 const UnitBalancePage = lazy(() => import("@/features/finance/pages/UnitBalancePage"));
 const CustomersWithoutInvoicePage = lazy(() => import("@/features/finance/pages/CustomersWithoutInvoicePage"));
 const RABPage = lazy(() => import("@/features/finance/pages/RABPage"));
+const ReviewUnitPaymentPage = lazy(() => import("@/features/finance/pages/ReviewUnitPaymentPage"));
 
 
 /**
@@ -508,6 +509,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <InvoicePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "review-unit",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ReviewUnitPaymentPage />
               </Suspense>
             ),
           },

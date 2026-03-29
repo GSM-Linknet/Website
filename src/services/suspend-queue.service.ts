@@ -69,4 +69,10 @@ export const SuspendQueueService = {
       { ids },
     );
   },
+  exportExcel: async (query: BaseQuery = {}) => {
+    return apiClient.get("/pelanggan/suspend-queue/export-excel", {
+      params: query,
+      responseType: "blob",
+    });
+  },
 };

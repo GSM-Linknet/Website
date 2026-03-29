@@ -16,6 +16,10 @@ export interface Invoice {
   dueDate: string;
   paidDate?: string;
   status: string; // pending, paid, overdue, cancelled
+  isReportedPaid?: boolean;
+  reportedPaidAt?: string;
+  reportedPaidById?: string;
+  reportedPaidBy?: any;
   daysPastDue?: number;
   notes?: string;
   payments?: Payment[];
@@ -202,5 +206,8 @@ export const FinanceService = {
     status: "PAID" | "CANCELLED" | "PENDING",
   ) => {
     return apiClient.patch(`${ENDPOINTS.COMMISSION}/status/${id}`, { status });
+  },
+  reportPaid: async (id: string) => {
+    return apiClient.patch(`${ENDPOINTS.INVOICE}/report-paid/${id}`);
   },
 };

@@ -17,6 +17,9 @@ import type {
   ActivityLogReportData,
   ActivityReportDetail,
   KpiReportData,
+  ProfitLossReportData,
+  ProfitLossDetail,
+  PaginatedData,
 } from '@/features/reporting/types/report.types';
 import { API_ENDPOINTS } from '@/features/reporting/constants/report.constants';
 import { buildQueryParams, downloadBlob, generateExportFilename } from '@/features/reporting/utils/report.utils';
@@ -242,6 +245,21 @@ class ReportingService {
   async getKpiReport(filters?: ReportFilters): Promise<KpiReportData> {
     const queryString = filters ? buildQueryParams(filters) : '';
     const response = await apiClient.get<{data: KpiReportData}>(`${API_ENDPOINTS.KPI}?${queryString}`) as any;
+    return response.data;
+  }
+
+  /**
+   * Profit & Loss Reports
+   */
+  async getProfitLossReport(filters?: ReportFilters): Promise<ProfitLossReportData> {
+    const queryString = filters ? buildQueryParams(filters) : '';
+    const response = await apiClient.get<{data: ProfitLossReportData}>(`${API_ENDPOINTS.FINANCIAL_PROFIT_LOSS}?${queryString}`) as any;
+    return response.data;
+  }
+
+  async getProfitLossInvoiceDetails(filters?: ReportFilters): Promise<PaginatedData<ProfitLossDetail>> {
+    const queryString = filters ? buildQueryParams(filters) : '';
+    const response = await apiClient.get<{data: PaginatedData<ProfitLossDetail>}>(`${API_ENDPOINTS.FINANCIAL_PROFIT_LOSS}/details?${queryString}`) as any;
     return response.data;
   }
 }

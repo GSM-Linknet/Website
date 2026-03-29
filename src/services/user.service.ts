@@ -1,5 +1,6 @@
 import { apiClient } from "./api-client";
 import type {
+  ApiResponse,
   BaseEntity,
   BaseQuery,
   PaginatedResponse,
@@ -29,7 +30,7 @@ const ENDPOINT = "/user";
 
 export const UserService = {
   findAll: async (query: BaseQuery = {}) => {
-    return apiClient.get<PaginatedResponse<User>>(`${ENDPOINT}/find-all`, {
+    return apiClient.get<ApiResponse<PaginatedResponse<User>>>(`${ENDPOINT}/find-all`, {
       params: query,
     });
   },

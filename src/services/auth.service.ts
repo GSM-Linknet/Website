@@ -69,7 +69,8 @@ export type PermissionResource =
   | "settings.system"
   // Other
   | "customer"
-  | "payout";
+  | "payout"
+  | "keuangan.review";
 
 export type AppAction =
   | "view"

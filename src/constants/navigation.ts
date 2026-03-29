@@ -2,7 +2,7 @@ import {
   LayoutDashboard,
   Users,
   Database,
-  Wrench,
+ 
   Factory,
   BarChart3,
   TrendingUp,
@@ -177,6 +177,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         title: "Tagihan",
         href: "/keuangan/invoice",
         resource: "keuangan.invoice",
+      },
+      {
+        title: "Review Report Invoice",
+        href: "/keuangan/review-unit",
+        resource: "keuangan.review",
       },
       {
         title: "Pelanggan Tanpa Tagihan",
