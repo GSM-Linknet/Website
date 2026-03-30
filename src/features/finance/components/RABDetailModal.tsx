@@ -162,6 +162,7 @@ export function RABDetailModal({ rabId, isReviewer, onClose, onSuccess, onEditDr
                       <thead className="bg-slate-50">
                         <tr>
                           <th className="text-left py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Deskripsi</th>
+                          <th className="text-left py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-20">Jenis</th>
                           <th className="text-center py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-16">Qty</th>
                           <th className="text-right py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Harga</th>
                           <th className="text-right py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Subtotal</th>
@@ -171,6 +172,11 @@ export function RABDetailModal({ rabId, isReviewer, onClose, onSuccess, onEditDr
                         {(catItems as any[]).map((item: any) => (
                           <tr key={item.id}>
                             <td className="py-2.5 px-3 text-slate-700">{item.description}</td>
+                            <td className="py-2.5 px-3">
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.type === 'TETAP' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                                {item.type === 'TETAP' ? 'Tetap' : 'T. Tetap'}
+                              </span>
+                            </td>
                             <td className="py-2.5 px-3 text-center text-slate-500">{item.quantity}</td>
                             <td className="py-2.5 px-3 text-right text-slate-500">{formatCurrency(item.unitPrice)}</td>
                             <td className="py-2.5 px-3 text-right font-semibold text-slate-700">{formatCurrency(item.totalPrice)}</td>
@@ -184,9 +190,21 @@ export function RABDetailModal({ rabId, isReviewer, onClose, onSuccess, onEditDr
 
               {/* Totals */}
               <div className="bg-slate-50 rounded-2xl p-4 space-y-2">
-                <div className="flex justify-between text-sm text-slate-600">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Subtotal Biaya Tetap</span>
+                  <span className="font-medium text-indigo-600">
+                    {formatCurrency(rab.items.filter(i => i.type === 'TETAP').reduce((s, i) => s + i.totalPrice, 0))}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Subtotal Biaya Tidak Tetap</span>
+                  <span className="font-medium text-slate-600">
+                    {formatCurrency(rab.items.filter(i => i.type !== 'TETAP').reduce((s, i) => s + i.totalPrice, 0))}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm text-slate-700 font-bold border-t border-slate-200 pt-2 mt-1">
                   <span>Total Diajukan</span>
-                  <span className="font-semibold">{formatCurrency(rab.totalAmount)}</span>
+                  <span>{formatCurrency(rab.totalAmount)}</span>
                 </div>
                 {rab.rolloverAmount > 0 && (
                   <div className="flex justify-between text-sm text-blue-600">

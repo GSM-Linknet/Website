@@ -22,6 +22,7 @@ interface Props {
 interface DraftItem extends Omit<AddRABItemPayload, "unitPrice"> {
   id?: string;
   unitPrice: string; // keep as string for input
+  type: "TETAP" | "TIDAK_TETAP";
   isCustomCategory: boolean;
   customCategory: string;
 }
@@ -29,6 +30,7 @@ interface DraftItem extends Omit<AddRABItemPayload, "unitPrice"> {
 const emptyItem = (): DraftItem => ({
   description: "",
   category: "OPERASIONAL",
+  type: "TIDAK_TETAP",
   isCustomCategory: false,
   customCategory: "",
   quantity: 1,
@@ -66,6 +68,7 @@ export function RABFormModal({ isOpen, onClose, onSuccess, rabToEdit }: Props) {
             customCategory: !RAB_CATEGORIES.includes(i.category) ? i.category : "",
             quantity: i.quantity,
             unitPrice: i.unitPrice.toString(),
+            type: i.type || "TIDAK_TETAP",
             notes: i.notes ?? ""
           })));
         } else {
@@ -125,6 +128,7 @@ export function RABFormModal({ isOpen, onClose, onSuccess, rabToEdit }: Props) {
             category: actualCategory,
             quantity: item.quantity,
             unitPrice: parseFloat(item.unitPrice),
+            type: item.type,
             notes: item.notes || undefined,
           };
 
@@ -157,6 +161,7 @@ export function RABFormModal({ isOpen, onClose, onSuccess, rabToEdit }: Props) {
             category: actualCategory,
             quantity: item.quantity,
             unitPrice: parseFloat(item.unitPrice),
+            type: item.type,
             notes: item.notes || undefined,
           });
         }
@@ -320,6 +325,17 @@ export function RABFormModal({ isOpen, onClose, onSuccess, rabToEdit }: Props) {
                           ))}
                         </select>
                       )}
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Jenis</label>
+                      <select
+                        value={item.type}
+                        onChange={(e) => updateItem(idx, "type", e.target.value)}
+                        className="h-9 w-full min-w-[100px] rounded-lg border border-slate-200 px-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                      >
+                        <option value="TETAP">Tetap</option>
+                        <option value="TIDAK_TETAP">Tidak Tetap</option>
+                      </select>
                     </div>
                   </div>
 

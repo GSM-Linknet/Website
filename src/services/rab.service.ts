@@ -15,6 +15,7 @@ export interface RABItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  type: "TETAP" | "TIDAK_TETAP";
   notes?: string;
   createdAt: string;
 }
@@ -57,6 +58,7 @@ export interface AddRABItemPayload {
   category: string;
   quantity: number;
   unitPrice: number;
+  type?: "TETAP" | "TIDAK_TETAP";
   notes?: string;
 }
 
