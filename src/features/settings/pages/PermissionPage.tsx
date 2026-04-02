@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Shield, Lock, Check, LayoutDashboard, Database, Users, Wrench, Factory, BarChart3, TrendingUp, Settings, Loader2 } from "lucide-react";
+import { Shield, Lock, Check, LayoutDashboard, Database, Users, Wrench, Factory, BarChart3, TrendingUp, Settings, Loader2, DollarSign } from "lucide-react";
 import { AuthService, type UserRole, type PermissionResource, type AppAction } from "@/services/auth.service";
 import { SettingsService } from "@/services/settings.service";
 import { useToast } from "@/hooks/useToast";
@@ -96,6 +96,17 @@ const MODULE_GROUPS: {
             ]
         },
         {
+            id: "komisi",
+            label: "Komisi",
+            icon: DollarSign,
+            resources: [
+                { key: "komisi.laporan", label: "Laporan Komisi" },
+                { key: "komisi.unit-balance", label: "Saldo Unit" },
+                { key: "komisi.central-balance", label: "Saldo Holding" },
+                { key: "komisi.setting", label: "Pengaturan Komisi" },
+            ]
+        },
+        {
             id: "keuangan",
             label: "Keuangan",
             icon: TrendingUp,
@@ -110,6 +121,7 @@ const MODULE_GROUPS: {
                 { key: "payout", label: "Disbursement" }
             ]
         },
+
         {
             id: "settings",
             label: "Settings",

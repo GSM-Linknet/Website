@@ -2,12 +2,12 @@ import {
   LayoutDashboard,
   Users,
   Database,
- 
   Factory,
   BarChart3,
   TrendingUp,
   History,
   Settings,
+  DollarSignIcon,
 } from "lucide-react";
 import type { NavItem } from "@/types";
 
@@ -62,7 +62,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/pelanggan/trash",
         resource: "pelanggan.trash",
       },
-     
+
       // {
       //   title: "Layanan Link Net",
       //   href: "/pelanggan/layanan",
@@ -136,11 +136,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/reporting/financial",
         resource: "reporting.keuangan",
       },
-      {
-        title: "Laporan Komisi",
-        href: "/keuangan/commission",
-        resource: "keuangan.invoice",
-      }, // Using invoice permission for now
+      // Using invoice permission for now
       // {
       //   title: "Laporan Produksi",
       //   href: "/reporting/production",
@@ -165,6 +161,33 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         title: "Laporan Kinerja",
         href: "/reporting/kpi",
         resource: "reporting.kpi",
+      },
+    ],
+  },
+  {
+    title: "Komisi",
+    icon: DollarSignIcon,
+    resource: "komisi",
+    items: [
+      {
+        title: "Laporan Komisi",
+        href: "/keuangan/commission",
+        resource: "komisi.laporan",
+      },
+      {
+        title: "Saldo Unit",
+        href: "/keuangan/unit-balance",
+        resource: "komisi.unit-balance",
+      },
+      {
+        title: "Saldo Holding",
+        href: "/keuangan/central-balance",
+        resource: "komisi.saldo",
+      },
+      {
+        title: "Pengaturan Komisi",
+        href: "/keuangan/commission-management",
+        resource: "komisi.setting",
       },
     ],
   },
@@ -208,11 +231,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/keuangan/unit-expense",
         resource: "keuangan.unit-expense",
       },
-      {
-        title: "Saldo Unit",
-        href: "/keuangan/unit-balance",
-        resource: "keuangan.unit-balance",
-      },
+
       // {
       //   title: "Jurnal Harian",
       //   href: "/keuangan/daily-journal",
@@ -223,7 +242,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/keuangan/saldo",
         resource: "keuangan.saldo",
       },
-      { title: "RAB Anggaran", href: "/keuangan/rab", resource: "keuangan.rab" },
+      {
+        title: "RAB Anggaran",
+        href: "/keuangan/rab",
+        resource: "keuangan.rab",
+      },
       { title: "Disbursement", href: "/keuangan/payout", resource: "payout" },
     ],
   },
@@ -252,11 +275,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/settings/templates",
         resource: "pengaturan.template",
       },
-      {
-        title: "Pengaturan Komisi",
-        href: "/settings/commission",
-        resource: "settings.system",
-      },
+
       {
         title: "Pengaturan Notifikasi",
         href: "/settings/notifications",
@@ -269,7 +288,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: History,
     resource: "logs",
     items: [
-      { title: "Linknet Logs", href: "/settings/linknet-logs", resource: "logs.linknet" },
+      {
+        title: "Linknet Logs",
+        href: "/settings/linknet-logs",
+        resource: "logs.linknet",
+      },
       { title: "Customer Logs", href: "/logs", resource: "logs.customer" },
     ],
   },

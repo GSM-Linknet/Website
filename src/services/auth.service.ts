@@ -70,7 +70,12 @@ export type PermissionResource =
   // Other
   | "customer"
   | "payout"
-  | "keuangan.review";
+  | "keuangan.review"
+  // Komisi
+  | "komisi.laporan"
+  | "komisi.unit-balance"
+  | "komisi.central-balance"
+  | "komisi.setting"
 
 export type AppAction =
   | "view"

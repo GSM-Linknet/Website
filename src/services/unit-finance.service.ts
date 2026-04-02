@@ -230,15 +230,17 @@ export const UnitFinanceService = {
   },
 
   getUnitBalance: async (unitId: string) => {
-    return apiClient.get<{ balance: number }>(
+    const response = await apiClient.get<any>(
       `${ENDPOINTS.BALANCE_LEDGER}/balance/${unitId}`,
     );
+    return response.data;
   },
 
   getBalanceSummary: async (unitId: string) => {
-    return apiClient.get<BalanceSummary>(
+    const response = await apiClient.get<any>(
       `${ENDPOINTS.BALANCE_LEDGER}/summary/${unitId}`,
     );
+    return response.data;
   },
 
   getLedgerHistory: async (

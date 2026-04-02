@@ -7,7 +7,17 @@ export function usePayouts() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [query, setQuery] = useState<any>({ paginate: true, limit: 10 });
+    const [query, setQueryState] = useState<any>({ paginate: true, limit: 10 });
+
+    const setQuery = useCallback((newQuery: any) => {
+        setQueryState((prev: any) => ({
+            ...prev,
+            ...newQuery,
+            paginate: true, // Always ensure pagination is on
+            limit: prev.limit || 10
+        }));
+        setPage(1);
+    }, []);
 
     const fetchPayouts = useCallback(async () => {
         setLoading(true);

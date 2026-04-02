@@ -20,12 +20,20 @@ import {
 } from "@/components/ui/select";
 import { XenditService } from "@/services/xendit.service";
 import { useToast } from "@/hooks/useToast";
-import { Loader2, Landmark, User, CreditCard, Banknote, FileText, Smartphone, Wallet } from "lucide-react";
+import { Loader2, Landmark, User, CreditCard, Banknote, FileText, Smartphone, Wallet, Info } from "lucide-react";
+import { AuthService } from "@/services/auth.service";
+import { useEffect } from "react";
+import { commissionService } from "@/services/commission.service";
+import { CentralFinanceService } from "@/services/central-finance.service";
+import { UnitFinanceService } from "@/services/unit-finance.service";
+import { formatCurrency } from "@/lib/utils";
 
 interface CreatePayoutModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    defaultCategory?: string;
+    defaultAmount?: string;
 }
 
 const BANKS = [
@@ -44,16 +52,53 @@ const E_WALLETS = [
     { label: "LINKAJA", value: "ID_LINKAJA" },
 ];
 
-export function CreatePayoutModal({ isOpen, onClose, onSuccess }: CreatePayoutModalProps) {
+export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory, defaultAmount }: CreatePayoutModalProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+    const currentUser = AuthService.getUser();
+    const userRole = currentUser?.role;
+    const isAdmin = ['ADMIN_UNIT', 'ADMIN_SUB_UNIT', 'SUPER_ADMIN', 'ADMIN_PUSAT'].includes(userRole || '');
+    
+    const [balance, setBalance] = useState<number | null>(null);
+    const [balanceLabel, setBalanceLabel] = useState("Saldo Komisi Tersedia");
     const [formData, setFormData] = useState({
-        amount: "",
+        amount: defaultAmount || "",
         bankCode: "ID_BNI",
         accountHolderName: "",
         accountNumber: "",
         description: "",
+        category: defaultCategory || "COMMISSION",
     });
+
+    useEffect(() => {
+        if (defaultCategory) {
+            setFormData(prev => ({ ...prev, category: defaultCategory }));
+        }
+        if (defaultAmount) {
+            setFormData(prev => ({ ...prev, amount: defaultAmount }));
+        }
+    }, [defaultCategory, defaultAmount, isOpen]);
+
+    useEffect(() => {
+        if (isOpen && formData.category === 'COMMISSION') {
+            if (userRole === 'ADMIN_UNIT' && currentUser?.unitId) {
+                setBalanceLabel("Saldo Unit Tersedia");
+                UnitFinanceService.getUnitBalance(currentUser.unitId)
+                    .then((res: any) => setBalance(res.balance))
+                    .catch((err: any) => console.error("Unit balance fetch error:", err));
+            } else if (['SUPER_ADMIN', 'ADMIN_PUSAT'].includes(userRole || '')) {
+                setBalanceLabel("Saldo Holding Tersedia");
+                CentralFinanceService.getSummary()
+                    .then((res: any) => setBalance(res.currentBalance))
+                    .catch((err: any) => console.error("Central balance fetch error:", err));
+            } else {
+                setBalanceLabel("Saldo Komisi Tersedia");
+                commissionService.getSummary({ personal: true })
+                    .then((res: any) => setBalance(res.totalCommission))
+                    .catch((err: any) => console.error("Personal commission fetch error:", err));
+            }
+        }
+    }, [isOpen, formData.category, userRole, currentUser?.unitId]);
 
     const isEWallet = E_WALLETS.some(ew => ew.value === formData.bankCode);
     const selectedLabel = [...BANKS, ...E_WALLETS].find(b => b.value === formData.bankCode)?.label || "Pilih Metode";
@@ -61,6 +106,17 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess }: CreatePayoutMo
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+
+        if (formData.category === 'COMMISSION' && balance !== null && Number(formData.amount) > balance) {
+            toast({
+                title: "Saldo Tidak Mencukupi",
+                description: `Maksimal penarikan adalah ${formatCurrency(balance)}`,
+                variant: "destructive",
+            });
+            setLoading(false);
+            return;
+        }
+
         try {
             await XenditService.proposePayout({
                 amount: Number(formData.amount),
@@ -68,6 +124,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess }: CreatePayoutMo
                 accountHolderName: formData.accountHolderName,
                 accountNumber: formData.accountNumber,
                 description: formData.description,
+                category: formData.category,
             });
             toast({
                 title: "Berhasil Diajukan",
@@ -81,6 +138,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess }: CreatePayoutMo
                 accountHolderName: "",
                 accountNumber: "",
                 description: "",
+                category: "COMMISSION",
             });
         } catch (error: any) {
             console.error("Payout error:", error);
@@ -183,6 +241,31 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess }: CreatePayoutMo
                             </Select>
                         </div>
 
+                        {isAdmin && (
+                            <div className="space-y-2">
+                                <Label className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                                    <Info className="h-4 w-4" /> Kategori Pengajuan
+                                </Label>
+                                <Select
+                                    value={formData.category}
+                                    onValueChange={(val) => setFormData({ ...formData, category: val })}
+                                >
+                                    <SelectTrigger className="h-12 bg-slate-50 border-slate-200 focus:ring-[#101D42] text-base px-4 rounded-xl">
+                                        <div className="flex items-center gap-3">
+                                            {formData.category === 'COMMISSION' ? <User className="h-4 w-4" /> : <Landmark className="h-4 w-4" />}
+                                            <span className="font-semibold text-slate-700">
+                                                {formData.category === 'COMMISSION' ? 'Pencairan Komisi Pusat/Unit' : 'Biaya Operasional (RAB)'}
+                                            </span>
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="COMMISSION">Pencairan Komisi Pusat/Unit</SelectItem>
+                                        <SelectItem value="OPERATIONAL">Biaya Operasional (RAB)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <Label htmlFor="accountNumber" className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
                                 {isEWallet ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
@@ -229,10 +312,17 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess }: CreatePayoutMo
                                     value={formData.amount}
                                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                     placeholder="0"
+                                    max={formData.category === 'COMMISSION' && balance !== null ? balance : undefined}
                                     className="h-14 bg-slate-50 border-slate-200 pl-14 font-bold text-2xl focus:ring-[#101D42] focus:ring-offset-0 rounded-xl"
                                     required
                                 />
                             </div>
+                            {formData.category === 'COMMISSION' && balance !== null && (
+                                <p className="text-[11px] text-[#101D42] font-bold flex items-center gap-1.5 px-1 bg-blue-50 py-2 rounded-lg border border-blue-100 mt-2">
+                                    <Info className="h-3.5 w-3.5 text-blue-600" /> 
+                                    {balanceLabel}: <span className="text-blue-600">{formatCurrency(balance)}</span>
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-2">

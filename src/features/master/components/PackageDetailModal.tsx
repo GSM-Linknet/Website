@@ -1,6 +1,6 @@
 import { BaseModal } from "@/components/shared/BaseModal";
 import { Label } from "@/components/ui/label";
-import { Package, Wifi, DollarSign, FileText, MapPin, Hash, Clock, CircleDollarSign, Percent } from "lucide-react";
+import { Package, Wifi, DollarSign, FileText, MapPin, Hash, Clock, CircleDollarSign } from "lucide-react";
 import type { Package as PackageType } from "@/services/master.service";
 
 interface PackageDetailModalProps {
@@ -28,7 +28,6 @@ export function PackageDetailModal({
     );
 
     const formatRupiah = (val?: number) => val ? `Rp ${val.toLocaleString("id-ID")}` : "Rp 0";
-    const formatPercent = (val?: number) => val ? `${val}%` : "0%";
 
     return (
         <BaseModal
@@ -71,27 +70,6 @@ export function PackageDetailModal({
                     </div>
                 </div>
 
-                {/* Komisi Registrasi */}
-                <div className="space-y-3">
-                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                        <div className="w-1 h-3 bg-green-500 rounded-full" /> Komisi Registrasi (Persentase)
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                        <DetailItem icon={Percent} label="Komisi Sales" value={formatPercent(data.spCommission)} />
-                        <DetailItem icon={Percent} label="Komisi SPV" value={formatPercent(data.unitGlobalCommission)} />
-                    </div>
-                </div>
-
-                {/* Komisi Rutin */}
-                <div className="space-y-3">
-                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                        <div className="w-1 h-3 bg-blue-500 rounded-full" /> Komisi Rutin (Fixed Price)
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                        <DetailItem icon={CircleDollarSign} label="Sales Income" value={formatRupiah(data.holdingIncome)} />
-                        <DetailItem icon={CircleDollarSign} label="SPV Income" value={formatRupiah(data.unitGlobalIncome)} />
-                    </div>
-                </div>
 
                 <div className="space-y-2">
                     <Label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">

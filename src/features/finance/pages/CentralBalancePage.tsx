@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Button } from "@/components/ui/button";
-import { useBalanceLedger } from "../hooks/useBalanceLedger";
-import { ChevronDown, ArrowUpCircle, ArrowDownCircle, Wallet, Banknote, RefreshCcw } from "lucide-react";
+import { useCentralBalance } from "../hooks/useCentralBalance";
+import { ChevronDown, ArrowUpCircle, ArrowDownCircle, Wallet, Calendar, Banknote, RefreshCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
     DropdownMenu,
@@ -13,13 +13,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, cn } from "@/lib/utils";
 import moment from "moment";
-import type { BalanceLedger } from "@/services/unit-finance.service";
-import { UnitFinanceService } from "@/services/unit-finance.service";
-import { MasterService, type Unit } from "@/services/master.service";
+import { CentralFinanceService, type CentralBalanceLedger } from "@/services/central-finance.service";
 import { CreatePayoutModal } from "../components/CreatePayoutModal";
-import { AuthService } from "@/services/auth.service";
 
-export default function UnitBalancePage() {
+export default function CentralBalancePage() {
     const {
         data: ledgers,
         loading: isLoading,
@@ -29,62 +26,40 @@ export default function UnitBalancePage() {
         totalPages,
         setQuery,
         refetch,
-    } = useBalanceLedger();
+    } = useCentralBalance();
 
     const [isPayoutOpen, setIsPayoutOpen] = useState(false);
 
     // Filters state
     const [filters, setFilters] = useState({
-        unit: "all",
         type: "all",
     });
 
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [selectedUnitBalance, setSelectedUnitBalance] = useState<{
+    const [summary, setSummary] = useState<{
         currentBalance: number;
         totalIncome: number;
         totalExpense: number;
     } | null>(null);
 
-    // Fetch units and initialize filter based on role
-    useEffect(() => {
-        const user = AuthService.getUser();
-        
-        MasterService.getUnits({ paginate: false })
+    // Fetch summary on mount or when data changes
+    const fetchSummary = () => {
+        CentralFinanceService.getSummary()
             .then((res) => {
-                const items = res.data?.items || [];
-                setUnits(items);
-
-                // Hierarchy Enforcement
-                if (user?.role === "ADMIN_UNIT" && user.unitId) {
-                    setFilters(prev => ({ ...prev, unit: user.unitId! }));
-                } else if (user?.role === "SUPERVISOR" && user.unitId) {
-                    setFilters(prev => ({ ...prev, unit: user.unitId! }));
-                }
+                setSummary(res);
             })
             .catch((err) => {
-                console.error("Failed to fetch units:", err);
-                setUnits([]);
+                console.error("Failed to fetch central balance summary:", err);
             });
+    };
+
+    useEffect(() => {
+        fetchSummary();
     }, []);
-
-    // Fetch balance summary when unit filter changes
-    useEffect(() => {
-        UnitFinanceService.getBalanceSummary(filters.unit)
-            .then((res) => {
-                setSelectedUnitBalance(res);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch balance summary:", err);
-                setSelectedUnitBalance(null);
-            });
-    }, [filters.unit]);
 
     // Update query when filters change
     useEffect(() => {
         const whereParts: string[] = [];
 
-        if (filters.unit !== "all") whereParts.push(`unitId:${filters.unit}`);
         if (filters.type !== "all") whereParts.push(`type:${filters.type}`);
 
         const queryParams: any = {};
@@ -100,7 +75,10 @@ export default function UnitBalancePage() {
     const getTypeBadge = (type: string) => {
         const isIncome = type === "INCOME";
         return (
-            <Badge className={isIncome ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}>
+            <Badge className={cn(
+                "font-medium",
+                isIncome ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-red-100 text-red-700 hover:bg-red-100"
+            )}>
                 {isIncome ? "Pemasukan" : "Pengeluaran"}
             </Badge>
         );
@@ -110,33 +88,42 @@ export default function UnitBalancePage() {
         {
             accessorKey: "transactionDate",
             header: "Tanggal",
-            cell: (ledger: BalanceLedger) => moment(ledger.transactionDate).format("DD MMM YYYY HH:mm"),
-        },
-        {
-            accessorKey: "unit.name",
-            header: "Unit",
-            cell: (ledger: BalanceLedger) => (
-                <span className="font-medium">{ledger.unit?.name || "-"}</span>
+            cell: (ledger: CentralBalanceLedger) => (
+                <div className="flex flex-col">
+                    <span className="font-medium text-slate-700">
+                        {moment(ledger.transactionDate).format("DD MMM YYYY")}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                        {moment(ledger.transactionDate).format("HH:mm")}
+                    </span>
+                </div>
             ),
         },
         {
             accessorKey: "type",
             header: "Tipe",
-            cell: (ledger: BalanceLedger) => getTypeBadge(ledger.type),
+            cell: (ledger: CentralBalanceLedger) => getTypeBadge(ledger.type),
         },
         {
             accessorKey: "description",
             header: "Keterangan",
-            cell: (ledger: BalanceLedger) => (
-                <span className="truncate max-w-[250px] block">{ledger.description}</span>
+            cell: (ledger: CentralBalanceLedger) => (
+                <div className="flex flex-col gap-0.5">
+                    <span className="font-medium text-slate-700 truncate max-w-[300px]" title={ledger.description}>
+                        {ledger.description}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
+                        REF: {ledger.referenceType} | {ledger.referenceId.substring(0, 8)}...
+                    </span>
+                </div>
             ),
         },
         {
             accessorKey: "amount",
             header: "Jumlah",
-            cell: (ledger: BalanceLedger) => (
+            cell: (ledger: CentralBalanceLedger) => (
                 <span className={cn(
-                    "font-semibold",
+                    "font-bold text-base",
                     ledger.type === "INCOME" ? "text-emerald-600" : "text-red-600"
                 )}>
                     {ledger.type === "INCOME" ? "+" : "-"} {formatCurrency(ledger.amount)}
@@ -146,19 +133,10 @@ export default function UnitBalancePage() {
         {
             accessorKey: "runningBalance",
             header: "Saldo Berjalan",
-            cell: (ledger: BalanceLedger) => (
-                <span className="font-bold text-[#101D42]">
+            cell: (ledger: CentralBalanceLedger) => (
+                <span className="font-extrabold text-[#101D42]">
                     {formatCurrency(ledger.runningBalance)}
                 </span>
-            ),
-        },
-        {
-            accessorKey: "referenceType",
-            header: "Referensi",
-            cell: (ledger: BalanceLedger) => (
-                <Badge variant="secondary" className="bg-slate-100 text-slate-600">
-                    {ledger.referenceType}
-                </Badge>
             ),
         },
     ];
@@ -169,18 +147,16 @@ export default function UnitBalancePage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1.5">
                     <h1 className="text-2xl font-extrabold text-[#101D42] tracking-tight sm:text-3xl">
-                        Saldo Unit
+                        Saldo Holding (Pusat)
                     </h1>
                     <p className="text-sm font-medium text-slate-500 max-w-2xl leading-relaxed">
-                        Buku besar saldo unit untuk pengelolaan komisi unit dan operasional cabang
+                        Buku besar saldo pusat untuk pengelolaan komisi holding dan operasional pusat
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button 
                         onClick={() => {
-                            UnitFinanceService.getBalanceSummary(filters.unit)
-                                .then(res => setSelectedUnitBalance(res))
-                                .catch(err => console.error(err));
+                            fetchSummary();
                             refetch();
                         }}
                         variant="ghost" 
@@ -201,9 +177,7 @@ export default function UnitBalancePage() {
                 isOpen={isPayoutOpen}
                 onClose={() => setIsPayoutOpen(false)}
                 onSuccess={() => {
-                    UnitFinanceService.getBalanceSummary(filters.unit)
-                        .then(res => setSelectedUnitBalance(res))
-                        .catch(err => console.error(err));
+                    fetchSummary();
                     refetch();
                 }}
                 defaultCategory="COMMISSION"
@@ -218,15 +192,15 @@ export default function UnitBalancePage() {
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-white/70 flex items-center gap-2">
                             <Wallet className="h-4 w-4" />
-                            Saldo Saat Ini
+                            Saldo Akhir Holding
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-3xl sm:text-4xl font-black tracking-tight mt-1">
-                            {selectedUnitBalance ? formatCurrency(selectedUnitBalance.currentBalance) : "Rp 0"}
+                            {summary ? formatCurrency(summary.currentBalance) : "Rp 0"}
                         </p>
                         <div className="mt-4 flex items-center text-xs text-white/50 bg-white/10 w-fit px-2 py-1 rounded-full uppercase tracking-tighter font-bold">
-                            Unit General Ledger
+                            Central General Ledger
                         </div>
                     </CardContent>
                 </Card>
@@ -240,12 +214,12 @@ export default function UnitBalancePage() {
                             <div className="p-1.5 bg-emerald-100 rounded-lg text-emerald-600">
                                 <ArrowUpCircle className="h-4 w-4" />
                             </div>
-                            Total Pemasukan
+                            Total Akumulasi Masuk
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-2xl font-black text-emerald-600">
-                            {selectedUnitBalance ? formatCurrency(selectedUnitBalance.totalIncome) : "Rp 0"}
+                            {summary ? formatCurrency(summary.totalIncome) : "Rp 0"}
                         </p>
                     </CardContent>
                 </Card>
@@ -259,45 +233,44 @@ export default function UnitBalancePage() {
                             <div className="p-1.5 bg-red-100 rounded-lg text-red-600">
                                 <ArrowDownCircle className="h-4 w-4" />
                             </div>
-                            Total Pengeluaran
+                            Total Akumulasi Keluar
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-2xl font-black text-red-600">
-                            {selectedUnitBalance ? formatCurrency(selectedUnitBalance.totalExpense) : "Rp 0"}
+                            {summary ? formatCurrency(summary.totalExpense) : "Rp 0"}
                         </p>
                     </CardContent>
                 </Card>
             </div>
 
             {/* Filters Section */}
-            <div className="flex flex-wrap items-center gap-3">
-                <FilterDropdown
-                    label="Pilih Unit"
-                    activeValue={filters.unit}
-                    disabled={AuthService.getUser()?.role === "ADMIN_UNIT" || AuthService.getUser()?.role === "SUPERVISOR"}
-                    options={[
-                        { label: "Semua Unit", value: "all" },
-                        ...(Array.isArray(units)
-                            ? units.map((u) => ({ label: u.name, value: u.id }))
-                            : []),
-                    ]}
-                    onSelect={(val) => handleFilterChange("unit", val)}
-                />
-                <FilterDropdown
-                    label="Semua Tipe"
-                    activeValue={filters.type}
-                    options={[
-                        { label: "Semua Tipe", value: "all" },
-                        { label: "Pemasukan", value: "INCOME" },
-                        { label: "Pengeluaran", value: "EXPENSE" },
-                    ]}
-                    onSelect={(val) => handleFilterChange("type", val)}
-                />
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                    <FilterDropdown
+                        label="Semua Tipe"
+                        activeValue={filters.type}
+                        options={[
+                            { label: "Semua Tipe", value: "all" },
+                            { label: "Pemasukan", value: "INCOME" },
+                            { label: "Pengeluaran", value: "EXPENSE" },
+                        ]}
+                        onSelect={(val) => handleFilterChange("type", val)}
+                    />
+                    
+                    <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                        <Calendar size={14} />
+                        <span className="font-medium italic">Filter tanggal coming soon</span>
+                    </div>
+                </div>
+                
+                <div className="text-sm font-bold text-slate-400 bg-slate-50/50 px-4 py-2 rounded-full border border-slate-100">
+                    Total: <span className="text-[#101D42]">{totalItems || 0} Transaksi</span>
+                </div>
             </div>
 
             {/* Table Content */}
-            <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
+            <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
                 <BaseTable
                     data={ledgers || []}
                     columns={columns}

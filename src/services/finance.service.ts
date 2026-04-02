@@ -191,21 +191,35 @@ export const FinanceService = {
       { params: query },
     );
   },
-  getCommissionSummary: async () => {
+  getCommissionSummary: async (query: any = {}) => {
     return apiClient.get<{
       data: {
         totalPending: number;
         totalPaid: number;
-        totalCancelled: number;
+        totalWithdrawn: number;
+        totalCommission: number;
+        totalEarned: number;
         activeCustomers: number;
+        breakdown: Array<{ type: string; amount: number }>;
       };
-    }>(`${ENDPOINTS.COMMISSION}/summary`);
+    }>(`${ENDPOINTS.COMMISSION}/summary`, { params: query });
   },
   updateCommissionStatus: async (
     id: string,
     status: "PAID" | "CANCELLED" | "PENDING",
   ) => {
     return apiClient.patch(`${ENDPOINTS.COMMISSION}/status/${id}`, { status });
+  },
+  getCommissionStatement: async (query: any = {}) => {
+    return apiClient.get<ApiResponse<any[]>>(
+      `${ENDPOINTS.COMMISSION}/statement`,
+      { params: query },
+    );
+  },
+  getCommissionDistribution: async (invoiceId: string) => {
+    return apiClient.get<ApiResponse<any[]>>(
+      `${ENDPOINTS.COMMISSION}/distribution/${invoiceId}`,
+    );
   },
   reportPaid: async (id: string) => {
     return apiClient.patch(`${ENDPOINTS.INVOICE}/report-paid/${id}`);

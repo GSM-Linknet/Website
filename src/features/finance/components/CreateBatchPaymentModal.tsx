@@ -10,7 +10,6 @@ import {
     Loader2,
     ChevronRight,
     ChevronLeft,
-    AlertCircle,
     Search,
     User,
     Wallet2,
@@ -27,19 +26,17 @@ interface CreateBatchPaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    quotaAvailable: number;
     initialSelectedCustomers?: string[];
 }
 
 /**
  * CreateBatchPaymentModal
- * A 3-step wizard for creating batch payments with quota validation.
+ * A 3-step wizard for creating batch payments.
  */
 export function CreateBatchPaymentModal({
     isOpen,
     onClose,
     onSuccess,
-    quotaAvailable,
     initialSelectedCustomers = [],
 }: CreateBatchPaymentModalProps) {
     const [step, setStep] = useState(1);
@@ -78,12 +75,6 @@ export function CreateBatchPaymentModal({
         return Object.values(groups);
     }, [invoices]);
 
-    const selisih = useMemo(() =>
-        summary ? (summary.netAmount ?? summary.totalInvoice) - Number(totalSetor || 0) : 0
-        , [summary, totalSetor]);
-
-    const isQuotaExceeded = selisih > quotaAvailable;
-
     // --- Handlers ---
 
     const handleSelectCustomer = (customerId: string) => {
@@ -102,6 +93,14 @@ export function CreateBatchPaymentModal({
         try {
             const response = await batchPaymentService.calculateSummary(selectedCustomers);
             setSummary(response);
+
+            // Auto-set totalSetor based on commission method
+            // Uses per-invoice accurate calculation from backend:
+            //   AUTOMATIC invoice → full amount | MANUAL invoice → net amount
+            //   MIXED batch       → correct sum of each invoice's method
+            const autoSetor = response.totalSetor;
+            setTotalSetor(String(autoSetor));
+
             setStep(2);
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Gagal menghitung summary tagihan");
@@ -111,24 +110,6 @@ export function CreateBatchPaymentModal({
     };
 
     const handleNext = () => {
-        if (!totalSetor || Number(totalSetor) <= 0) {
-            toast.error("Total setor harus lebih besar dari 0");
-            return;
-        }
-
-        if (selisih < 0) {
-            toast.error("Total setor tidak boleh lebih besar dari total invoice");
-            return;
-        }
-
-        // Quota check removed per user request
-        /*
-        if (isQuotaExceeded) {
-            toast.error(`Selisih melebihi quota tersedia (${formatCurrency(quotaAvailable)})`);
-            return;
-        }
-        */
-
         setStep(3);
     };
 
@@ -322,97 +303,174 @@ export function CreateBatchPaymentModal({
                 </div>
             </div>
 
-            {/* Commission Breakdown */}
-            {summary.totalCommission > 0 && (
-                <div className="bg-emerald-50 border-2 border-emerald-200 rounded-[1.5rem] p-5 space-y-4">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+            {/* Commission Breakdown - Detailed */}
+            <div className="bg-slate-50 border border-slate-200 rounded-[1.5rem] p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">
                         <TrendingUp className="h-4 w-4" />
-                        Estimasi Potongan Komisi
+                        Rincian Komisi
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Komisi Sales</div>
-                            <div className="text-lg font-black text-slate-800">{formatCurrency(summary.salesCommission)}</div>
-                        </div>
-                        <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Komisi SPV</div>
-                            <div className="text-lg font-black text-slate-800">{formatCurrency(summary.spvCommission)}</div>
-                        </div>
-                        <div className="bg-emerald-600 rounded-xl p-4 text-white">
-                            <div className="text-[10px] text-emerald-100 uppercase tracking-wider font-bold">Total Komisi</div>
-                            <div className="text-lg font-black">{formatCurrency(summary.totalCommission)}</div>
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between bg-white rounded-xl p-4 border border-emerald-200">
-                        <div className="text-sm font-bold text-slate-600">Sisa Setoran Setelah Komisi</div>
-                        <div className="text-xl font-black text-emerald-600">{formatCurrency(summary.netAmount)}</div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 bg-orange-100 text-orange-700 border border-orange-200 rounded-full">● CASH</span>
+                        <span className="inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 bg-blue-100 text-blue-700 border border-blue-200 rounded-full">● AUTO</span>
                     </div>
                 </div>
-            )}
 
-            {/* Input Section */}
-            <div className="space-y-4">
-                <div className="flex items-center gap-2 px-1">
-                    <Wallet2 className="h-4 w-4 text-blue-600" />
-                    <Label htmlFor="totalSetor" className="text-xs font-black text-slate-800 uppercase tracking-widest">Nominal Setoran Tunai</Label>
-                    {summary.totalCommission > 0 && (
-                        <button
-                            type="button"
-                            onClick={() => setTotalSetor(String(summary.netAmount))}
-                            className="ml-auto text-[10px] font-bold text-blue-600 hover:text-blue-800 underline underline-offset-2"
-                        >
-                            Gunakan Sisa Setoran ({formatCurrency(summary.netAmount)})
-                        </button>
+                {/* Per-type rows */}
+                <div className="space-y-2">
+                    {/* Holding */}
+                    {summary.holdingCommission > 0 && (
+                        <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-slate-100">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-blue-400" />
+                                <span className="text-xs font-bold text-slate-600">Komisi Holding</span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200 rounded-full">AUTO</span>
+                            </div>
+                            <span className="text-sm font-black text-slate-700">{formatCurrency(summary.holdingCommission)}</span>
+                        </div>
+                    )}
+                    {/* Unit */}
+                    {summary.unitCommission > 0 && (
+                        <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-slate-100">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-blue-400" />
+                                <span className="text-xs font-bold text-slate-600">Komisi Unit</span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200 rounded-full">AUTO</span>
+                            </div>
+                            <span className="text-sm font-black text-slate-700">{formatCurrency(summary.unitCommission)}</span>
+                        </div>
+                    )}
+                    {/* Coordinator */}
+                    {summary.coordinatorCommission > 0 && (
+                        <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-slate-100">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-orange-400" />
+                                <span className="text-xs font-bold text-slate-600">Komisi Koordinator</span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 bg-orange-100 text-orange-700 border border-orange-200 rounded-full">CASH</span>
+                            </div>
+                            <span className="text-sm font-black text-slate-700">{formatCurrency(summary.coordinatorCommission)}</span>
+                        </div>
+                    )}
+                    {/* Sales */}
+                    {summary.salesCommission > 0 && (
+                        <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-slate-100">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-orange-400" />
+                                <span className="text-xs font-bold text-slate-600">Komisi Sales</span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 bg-orange-100 text-orange-700 border border-orange-200 rounded-full">CASH</span>
+                            </div>
+                            <span className="text-sm font-black text-slate-700">{formatCurrency(summary.salesCommission)}</span>
+                        </div>
+                    )}
+                    {/* SPV */}
+                    {summary.spvCommission > 0 && (
+                        <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-slate-100">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-orange-400" />
+                                <span className="text-xs font-bold text-slate-600">Komisi SPV</span>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 bg-orange-100 text-orange-700 border border-orange-200 rounded-full">CASH</span>
+                            </div>
+                            <span className="text-sm font-black text-slate-700">{formatCurrency(summary.spvCommission)}</span>
+                        </div>
                     )}
                 </div>
+
+                {/* Formula strip */}
+                <div className="bg-white rounded-[1rem] border border-slate-200 overflow-hidden">
+                    <div className="grid grid-cols-3 divide-x divide-slate-100">
+                        <div className="p-3 text-center">
+                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Total Tagihan</div>
+                            <div className="text-sm font-black text-slate-800 mt-0.5">{formatCurrency(summary.totalInvoice)}</div>
+                        </div>
+                        <div className="p-3 text-center">
+                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Komisi Cash</div>
+                            <div className="text-sm font-black text-orange-600 mt-0.5">- {formatCurrency(summary.totalManualCommission)}</div>
+                        </div>
+                        <div className="p-3 text-center bg-emerald-50">
+                            <div className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Setoran Bersih</div>
+                            <div className="text-sm font-black text-emerald-700 mt-0.5">{formatCurrency(summary.totalSetor)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Per-invoice mini table */}
+                {summary.invoices.length > 1 && (
+                    <div className="space-y-1.5">
+                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Per Invoice</div>
+                        <div className="space-y-1 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
+                            {summary.invoices.map((inv: any) => (
+                                <div key={inv.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-100">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className={cn(
+                                            "text-[8px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0",
+                                            inv.commissionMethod === 'AUTOMATIC'
+                                                ? "bg-blue-100 text-blue-600"
+                                                : "bg-orange-100 text-orange-600"
+                                        )}>
+                                            {inv.commissionMethod === 'AUTOMATIC' ? 'AUTO' : 'CASH'}
+                                        </span>
+                                        <span className="text-xs font-bold text-slate-600 truncate">{inv.customerName}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+                                        {(inv.salesCommission + inv.spvCommission) > 0 && (
+                                            <span className="text-[10px] font-bold text-orange-500">
+                                                -{formatCurrency(inv.salesCommission + inv.spvCommission)}
+                                            </span>
+                                        )}
+                                        <span className="text-xs font-black text-slate-700">{formatCurrency(inv.amount)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+
+            {/* Input Section - System Fixed Amount */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 px-1">
+                    <Wallet2 className="h-4 w-4 text-blue-600" />
+                    <Label className="text-xs font-black text-slate-800 uppercase tracking-widest">Nominal Setoran Tunai</Label>
+                    <div className={cn(
+                        "ml-auto text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider",
+                        summary?.commissionMethod === 'AUTOMATIC'
+                            ? "bg-blue-100 text-blue-700 border border-blue-200"
+                            : summary?.commissionMethod === 'MANUAL'
+                                ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                : "bg-purple-100 text-purple-700 border border-purple-200" // MIXED
+                    )}>
+                        {summary?.commissionMethod === 'AUTOMATIC' && "⚡ Otomatis (Tagihan Penuh)"}
+                        {summary?.commissionMethod === 'MANUAL' && "✋ Manual (Setelah Komisi)"}
+                        {summary?.commissionMethod === 'MIXED' && "🔀 Campuran (Per Unit)"}
+                    </div>
+                </div>
                 <div className="relative group">
-                    <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-2 pr-4 border-r border-slate-100">
+                    <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-2 pr-4 border-r border-slate-200">
                         <span className="text-lg font-black text-slate-400">Rp</span>
                     </div>
                     <Input
                         id="totalSetor"
                         type="number"
-                        placeholder="0"
                         value={totalSetor}
-                        onChange={(e) => setTotalSetor(e.target.value)}
-                        className="pl-20 h-20 text-3xl font-black font-mono tracking-tighter rounded-[1.5rem] border-slate-100 bg-slate-50/50 focus:ring-blue-500 focus:bg-white transition-all shadow-inner"
+                        readOnly
+                        disabled
+                        className="pl-20 h-20 text-3xl font-black font-mono tracking-tighter rounded-[1.5rem] border-slate-200 bg-slate-100 text-slate-700 cursor-not-allowed shadow-inner"
                     />
-                </div>
-            </div>
-
-            {/* Quota Impact Card */}
-            {totalSetor && Number(totalSetor) > 0 && (
-                <div className={cn(
-                    "relative overflow-hidden p-6 rounded-[2rem] border-2 transition-all duration-500",
-                    isQuotaExceeded
-                        ? "bg-rose-50 border-rose-200 shadow-rose-200/20"
-                        : "bg-orange-50 border-orange-200 shadow-orange-200/20"
-                )}>
-                    <div className="flex justify-between items-end relative z-10">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                <span>Pengeluaran Unit/sub unit</span>
-                                {isQuotaExceeded && <AlertCircle className="h-3 w-3 text-orange-500" />}
-                            </div>
-                            <div className="text-3xl font-black tracking-tighter text-orange-600">
-                                {formatCurrency(selisih)}
-                            </div>
-                        </div>
-
-                        <div className="text-right space-y-2">
-                            <div className="px-3 py-1.5 rounded-full bg-white/60 backdrop-blur shadow-sm border border-black/5 inline-block">
-                                <span className="text-[10px] font-bold text-slate-500">Quota Pengeluaran: </span>
-                                <span className="text-[10px] font-black text-[#101D42]">{formatCurrency(quotaAvailable)}</span>
-                            </div>
-                            {isQuotaExceeded && (
-                                <div className="text-[10px] font-black text-orange-500 bg-white px-3 py-1.5 rounded-full border border-orange-200 shadow-sm">
-                                    MELEBIHI QUOTA
-                                </div>
-                            )}
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2">
+                        <div className="text-[10px] font-black text-slate-400 bg-white border border-slate-200 px-2 py-1 rounded-lg shadow-sm">
+                            🔒 SISTEM
                         </div>
                     </div>
                 </div>
-            )}
+                <p className="text-[11px] text-slate-400 font-medium px-1">
+                    {summary?.commissionMethod === 'AUTOMATIC' && "Unit menggunakan komisi otomatis. Setoran sesuai total tagihan penuh."}
+                    {summary?.commissionMethod === 'MANUAL' && "Unit menggunakan komisi manual. Setoran adalah tagihan setelah potongan komisi cash."}
+                    {summary?.commissionMethod === 'MIXED' && "Batch ini memiliki pelanggan dari unit berbeda (otomatis & manual). Nominal dihitung per pelanggan sesuai aturan unitnya masing-masing."}
+                </p>
+            </div>
+
+
 
             {/* Navigation */}
             <div className="flex items-center justify-between pt-6 border-t border-slate-100">
@@ -425,7 +483,6 @@ export function CreateBatchPaymentModal({
                 </Button>
                 <Button
                     onClick={handleNext}
-                    disabled={!totalSetor || Number(totalSetor) <= 0}
                     className="h-12 px-8 bg-[#101D42] hover:bg-[#1a2b5e] min-w-[160px] rounded-[1.25rem] font-bold shadow-lg shadow-blue-900/20 active:scale-95 transition-all text-white"
                 >
                     Review Batch <ChevronRight className="ml-2 h-4 w-4 font-black" />
@@ -461,8 +518,8 @@ export function CreateBatchPaymentModal({
                             <div className="text-xl font-black text-blue-400">{formatCurrency(Number(totalSetor))}</div>
                         </div>
                         <div className="space-y-1 text-right">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selisih (Pengeluaran)</div>
-                            <div className="text-xl font-black text-orange-400">{formatCurrency(selisih)}</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Komisi Cash</div>
+                            <div className="text-xl font-black text-orange-400">{formatCurrency(summary.totalManualCommission)}</div>
                         </div>
                     </div>
                 </div>

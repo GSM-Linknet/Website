@@ -6,6 +6,7 @@ export interface PayoutRequest {
   accountHolderName: string;
   accountNumber: string;
   description: string;
+  category?: string;
 }
 
 export const XenditService = {
@@ -30,5 +31,9 @@ export const XenditService = {
             params,
             responseType: "blob"
         });
+    },
+    
+    syncStatus: async (id: string) => {
+        return await apiClient.post<any>(`/xendit/payout/${id}/sync-status`);
     }
 };

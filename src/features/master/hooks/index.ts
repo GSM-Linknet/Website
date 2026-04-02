@@ -4,3 +4,4 @@ export { useUnit } from "./useUnit";
 export { useSubUnit } from "./useSubUnit";
 export { usePackage } from "./usePackage";
 export { useDiscount } from "./useDiscount";
+export { useUnitCommissionConfig } from "./useUnitCommissionConfig";

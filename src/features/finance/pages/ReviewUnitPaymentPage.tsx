@@ -258,7 +258,6 @@ export default function ReviewUnitPaymentPage() {
             setSelectedInvoiceIds([]);
             setIsBatchModalOpen(false);
           }}
-          quotaAvailable={quotaAvailable}
           initialSelectedCustomers={uniqueCustomerIds}
         />
       )}

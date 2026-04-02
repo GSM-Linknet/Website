@@ -33,14 +33,6 @@ export function PackageModal({
         wilayahIds: [],
         duration: 30, // Default to 30 days
         costBandwidth: 0,
-        holdingIncome: 0,
-        unitGlobalIncome: 0,
-        spCommission: 0,
-        adminCommission: 0,
-        unitCommission: 0,
-        unitGlobalCommission: 0,
-        holdingCommission: 0,
-        otherCommission: 0,
     });
 
     const isEdit = !!initialData;
@@ -58,14 +50,6 @@ export function PackageModal({
                     wilayahIds: initialData.packagesWilayah?.map(pw => pw.wilayah.id) || [],
                     duration: initialData.duration || 30,
                     costBandwidth: initialData.costBandwidth || 0,
-                    holdingIncome: initialData.holdingIncome || 0,
-                    unitGlobalIncome: initialData.unitGlobalIncome || 0,
-                    spCommission: initialData.spCommission || 0,
-                    adminCommission: initialData.adminCommission || 0,
-                    unitCommission: initialData.unitCommission || 0,
-                    unitGlobalCommission: initialData.unitGlobalCommission || 0,
-                    holdingCommission: initialData.holdingCommission || 0,
-                    otherCommission: initialData.otherCommission || 0,
                 });
             } else {
                 setFormData({
@@ -77,25 +61,11 @@ export function PackageModal({
                     wilayahIds: [],
                     duration: 30,
                     costBandwidth: 0,
-                    holdingIncome: 0,
-                    unitGlobalIncome: 0,
-                    spCommission: 0,
-                    adminCommission: 0,
-                    unitCommission: 0,
-                    unitGlobalCommission: 0,
-                    holdingCommission: 0,
-                    otherCommission: 0,
                 });
             }
         }
     }, [isOpen, initialData]);
 
-    const totalCommission = (formData.spCommission || 0) +
-        (formData.adminCommission || 0) +
-        (formData.unitCommission || 0) +
-        (formData.unitGlobalCommission || 0) +
-        (formData.holdingCommission || 0) +
-        (formData.otherCommission || 0);
 
     const handleSubmit = async () => {
         if (!formData.name || !formData.code || !formData.price || !formData.speed || !formData.wilayahIds?.length) {
@@ -103,10 +73,6 @@ export function PackageModal({
             return;
         }
 
-        if (totalCommission > 100) {
-            alert(`Total komisi tidak boleh lebih dari 100%. Saat ini: ${totalCommission}%`);
-            return;
-        }
 
         const success = await onSubmit(formData);
         if (success) {
@@ -271,80 +237,6 @@ export function PackageModal({
                     />
                 </div> */}
 
-                <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-100">
-                    <div className="flex justify-between items-center">
-                        <div className="space-y-1">
-                            <h4 className="font-bold text-slate-700 text-sm">Pengaturan Komisi</h4>
-
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-[11px] font-bold border ${totalCommission === 100 ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-                            Total: {totalCommission}% {totalCommission === 100 ? '✓' : '⚠'}
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-
-
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Unit Global (%)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.unitGlobalCommission}
-                                onChange={(e) => setFormData({ ...formData, unitGlobalCommission: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Holding (%)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.holdingCommission}
-                                onChange={(e) => setFormData({ ...formData, holdingCommission: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-
-                    </div>
-                </div>
-
-                {/* Recurring Commission Section */}
-                <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-100">
-                    <div className="space-y-1">
-                        <h4 className="font-bold text-slate-700 text-sm">Komisi Rutin (Fixed Price)</h4>
-                        <p className="text-xs text-slate-400">Komisi tetap per pembayaran bulanan (dalam Rupiah)</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Holding Income (Rp)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.holdingIncome}
-                                onChange={(e) => setFormData({ ...formData, holdingIncome: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Unit Global Income (Rp)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.unitGlobalIncome}
-                                onChange={(e) => setFormData({ ...formData, unitGlobalIncome: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                    </div>
-                </div>
 
                 {/* Description Field */}
                 <div className="space-y-2 md:col-span-2">

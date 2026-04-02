@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Button } from "@/components/ui/button";
 import { usePayouts } from "../hooks/usePayouts";
@@ -14,6 +14,8 @@ import {
   CalendarRange,
   X,
   Smartphone,
+  Wallet,
+  RefreshCcw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CreatePayoutModal } from "../components/CreatePayoutModal";
@@ -21,7 +23,10 @@ import { cn, formatCurrency } from "@/lib/utils";
 import moment from "moment";
 import { AuthService } from "@/services/auth.service";
 import { XenditService } from "@/services/xendit.service";
+import { FinanceService } from "@/services/finance.service";
 import { useToast } from "@/hooks/useToast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { commissionService } from "@/services/commission.service";
 
 export default function PayoutPage() {
   const {
@@ -44,14 +49,72 @@ export default function PayoutPage() {
   const [dateTo, setDateTo] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
+  // Statement (Financial History) state
+  const [activeTab, setActiveTab] = useState("requests");
+  const [statement, setStatement] = useState<any[]>([]);
+  const [statementLoading, setStatementLoading] = useState(false);
+  const [totalCommission, setTotalCommission] = useState(0);
+  const [totalPending, setTotalPending] = useState(0);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+
+  const isFirstRender = useRef(true);
   // Apply date filters to the backend query when they change
   useEffect(() => {
+    // Only skip on actual first mount to avoid redundant initial call
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     setQuery({
-      q: search,
       gte: dateFrom ? `createdAt:${dateFrom}` : undefined,
       lte: dateTo ? `createdAt:${dateTo}` : undefined,
     });
-  }, [dateFrom, dateTo, search, setQuery]);
+  }, [dateFrom, dateTo, setQuery]);
+
+  useEffect(() => {
+    fetchSummary();
+    if (activeTab === "statement") {
+      fetchStatement();
+    }
+  }, [activeTab, dateFrom, dateTo]);
+
+  const fetchSummary = async () => {
+    try {
+      const res = await commissionService.getSummary({ personal: true });
+      if (res) {
+        setTotalCommission(res.totalCommission);
+        setTotalPending(res.totalPending);
+      }
+    } catch (error) {
+      console.error("Failed to fetch balance summary:", error);
+    }
+  };
+
+  const fetchStatement = async () => {
+    setStatementLoading(true);
+    try {
+      const res = await FinanceService.getCommissionStatement({ 
+        personal: true,
+        startDate: dateFrom,
+        endDate: dateTo
+      });
+      if (res.data) {
+        setStatement(res.data);
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch statement:", error);
+      if (error?.response?.status === 403 || error?.message?.includes("izin")) {
+        toast({ 
+          title: "Akses Ditolak", 
+          description: error?.response?.data?.message || "Anda tidak memiliki izin untuk melihat Rekening Koran.", 
+          variant: "destructive" 
+        });
+      }
+    } finally {
+      setStatementLoading(false);
+    }
+  };
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -114,6 +177,28 @@ export default function PayoutPage() {
       });
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleSyncStatus = async (id: string) => {
+    setSyncingId(id);
+    try {
+      await XenditService.syncStatus(id);
+      toast({
+        title: "Berhasil",
+        description: "Status payout telah diperbarui dan sinkronisasi saldo berhasil.",
+      });
+      refetch();
+      if (activeTab === "statement") fetchStatement();
+      fetchSummary();
+    } catch (error: any) {
+      toast({
+        title: "Gagal",
+        description: error.response?.data?.message || "Gagal sinkronisasi status",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncingId(null);
     }
   };
 
@@ -315,31 +400,103 @@ export default function PayoutPage() {
       id: "actions",
       header: "Aksi",
       cell: (payout: any) => {
-        if (payout.status === "PROPOSED" && canApprove) {
-          return (
-            <div className="flex gap-2">
+        const canSync = ['APPROVED', 'PENDING', 'PENDING_XENDIT', 'ACCEPTED', 'PROCESSED'].includes(payout.status);
+        
+        return (
+          <div className="flex gap-2">
+            {payout.status === "PROPOSED" && canApprove && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-100"
+                  onClick={() => handleReject(payout.id)}
+                  title="Tolak"
+                >
+                  <XCircle size={16} />
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 w-8 p-0 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white"
+                  onClick={() => handleApprove(payout.id)}
+                  title="Setujui"
+                >
+                  <CheckCircle2 size={16} />
+                </Button>
+              </>
+            )}
+            
+            {canSync && (
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 w-8 p-0 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-100"
-                onClick={() => handleReject(payout.id)}
-                title="Tolak"
+                className="h-8 w-8 p-0 rounded-lg text-blue-500 hover:text-blue-600 hover:bg-blue-50 border-blue-100"
+                onClick={() => handleSyncStatus(payout.id)}
+                disabled={syncingId === payout.id}
+                title="Sinkronisasi Status Xendit"
               >
-                <XCircle size={16} />
+                <RefreshCcw size={14} className={cn(syncingId === payout.id && "animate-spin")} />
               </Button>
-              <Button
-                size="sm"
-                className="h-8 w-8 p-0 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white"
-                onClick={() => handleApprove(payout.id)}
-                title="Setujui"
-              >
-                <CheckCircle2 size={16} />
-              </Button>
-            </div>
-          );
-        }
-        return null;
+            )}
+          </div>
+        );
       },
+    },
+  ];
+
+  const statementColumns = [
+    {
+      accessorKey: "date",
+      header: "Tanggal",
+      cell: (item: any) => moment(item.date).format("DD MMM YY, HH:mm"),
+    },
+    {
+      accessorKey: "description",
+      header: "Keterangan",
+      className: "max-w-[250px]",
+      cell: (item: any) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-slate-700">{item.description}</span>
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
+            {item.type} &bull; {item.referenceId || '-'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "amount",
+      header: "Nilai (IDR)",
+      cell: (item: any) => {
+        const isIncome = item.type === 'INCOME';
+        return (
+          <span className={`font-mono font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+            {isIncome ? '+' : '-'}{formatCurrency(item.amount)}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "balance",
+      header: "Saldo (IDR)",
+      className: "bg-slate-50/50",
+      cell: (item: any) => {
+        const isExpensePending = item.type === 'EXPENSE' && !['SUCCEEDED', 'SUCCESS', 'COMPLETED'].includes(item.status);
+        return (
+          <div className="flex flex-col items-end">
+            <span className={cn(
+              "font-mono font-black",
+              isExpensePending ? "text-slate-400 italic" : "text-[#101D42]"
+            )}>
+              {formatCurrency(item.balance)}
+            </span>
+            {isExpensePending && (
+              <span className="text-[8px] text-amber-500 font-bold uppercase tracking-tighter">
+                Hold (Pending)
+              </span>
+            )}
+          </div>
+        );
+      }
     },
   ];
 
@@ -354,6 +511,22 @@ export default function PayoutPage() {
             <Landmark size={14} className="text-blue-500" /> Manajemen Penarikan
             Dana & Persetujuan Berjenjang
           </p>
+        </div>
+
+        {/* Dynamic Balance Card */}
+        <div className="flex bg-white border border-slate-100 rounded-3xl p-3 px-5 shadow-xl shadow-slate-200/40 items-center gap-6">
+            <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Saldo Wallet Komisi</span>
+                <span className="text-xl font-black text-blue-600 font-mono">{formatCurrency(totalCommission)}</span>
+            </div>
+            <div className="w-px h-10 bg-slate-100" />
+            <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Komisi Pending</span>
+                <span className="text-xl font-black text-amber-500 font-mono">{formatCurrency(totalPending)}</span>
+            </div>
+            <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 ml-2">
+                <Wallet size={24} />
+            </div>
         </div>
 
         <div className="flex gap-3 items-center flex-wrap">
@@ -398,7 +571,7 @@ export default function PayoutPage() {
           <div className="flex items-center gap-1.5 text-slate-400">
             <CalendarRange size={14} />
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Tgl Pengajuan
+              Periode Laporan
             </span>
           </div>
 
@@ -459,19 +632,74 @@ export default function PayoutPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative mx-2">
-        <BaseTable
-          data={payouts || []}
-          columns={columns}
-          rowKey={(row) => row.id}
-          loading={isLoading}
-          totalItems={totalItems || 0}
-          page={page || 1}
-          totalPages={totalPages || 1}
-          onPageChange={setPage}
-          className="border-none shadow-none"
-        />
-      </div>
+      <Tabs defaultValue="requests" className="px-2" onValueChange={setActiveTab}>
+        <TabsList className="bg-white border border-slate-200 p-1 h-12 rounded-2xl shadow-sm mb-4">
+          <TabsTrigger value="requests" className="px-6 rounded-xl data-[state=active]:bg-[#101D42] data-[state=active]:text-white font-bold transition-all">
+            Pengajuan Payout
+          </TabsTrigger>
+          <TabsTrigger value="statement" className="px-6 rounded-xl data-[state=active]:bg-[#101D42] data-[state=active]:text-white font-bold transition-all">
+            Mutasi Saldo (Rekening Koran)
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="requests" className="mt-0 space-y-4">
+            <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
+                <BaseTable
+                data={payouts || []}
+                columns={columns}
+                rowKey={(row) => row.id}
+                loading={isLoading}
+                totalItems={totalItems || 0}
+                page={page || 1}
+                totalPages={totalPages || 1}
+                onPageChange={setPage}
+                className="border-none shadow-none"
+                />
+            </div>
+        </TabsContent>
+
+        <TabsContent value="statement" className="mt-0">
+            <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
+                <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <CalendarRange size={20} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-800">Riwayat Mutasi Keuangan</h3>
+                            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Rekening Koran Wallet Komisi</p>
+                        </div>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-blue-600 font-bold text-xs hover:bg-blue-50"
+                        onClick={fetchStatement}
+                        disabled={statementLoading}
+                    >
+                        {statementLoading ? <Loader2 className="animate-spin h-3.5 w-3.5 mr-2" /> : <Loader2 size={14} className="mr-2" />}
+                        Refresh Data
+                    </Button>
+                </div>
+                <BaseTable
+                    data={statement}
+                    columns={statementColumns}
+                    rowKey={(row) => `${row.date}-${row.amount}-${row.balance}`}
+                    loading={statementLoading}
+                    totalItems={statement.length}
+                    page={1}
+                    totalPages={1}
+                    onPageChange={() => {}}
+                    className="border-none shadow-none"
+                />
+                <div className="p-5 bg-amber-50/50 border-t border-amber-100/50">
+                    <p className="text-[10px] text-amber-700 font-medium leading-relaxed italic">
+                        * Catatan: Saldo (Running Balance) dihitung secara kronologis berdasarkan pendapatan komisi (PAID) dan penarikan dana (SUCCEEDED) yang sudah tervalidasi. Pengajuan yang masih berstatus pending tidak mengurangi saldo berjalan hingga transaksi berhasil.
+                    </p>
+                </div>
+            </div>
+        </TabsContent>
+      </Tabs>
 
       <CreatePayoutModal
         isOpen={isCreateOpen}

@@ -86,6 +86,7 @@ export function ManageCustomerModal({
     const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
 
     const currentUser = useMemo(() => AuthService.getUser(), []);
+    const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
     const isSalesOrSpv = currentUser?.role === "SALES" || currentUser?.role === "SUPERVISOR";
     const canEditLegacy = useMemo(() =>
         AuthService.hasPermission(currentUser?.role || "", "pelanggan.legacy", "edit"),
@@ -490,8 +491,12 @@ export function ManageCustomerModal({
                                         <SelectItem value="FREE_6_MONTHS">Gratis 6 Bulan</SelectItem>
                                         <SelectItem value="FREE_12_MONTHS">Gratis 12 Bulan</SelectItem>
                                         <SelectItem value="ON_LEAVE_1_MONTH">Libur 1 Bulan</SelectItem>
-                                        <SelectItem value="DISMANTLE">Dismantle</SelectItem>
-                                        <SelectItem value="TERMINATED">Keluar</SelectItem>
+                                        {isSuperAdmin && (
+                                            <>
+                                                <SelectItem value="DISMANTLE">Dismantle</SelectItem>
+                                                <SelectItem value="TERMINATED">Keluar</SelectItem>
+                                            </>
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>
