@@ -59,12 +59,7 @@ export default function BatchPaymentPage() {
     const [selectedBatch, setSelectedBatch] = useState<BatchPayment | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-    // Derived State: Quota Information
-    const quotaInfo = batchPayments?.[0]?.unit || batchPayments?.[0]?.subUnit;
-    const expenseQuota = quotaInfo?.expenseQuota || 0;
-    const expenseQuotaUsed = quotaInfo?.expenseQuotaUsed || 0;
-    const quotaAvailable = Math.max(0, expenseQuota - expenseQuotaUsed);
-
+ 
     // Table Column Definitions
     const columns = useMemo(() => [
         {
@@ -208,7 +203,7 @@ export default function BatchPaymentPage() {
                 isOpen={isCreateOpen}
                 onClose={() => setIsCreateOpen(false)}
                 onSuccess={refetch}
-                quotaAvailable={quotaAvailable}
+               
             />
 
             <BatchPaymentDetailModal

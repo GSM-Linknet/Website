@@ -211,10 +211,7 @@ export default function CommissionPage() {
         setShowDistribution(true);
     };
 
-    useEffect(() => {
-        fetchSummary();
-        fetchRecap();
-    }, [startDate, endDate]);
+
 
     const fetchRecap = async () => {
         setRecapLoading(true);
@@ -249,6 +246,11 @@ export default function CommissionPage() {
             console.error("Failed to fetch summary:", error);
         }
     };
+
+    useEffect(() => {
+        fetchSummary();
+        fetchRecap();
+    }, [startDate, endDate, fetchRecap, fetchSummary]);
 
     const handleFilterChange = (type: string) => {
         setActiveFilter(type);
@@ -485,6 +487,7 @@ export default function CommissionPage() {
                         />
                     </div>
                 </TabsContent>
+
             </Tabs>
 
             <CommissionDistributionModal 

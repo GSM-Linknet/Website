@@ -29,6 +29,7 @@ export interface RAB {
   totalAmount: number;
   approvedAmount?: number;
   rolloverAmount: number;
+  usedBudget?: number;
   status: RABStatus;
   notes?: string;
   reviewNotes?: string;
@@ -115,4 +116,10 @@ export const RABService = {
 
   reject: (id: string, data: { reviewNotes: string }) =>
     apiClient.patch<ResponseData<RAB>>(`${BASE}/reject/${id}`, data),
+
+  revoke: (id: string) =>
+    apiClient.patch<ResponseData<RAB>>(`${BASE}/${id}/revoke`, {}),
+
+  setApprovedAmount: (id: string, data: { approvedAmount: number }) =>
+    apiClient.patch<ResponseData<RAB>>(`${BASE}/${id}/approved-amount`, data),
 };

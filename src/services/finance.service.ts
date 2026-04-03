@@ -216,6 +216,9 @@ export const FinanceService = {
       { params: query },
     );
   },
+  getCommissionEstimation: async (query: any = {}) => {
+    return apiClient.get<ApiResponse<any>>(`${ENDPOINTS.COMMISSION}/estimation-comparison`, { params: query });
+  },
   getCommissionDistribution: async (invoiceId: string) => {
     return apiClient.get<ApiResponse<any[]>>(
       `${ENDPOINTS.COMMISSION}/distribution/${invoiceId}`,

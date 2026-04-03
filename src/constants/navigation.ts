@@ -185,6 +185,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         resource: "komisi.saldo",
       },
       {
+        title: "Estimasi Komisi",
+        href: "/keuangan/rab?tab=estimation",
+        resource: "keuangan.rab",
+      },
+      {
         title: "Pengaturan Komisi",
         href: "/keuangan/commission-management",
         resource: "komisi.setting",
