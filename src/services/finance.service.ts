@@ -227,4 +227,18 @@ export const FinanceService = {
   reportPaid: async (id: string) => {
     return apiClient.patch(`${ENDPOINTS.INVOICE}/report-paid/${id}`);
   },
+
+  // Central Balance Multi-Bucket
+  topUpAllocation: async (amount: number, notes?: string) => {
+    return apiClient.post<{ status: boolean; data: { paymentUrl: string } }>(
+      "/xendit/topup-allocation",
+      { amount, notes }
+    );
+  },
+  internalTransfer: async (amount: number, notes?: string) => {
+    return apiClient.post<{ status: boolean; message: string }>(
+      "/xendit/internal-transfer",
+      { amount, notes }
+    );
+  },
 };

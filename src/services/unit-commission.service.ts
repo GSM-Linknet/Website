@@ -4,6 +4,27 @@ import type { ApiResponse } from "./master.service";
 export type CommissionMethod = 'AUTOMATIC' | 'MANUAL';
 export type CommissionValueType = 'PERCENTAGE' | 'NOMINAL';
 
+export interface UnitPackageCommission {
+  id?: string;
+  unitId: string;
+  packageId: string;
+  holdingValue: number;
+  holdingType: CommissionValueType;
+  unitValue: number;
+  unitType: CommissionValueType;
+  coordValue: number;
+  coordType: CommissionValueType;
+  spvValue: number;
+  spvType: CommissionValueType;
+  salesValue: number;
+  salesType: CommissionValueType;
+  package?: {
+    id: string;
+    name: string;
+    price: number;
+  };
+}
+
 export interface UnitCommissionConfig {
   id?: string;
   unitId: string;
@@ -22,7 +43,7 @@ export interface UnitCommissionConfig {
   regSalesValue: number;
   regSalesType: CommissionValueType;
 
-  // Monthly
+  // Monthly (Default)
   monthlyMethod: CommissionMethod;
   monthlyHoldingValue: number;
   monthlyHoldingType: CommissionValueType;
@@ -41,6 +62,9 @@ export interface UnitCommissionConfig {
     name: string;
     role: string;
   };
+  
+  // Package-specific overrides
+  packageCommissions?: UnitPackageCommission[];
 }
 
 const ENDPOINT = "/keuangan/unit-commission";

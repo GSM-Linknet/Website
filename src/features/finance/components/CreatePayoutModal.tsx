@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { XenditService } from "@/services/xendit.service";
 import { useToast } from "@/hooks/useToast";
-import { Loader2, Landmark, User, CreditCard, Banknote, FileText, Smartphone, Wallet, Info } from "lucide-react";
+import { Loader2, Landmark, User, CreditCard, Banknote, FileText, Smartphone, Wallet, Info, Database } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
 import { useEffect } from "react";
 import { commissionService } from "@/services/commission.service";
@@ -71,6 +71,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
         accountNumber: "",
         description: "",
         category: defaultCategory || derivedCategory,
+        sourceBucket: "ALLOCATION",
     });
 
     useEffect(() => {
@@ -85,7 +86,9 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
     useEffect(() => {
         if (!isOpen) return;
 
-        if (formData.category === 'OPERATIONAL') {
+        const isSuperAdmin = ['SUPER_ADMIN', 'ADMIN_PUSAT'].includes(userRole || '');
+
+        if (formData.category === 'OPERATIONAL' && !isSuperAdmin) {
             setBalanceLabel("Saldo RAB Tersedia (Disetujui)");
             const now = moment();
             RABService.getBudget({
@@ -94,13 +97,20 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
             }).then(res => {
                 if (res.status) setBalance(res.data.remainingBudget);
             }).catch(err => console.error("RAB Budget fetch error:", err));
+        } else if (isSuperAdmin) {
+            // Fetch aggregated balances for super admin
+            setBalanceLabel(formData.sourceBucket === 'REVENUE' ? "Saldo Pendapatan Pelanggan" : "Saldo Alokasi Unit");
+            XenditService.getBalance().then(res => {
+                const bal = formData.sourceBucket === 'REVENUE' ? res.revenueBalance : res.allocationBalance;
+                setBalance(bal);
+            }).catch(err => console.error("Xendit balance fetch error:", err));
         } else {
             setBalanceLabel("Saldo Komisi Tersedia");
             commissionService.getSummary({ personal: true })
                 .then((res: any) => setBalance(res.totalCommission))
                 .catch((err: any) => console.error("Personal commission fetch error:", err));
         }
-    }, [isOpen, formData.category, userRole, currentUser?.unitId]);
+    }, [isOpen, formData.category, formData.sourceBucket, userRole, currentUser?.unitId]);
 
     const isEWallet = E_WALLETS.some(ew => ew.value === formData.bankCode);
     const selectedLabel = [...BANKS, ...E_WALLETS].find(b => b.value === formData.bankCode)?.label || "Pilih Metode";
@@ -127,6 +137,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
                 accountNumber: formData.accountNumber,
                 description: formData.description,
                 category: formData.category,
+                sourceBucket: formData.sourceBucket as any,
             });
             toast({
                 title: "Berhasil Diajukan",
@@ -141,6 +152,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
                 accountNumber: "",
                 description: "",
                 category: "COMMISSION",
+                sourceBucket: "ALLOCATION",
             });
         } catch (error: any) {
             console.error("Payout error:", error);
@@ -181,6 +193,28 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6 bg-white rounded-t-[2.5rem] -mt-6 relative shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
                     <div className="space-y-5">
+                        {['SUPER_ADMIN', 'ADMIN_PUSAT'].includes(userRole || '') && (
+                            <div className="space-y-2">
+                                <Label htmlFor="sourceBucket" className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                                    <Database className="h-4 w-4" /> Sumber Dana
+                                </Label>
+                                <Select
+                                    value={formData.sourceBucket}
+                                    onValueChange={(val) => setFormData({ ...formData, sourceBucket: val })}
+                                >
+                                    <SelectTrigger className="h-12 bg-blue-50/50 border-blue-100 focus:ring-blue-500/20 text-base px-4 rounded-xl">
+                                        <span className="font-semibold text-blue-700">
+                                            {formData.sourceBucket === 'REVENUE' ? 'Pendapatan Pelanggan' : 'Alokasi Unit Operasional'}
+                                        </span>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="REVENUE">Pendapatan Pelanggan</SelectItem>
+                                        <SelectItem value="ALLOCATION">Alokasi Unit Operasional</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <Label htmlFor="bankCode" className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
                                 <Wallet className="h-4 w-4" /> Metode Pencairan

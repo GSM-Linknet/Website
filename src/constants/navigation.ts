@@ -243,7 +243,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       //   resource: "keuangan.daily-journal",
       // },
       {
-        title: "Saldo Xendit",
+        title: "Informasi Saldo",
         href: "/keuangan/saldo",
         resource: "keuangan.saldo",
       },

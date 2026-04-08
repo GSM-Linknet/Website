@@ -12,8 +12,10 @@ export function useUnitCommissionConfig() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
     const [unit, setUnit] = useState<Unit | null>(null);
     const [users, setUsers] = useState<User[]>([]);
+    const [packages, setPackages] = useState<any[]>([]);
     const [config, setConfig] = useState<Partial<UnitCommissionConfig>>({});
 
     const fetchData = useCallback(async () => {
@@ -26,9 +28,32 @@ export function useUnitCommissionConfig() {
                 UserService.findAll({ unitId, limit: 100 })
             ]);
 
-            setUnit(unitRes);
+            const unitData = unitRes.data;
+            const wilayahIds = [
+                ...(unitData.wilayahId ? [unitData.wilayahId] : []),
+                ...(unitData.wilayahIds || []),
+                ...(unitData.unitWilayah?.map((uw: any) => uw.wilayah?.id || uw.wilayahId) || [])
+            ].filter(Boolean);
+
+            const uniqueWilayahIds = [...new Set(wilayahIds)];
+
+            const query: any = { 
+                limit: 100, 
+                isActive: true 
+            };
+
+            // If we have wilayahs, filter by the first one (backend current limitation)
+            // If not, Super Admin will still get packages
+            if (uniqueWilayahIds.length > 0) {
+                query.idWilayah = uniqueWilayahIds[0];
+            }
+
+            const packagesRes = await MasterService.getPackages(query);
+            
+            setUnit(unitData);
             setConfig(configRes.data);
             setUsers(usersRes.data.items);
+            setPackages(packagesRes.data.items);
         } catch (error) {
             console.error("Failed to fetch data:", error);
             toast({
@@ -48,7 +73,7 @@ export function useUnitCommissionConfig() {
     const handleSave = async () => {
         if (!unitId) return;
 
-        // Validation: Check total percentage
+        // Validation: Check total percentage for main config
         const prefixes = [
             'regHolding', 'regUnit', 'regCoord', 'regSpv', 'regSales',
             'monthlyHolding', 'monthlyUnit', 'monthlyCoord', 'monthlySpv', 'monthlySales'
@@ -73,10 +98,31 @@ export function useUnitCommissionConfig() {
         if (regTotal > 100 || monthlyTotal > 100) {
             toast({
                 title: "Gagal menyimpan",
-                description: `Total persentase komisi (${regTotal > 100 ? 'Registrasi' : 'Bulanan'}) tidak boleh melebihi 100%. Saat ini: ${regTotal > 100 ? regTotal : monthlyTotal}%`,
+                description: `Total persentase komisi (${regTotal > 100 ? 'Registrasi' : 'Bulanan'}) tidak boleh melebihi 100%.`,
                 variant: "destructive"
             });
             return;
+        }
+
+        // Validation for Package Commissions
+        if (config.packageCommissions) {
+            for (const pkg of config.packageCommissions) {
+                const pkgTotal = ['holding', 'unit', 'coord', 'spv', 'sales'].reduce((acc, field) => {
+                    if (pkg[`${field}Type` as keyof typeof pkg] === 'PERCENTAGE') {
+                        return acc + (Number(pkg[`${field}Value` as keyof typeof pkg]) || 0);
+                    }
+                    return acc;
+                }, 0);
+
+                if (pkgTotal > 100) {
+                    toast({
+                        title: "Gagal menyimpan",
+                        description: `Total persentase komisi untuk paket ${pkg.package?.name || pkg.packageId} tidak boleh melebihi 100%.`,
+                        variant: "destructive"
+                    });
+                    return;
+                }
+            }
         }
 
         setSaving(true);
@@ -86,6 +132,8 @@ export function useUnitCommissionConfig() {
                 title: "Berhasil disimpan",
                 description: "Konfigurasi komisi unit telah diperbarui.",
             });
+            // Refresh data to get clean state
+            fetchData();
         } catch (error) {
             console.error("Failed to save config:", error);
             toast({
@@ -102,6 +150,65 @@ export function useUnitCommissionConfig() {
         setConfig(prev => ({ ...prev, [field]: value }));
     };
 
+    const updatePackageCommission = (packageId: string, updates: Partial<any>) => {
+        setConfig(prev => {
+            const currentPkgCommissions = prev.packageCommissions || [];
+            const existingIndex = currentPkgCommissions.findIndex(pc => pc.packageId === packageId);
+            
+            let newPkgCommissions = [...currentPkgCommissions];
+            
+            if (existingIndex >= 0) {
+                newPkgCommissions[existingIndex] = {
+                    ...newPkgCommissions[existingIndex],
+                    ...updates
+                };
+            } else {
+                // If not exists, initialize with default values from main config or zeros
+                // But usually we'll only call this from the UI after showing a "default" state
+                newPkgCommissions.push({
+                    unitId: unitId!,
+                    packageId,
+                    holdingValue: prev.monthlyHoldingValue || 0,
+                    holdingType: prev.monthlyHoldingType || 'PERCENTAGE',
+                    unitValue: prev.monthlyUnitValue || 0,
+                    unitType: prev.monthlyUnitType || 'PERCENTAGE',
+                    coordValue: prev.monthlyCoordValue || 0,
+                    coordType: prev.monthlyCoordType || 'PERCENTAGE',
+                    spvValue: prev.monthlySpvValue || 0,
+                    spvType: prev.monthlySpvType || 'PERCENTAGE',
+                    salesValue: prev.monthlySalesValue || 0,
+                    salesType: prev.monthlySalesType || 'PERCENTAGE',
+                    ...updates
+                } as any);
+            }
+            
+            return { ...prev, packageCommissions: newPkgCommissions };
+        });
+    };
+
+    const resetPackageCommission = (packageId: string) => {
+        setConfig(prev => ({
+            ...prev,
+            packageCommissions: (prev.packageCommissions || []).filter(pc => pc.packageId !== packageId)
+        }));
+    };
+
+    const getEnrichedPackages = useCallback(() => {
+        return packages.map(pkg => {
+            const override = config.packageCommissions?.find(pc => pc.packageId === pkg.id);
+            return {
+                ...pkg,
+                hasOverride: !!override,
+                config: override || null
+            };
+        }).filter(pkg => 
+            pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            pkg.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            pkg.price.toString().includes(searchTerm)
+        );
+    }, [packages, config.packageCommissions, searchTerm]);
+
+
     const goBack = () => navigate(-1);
 
     return {
@@ -110,9 +217,14 @@ export function useUnitCommissionConfig() {
         saving,
         unit,
         users,
+        packages: getEnrichedPackages(),
+        searchTerm,
+        setSearchTerm,
         config,
         handleSave,
         updateField,
+        updatePackageCommission,
+        resetPackageCommission,
         goBack
     };
 }

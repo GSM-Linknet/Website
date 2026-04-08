@@ -10,13 +10,27 @@ export interface CentralBalanceLedger {
   referenceId: string;
   description: string;
   transactionDate: string;
+  bucket: "REVENUE" | "ALLOCATION" | "HOLDING_COMMISSION";
   createdAt: string;
 }
 
 export interface CentralBalanceSummary {
-  currentBalance: number;
-  totalIncome: number;
-  totalExpense: number;
+  totalBalance: number;
+  revenueBalance: number;
+  allocationBalance: number;
+  holdingCommissionBalance: number;
+  revenueStats: {
+    income: number;
+    expense: number;
+  };
+  allocationStats: {
+    income: number;
+    expense: number;
+  };
+  holdingCommissionStats: {
+    income: number;
+    expense: number;
+  };
 }
 
 const ENDPOINTS = {
