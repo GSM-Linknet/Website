@@ -41,6 +41,7 @@ export interface RAB {
   updatedAt: string;
   unit?: { id: string; name: string; code: string };
   subUnit?: { id: string; name: string; code: string };
+  isHolding: boolean;
   creator?: { id: string; name: string; role: string };
   reviewer?: { id: string; name: string; role: string };
   items: RABItem[];
@@ -122,4 +123,10 @@ export const RABService = {
 
   setApprovedAmount: (id: string, data: { approvedAmount: number }) =>
     apiClient.patch<ResponseData<RAB>>(`${BASE}/${id}/approved-amount`, data),
+
+  getReferenceCommission: (params: { unitId?: string; month: number; year: number; isHolding?: boolean }) =>
+    apiClient.get<ResponseData<{ amount: number; month: number; year: number }>>(
+      `${BASE}/reference-commission`,
+      { params }
+    ),
 };

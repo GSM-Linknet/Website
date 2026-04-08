@@ -302,14 +302,12 @@ export default function RABPage() {
             Rencana Anggaran Biaya bulanan — pengajuan, review, dan approval
           </p>
         </div>
-        {!isReviewer && (
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            className="bg-[#101D42] hover:bg-[#0a1329] text-white rounded-2xl h-12 px-6 font-bold shadow-xl shadow-blue-900/20 active:scale-95 transition-all"
-          >
-            <Plus className="mr-2 h-5 w-5" /> Buat RAB Baru
-          </Button>
-        )}
+        <Button
+          onClick={() => setIsCreateOpen(true)}
+          className="bg-[#101D42] hover:bg-[#0a1329] text-white rounded-2xl h-12 px-6 font-bold shadow-xl shadow-blue-900/20 active:scale-95 transition-all"
+        >
+          <Plus className="mr-2 h-5 w-5" /> Buat RAB Baru
+        </Button>
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">

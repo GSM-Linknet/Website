@@ -40,6 +40,7 @@ const emptyItem = (): DraftItem => ({
 
 export function RABFormModal({ isOpen, onClose, onSuccess, rabToEdit }: Props) {
   const currentUser = AuthService.getUser();
+  const isHoldingUser = !currentUser?.unitId && (currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN_PUSAT');
   const now = new Date();
 
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -50,6 +51,8 @@ export function RABFormModal({ isOpen, onClose, onSuccess, rabToEdit }: Props) {
   
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [refCommission, setRefCommission] = useState<{ amount: number; month: number; year: number } | null>(null);
+  const [loadingRef, setLoadingRef] = useState(false);
 
   const { toast } = useToast();
 
@@ -84,6 +87,39 @@ export function RABFormModal({ isOpen, onClose, onSuccess, rabToEdit }: Props) {
       }
     }
   }, [isOpen, rabToEdit]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchRefCommission();
+    }
+  }, [isOpen, month, year]);
+
+  const fetchRefCommission = async () => {
+    const unitId = rabToEdit?.unitId || currentUser?.unitId;
+    const isHolding = rabToEdit?.isHolding || currentUser?.role === "SUPER_ADMIN" || currentUser?.role === "ADMIN_PUSAT";
+    
+    // Fallback logic for holding if no specific unit but admin role
+    const finalIsHolding = isHolding && !unitId;
+
+    if (!unitId && !finalIsHolding) return;
+
+    setLoadingRef(true);
+    try {
+      const res = await RABService.getReferenceCommission({
+        unitId: unitId ?? undefined,
+        month,
+        year,
+        isHolding: finalIsHolding
+      });
+      if (res.status) {
+        setRefCommission(res.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch reference commission", error);
+    } finally {
+      setLoadingRef(false);
+    }
+  };
 
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
   const removeItem = (idx: number) => {
@@ -208,7 +244,9 @@ export function RABFormModal({ isOpen, onClose, onSuccess, rabToEdit }: Props) {
               <PackagePlus size={20} className="text-indigo-600" />
             </div>
             <div>
-              <h2 className="font-black text-slate-800 text-lg leading-tight">{rabToEdit ? "Edit RAB Draft" : "Buat RAB Baru"}</h2>
+              <h2 className="font-black text-slate-800 text-lg leading-tight">
+                {rabToEdit?.isHolding ? "Edit RAB Holding" : (rabToEdit ? "Edit RAB Unit" : (isHoldingUser ? "Buat RAB Holding Baru" : "Buat RAB Unit Baru"))}
+              </h2>
               <p className="text-xs text-slate-400">Rencana Anggaran Biaya Bulanan</p>
             </div>
           </div>
@@ -382,10 +420,38 @@ export function RABFormModal({ isOpen, onClose, onSuccess, rabToEdit }: Props) {
             </div>
           </div>
 
-          {/* Total */}
-          <div className="bg-indigo-50 rounded-2xl p-4 flex items-center justify-between border border-indigo-100">
-            <span className="text-sm font-bold text-indigo-700 uppercase tracking-wider">Total Anggaran</span>
-            <span className="text-xl font-black text-indigo-800">{formatCurrency(totalAmount)}</span>
+          {/* Total & Reference */}
+          <div className="space-y-3">
+            {loadingRef ? (
+              <div className="flex items-center gap-2 px-2 text-[10px] text-slate-400">
+                <Loader2 size={10} className="animate-spin" />
+                <span>Mengambil data referensi komisi...</span>
+              </div>
+            ) : refCommission && (
+              <div className="flex items-center justify-between px-2 text-[11px] text-slate-500 font-medium">
+                <span>Pendapatan Komisi ({MONTH_NAMES[refCommission.month - 1]} {refCommission.year})</span>
+                <span className="font-bold">{formatCurrency(refCommission.amount)}</span>
+              </div>
+            )}
+            
+            <div className="bg-indigo-50 rounded-2xl p-4 flex items-center justify-between border border-indigo-100">
+              <span className="text-sm font-bold text-indigo-700 uppercase tracking-wider">Total Anggaran</span>
+              <span className="text-xl font-black text-indigo-800">{formatCurrency(totalAmount)}</span>
+            </div>
+
+            {refCommission && totalAmount > refCommission.amount && !isHoldingUser && (
+              <div className="bg-amber-50 rounded-xl p-3 border border-amber-100 flex gap-2.5 items-start">
+                <div className="w-5 h-5 bg-amber-100 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-amber-600 font-bold text-xs">!</span>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-amber-800 leading-normal">Anggaran Melebihi Pendapatan</p>
+                  <p className="text-[10px] text-amber-700 leading-relaxed">
+                    Total pengajuan RAB melebihi pendapatan komisi bulan lalu. {isHoldingUser ? "Pastikan anggaran operasional Holding tetap terkendali." : "Pengajuan ini memerlukan persetujuan khusus dari Super Admin."}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

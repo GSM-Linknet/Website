@@ -3,8 +3,9 @@ import { BaseModal } from "@/components/shared/BaseModal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
-import { Package, Wifi, DollarSign, FileText, MapPin, Hash } from "lucide-react";
+import { Package, Wifi, DollarSign, FileText, MapPin, Hash, Power } from "lucide-react";
 import { useWilayah } from "../hooks/useWilayah";
 import type { Package as PackageType } from "@/services/master.service";
 
@@ -33,6 +34,7 @@ export function PackageModal({
         wilayahIds: [],
         duration: 30, // Default to 30 days
         costBandwidth: 0,
+        isActive: true,
     });
 
     const isEdit = !!initialData;
@@ -50,6 +52,7 @@ export function PackageModal({
                     wilayahIds: initialData.packagesWilayah?.map(pw => pw.wilayah.id) || [],
                     duration: initialData.duration || 30,
                     costBandwidth: initialData.costBandwidth || 0,
+                    isActive: initialData.isActive ?? true,
                 });
             } else {
                 setFormData({
@@ -61,6 +64,7 @@ export function PackageModal({
                     wilayahIds: [],
                     duration: 30,
                     costBandwidth: 0,
+                    isActive: true,
                 });
             }
         }
@@ -96,7 +100,28 @@ export function PackageModal({
             primaryActionLoading={isLoading}
             size="lg"
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 overflow-y-auto h-[calc(100vh-20rem)]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 overflow-y-auto h-[calc(100vh-20rem)] p-1">
+                {/* Status Toggle */}
+                <div className="md:col-span-2 flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-xl ${formData.isActive ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
+                            <Power size={18} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-slate-700">Status Paket</p>
+                            <p className="text-xs text-slate-500">
+                                {formData.isActive 
+                                    ? "Paket aktif dan tampil di form pendaftaran" 
+                                    : "Paket dinonaktifkan (disembunyikan dari form)"}
+                            </p>
+                        </div>
+                    </div>
+                    <Switch
+                        checked={formData.isActive}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                    />
+                </div>
+
                 {/* Name Field */}
                 <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">

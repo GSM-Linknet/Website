@@ -24,9 +24,9 @@ import { Loader2, Landmark, User, CreditCard, Banknote, FileText, Smartphone, Wa
 import { AuthService } from "@/services/auth.service";
 import { useEffect } from "react";
 import { commissionService } from "@/services/commission.service";
-import { CentralFinanceService } from "@/services/central-finance.service";
-import { UnitFinanceService } from "@/services/unit-finance.service";
 import { formatCurrency } from "@/lib/utils";
+import { RABService } from "@/services/rab.service";
+import moment from "moment";
 
 interface CreatePayoutModalProps {
     isOpen: boolean;
@@ -57,17 +57,20 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
     const { toast } = useToast();
     const currentUser = AuthService.getUser();
     const userRole = currentUser?.role;
-    const isAdmin = ['ADMIN_UNIT', 'ADMIN_SUB_UNIT', 'SUPER_ADMIN', 'ADMIN_PUSAT'].includes(userRole || '');
+    const isAdminRole = ['ADMIN_UNIT', 'ADMIN_SUB_UNIT', 'SUPER_ADMIN', 'ADMIN_PUSAT'].includes(userRole || '');
     
+    // Automatic Category based on role
+    const derivedCategory = isAdminRole ? 'OPERATIONAL' : 'COMMISSION';
+
     const [balance, setBalance] = useState<number | null>(null);
-    const [balanceLabel, setBalanceLabel] = useState("Saldo Komisi Tersedia");
+    const [balanceLabel, setBalanceLabel] = useState("Saldo Tersedia");
     const [formData, setFormData] = useState({
         amount: defaultAmount || "",
         bankCode: "ID_BNI",
         accountHolderName: "",
         accountNumber: "",
         description: "",
-        category: defaultCategory || "COMMISSION",
+        category: defaultCategory || derivedCategory,
     });
 
     useEffect(() => {
@@ -80,23 +83,22 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
     }, [defaultCategory, defaultAmount, isOpen]);
 
     useEffect(() => {
-        if (isOpen && formData.category === 'COMMISSION') {
-            if (userRole === 'ADMIN_UNIT' && currentUser?.unitId) {
-                setBalanceLabel("Saldo Unit Tersedia");
-                UnitFinanceService.getUnitBalance(currentUser.unitId)
-                    .then((res: any) => setBalance(res.balance))
-                    .catch((err: any) => console.error("Unit balance fetch error:", err));
-            } else if (['SUPER_ADMIN', 'ADMIN_PUSAT'].includes(userRole || '')) {
-                setBalanceLabel("Saldo Holding Tersedia");
-                CentralFinanceService.getSummary()
-                    .then((res: any) => setBalance(res.currentBalance))
-                    .catch((err: any) => console.error("Central balance fetch error:", err));
-            } else {
-                setBalanceLabel("Saldo Komisi Tersedia");
-                commissionService.getSummary({ personal: true })
-                    .then((res: any) => setBalance(res.totalCommission))
-                    .catch((err: any) => console.error("Personal commission fetch error:", err));
-            }
+        if (!isOpen) return;
+
+        if (formData.category === 'OPERATIONAL') {
+            setBalanceLabel("Saldo RAB Tersedia (Disetujui)");
+            const now = moment();
+            RABService.getBudget({
+                month: now.month() + 1,
+                year: now.year()
+            }).then(res => {
+                if (res.status) setBalance(res.data.remainingBudget);
+            }).catch(err => console.error("RAB Budget fetch error:", err));
+        } else {
+            setBalanceLabel("Saldo Komisi Tersedia");
+            commissionService.getSummary({ personal: true })
+                .then((res: any) => setBalance(res.totalCommission))
+                .catch((err: any) => console.error("Personal commission fetch error:", err));
         }
     }, [isOpen, formData.category, userRole, currentUser?.unitId]);
 
@@ -107,7 +109,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
         e.preventDefault();
         setLoading(true);
 
-        if (formData.category === 'COMMISSION' && balance !== null && Number(formData.amount) > balance) {
+        if (balance !== null && Number(formData.amount) > balance) {
             toast({
                 title: "Saldo Tidak Mencukupi",
                 description: `Maksimal penarikan adalah ${formatCurrency(balance)}`,
@@ -241,30 +243,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
                             </Select>
                         </div>
 
-                        {isAdmin && (
-                            <div className="space-y-2">
-                                <Label className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                                    <Info className="h-4 w-4" /> Kategori Pengajuan
-                                </Label>
-                                <Select
-                                    value={formData.category}
-                                    onValueChange={(val) => setFormData({ ...formData, category: val })}
-                                >
-                                    <SelectTrigger className="h-12 bg-slate-50 border-slate-200 focus:ring-[#101D42] text-base px-4 rounded-xl">
-                                        <div className="flex items-center gap-3">
-                                            {formData.category === 'COMMISSION' ? <User className="h-4 w-4" /> : <Landmark className="h-4 w-4" />}
-                                            <span className="font-semibold text-slate-700">
-                                                {formData.category === 'COMMISSION' ? 'Pencairan Komisi Pusat/Unit' : 'Biaya Operasional (RAB)'}
-                                            </span>
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="COMMISSION">Pencairan Komisi Pusat/Unit</SelectItem>
-                                        <SelectItem value="OPERATIONAL">Biaya Operasional (RAB)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
+                        {/* Category selection removed as it is now automatic */}
 
                         <div className="space-y-2">
                             <Label htmlFor="accountNumber" className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
@@ -317,7 +296,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
                                     required
                                 />
                             </div>
-                            {formData.category === 'COMMISSION' && balance !== null && (
+                            {balance !== null && (
                                 <p className="text-[11px] text-[#101D42] font-bold flex items-center gap-1.5 px-1 bg-blue-50 py-2 rounded-lg border border-blue-100 mt-2">
                                     <Info className="h-3.5 w-3.5 text-blue-600" /> 
                                     {balanceLabel}: <span className="text-blue-600">{formatCurrency(balance)}</span>

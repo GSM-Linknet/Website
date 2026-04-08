@@ -142,6 +142,13 @@ class BatchPaymentService {
     const response: any = await apiClient.put(`${this.baseUrl}/cancel/${id}`);
     return response.data;
   }
+
+  /**
+   * Delete a batch payment
+   */
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`${this.baseUrl}/delete/${id}`);
+  }
 }
 
 const batchPaymentService = new BatchPaymentService();

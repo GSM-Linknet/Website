@@ -61,7 +61,7 @@ export function AddCustomerDialog({
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const { data: packages } = usePackage({ paginate: false });
+  const { data: packages } = usePackage({ paginate: false, where: "isActive:true" });
   const { data: users } = useUser({ paginate: false });
 
   const currentUser = useMemo(() => AuthService.getUser(), []);

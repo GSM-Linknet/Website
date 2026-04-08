@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUnitCommissionConfig } from "../hooks/useUnitCommissionConfig";
 import type { UnitCommissionConfig } from "@/services/unit-commission.service";
+import { AuthService } from "@/services/auth.service";
 
 export default function UnitCommissionConfigPage() {
     const {
@@ -163,6 +164,9 @@ function CommissionForm({ type, config, onChange }: FormProps) {
     const isReg = type === 'reg';
     const methodField = isReg ? 'regMethod' : 'monthlyMethod';
     
+    const currentUser = AuthService.getUser();
+    const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+    
     const components = [
         { label: 'Holding (Pusat)', prefix: isReg ? 'regHolding' : 'monthlyHolding', icon: Building2, color: 'text-slate-600' },
         { label: 'Unit (Cabang)', prefix: isReg ? 'regUnit' : 'monthlyUnit', icon: Building2, color: 'text-indigo-600' },
@@ -210,14 +214,16 @@ function CommissionForm({ type, config, onChange }: FormProps) {
                                 </Label>
                                 <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
                                     <button
+                                        disabled={comp.label === 'Holding (Pusat)' && !isSuperAdmin}
                                         onClick={() => onChange(`${comp.prefix}Type` as any, 'PERCENTAGE')}
-                                        className={`p-1 px-2 rounded-md text-[10px] font-bold transition-all ${config[`${comp.prefix}Type` as keyof UnitCommissionConfig] === 'PERCENTAGE' ? "bg-blue-500 text-white shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                                        className={`p-1 px-2 rounded-md text-[10px] font-bold transition-all ${config[`${comp.prefix}Type` as keyof UnitCommissionConfig] === 'PERCENTAGE' ? "bg-blue-500 text-white shadow-sm" : "text-slate-400 hover:text-slate-600"} ${comp.label === 'Holding (Pusat)' && !isSuperAdmin ? "opacity-50 cursor-not-allowed" : ""}`}
                                     >
                                         <Percent size={12} />
                                     </button>
                                     <button
+                                        disabled={comp.label === 'Holding (Pusat)' && !isSuperAdmin}
                                         onClick={() => onChange(`${comp.prefix}Type` as any, 'NOMINAL')}
-                                        className={`p-1 px-2 rounded-md text-[10px] font-bold transition-all ${config[`${comp.prefix}Type` as keyof UnitCommissionConfig] === 'NOMINAL' ? "bg-blue-500 text-white shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                                        className={`p-1 px-2 rounded-md text-[10px] font-bold transition-all ${config[`${comp.prefix}Type` as keyof UnitCommissionConfig] === 'NOMINAL' ? "bg-blue-500 text-white shadow-sm" : "text-slate-400 hover:text-slate-600"} ${comp.label === 'Holding (Pusat)' && !isSuperAdmin ? "opacity-50 cursor-not-allowed" : ""}`}
                                     >
                                         <BadgeDollarSign size={12} />
                                     </button>
@@ -227,6 +233,7 @@ function CommissionForm({ type, config, onChange }: FormProps) {
                             <div className="relative">
                                 <Input
                                     type="number"
+                                    disabled={comp.label === 'Holding (Pusat)' && !isSuperAdmin}
                                     value={config[`${comp.prefix}Value` as keyof UnitCommissionConfig] as number || 0}
                                     onChange={(e) => {
                                         let val = parseFloat(e.target.value) || 0;
@@ -237,7 +244,7 @@ function CommissionForm({ type, config, onChange }: FormProps) {
                                         config[`${comp.prefix}Type` as keyof UnitCommissionConfig] === 'PERCENTAGE' && 
                                         (config[`${comp.prefix}Value` as keyof UnitCommissionConfig] as number) > 100 
                                         ? "border-red-500 text-red-600 bg-red-50" : ""
-                                    }`}
+                                    } ${comp.label === 'Holding (Pusat)' && !isSuperAdmin ? "bg-slate-100 cursor-not-allowed text-slate-500" : ""}`}
                                 />
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 text-slate-400 font-bold border-l pl-3 border-slate-100">
                                     {config[`${comp.prefix}Type` as keyof UnitCommissionConfig] === 'PERCENTAGE' ? "%" : "Rp"}

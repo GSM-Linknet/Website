@@ -34,6 +34,8 @@ import {
   formatDate,
   getDateRangePreset,
 } from "../utils/report.utils";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
+import { MasterService } from "@/services/master.service";
 import {
   LOADING_MESSAGES,
   ERROR_MESSAGES,
@@ -61,6 +63,32 @@ export default function CustomerReportPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
+  const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
+  const [loadingUnits, setLoadingUnits] = useState(false);
+
+  useEffect(() => {
+    fetchUnits();
+  }, []);
+
+  const fetchUnits = async () => {
+    try {
+      setLoadingUnits(true);
+      const res = await MasterService.getUnits({ limit: 1000 });
+      if (res.status && res.data?.items) {
+        setUnits(
+          res.data.items.map((u) => ({
+            id: u.id,
+            name: `${u.name} - ${u.code}`,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch units:", error);
+    } finally {
+      setLoadingUnits(false);
+    }
+  };
+
   const [filters, setFilters] = useState<ReportFilters>(() => {
     const { startDate, endDate } = getDateRangePreset("month");
     return { startDate, endDate };
@@ -69,7 +97,7 @@ export default function CustomerReportPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.startDate, filters.endDate, legacyFilter]);
+  }, [filters.startDate, filters.endDate, filters.unitId, legacyFilter]);
 
   // Fetch report data
   useEffect(() => {
@@ -401,12 +429,12 @@ export default function CustomerReportPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
+        <div className="relative z-20 bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-gray-600" />
               <h3 className="text-lg font-semibold text-gray-800">
-                Filter Periode
+                Filter Data
               </h3>
             </div>
             {/* Legacy Filter Tabs */}
@@ -426,7 +454,30 @@ export default function CustomerReportPage() {
               ))}
             </div>
           </div>
-          <DateRangeFilter onFilterChange={handleDateRangeChange} />
+          
+          <div className="flex flex-wrap items-end gap-4">
+            <DateRangeFilter onFilterChange={handleDateRangeChange} />
+            <div className="w-full md:w-64 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Unit Operasional
+              </label>
+              <SearchableSelect
+                options={[
+                  { id: "all", name: "Semua Unit" },
+                  ...units
+                ]}
+                value={filters.unitId || "all"}
+                onValueChange={(val) => 
+                  setFilters((prev) => ({ 
+                    ...prev, 
+                    unitId: val === "all" ? undefined : val 
+                  }))
+                }
+                placeholder={loadingUnits ? "Memuat Unit..." : "Pilih Unit"}
+                searchPlaceholder="Cari Unit..."
+              />
+            </div>
+          </div>
         </div>
 
         {loading ? (

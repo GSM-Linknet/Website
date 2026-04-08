@@ -20,7 +20,7 @@ interface CustomerModalProps {
 
 export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, initialData }: CustomerModalProps) {
     const [activeTab, setActiveTab] = useState("personal");
-    const { data: packages } = usePackage({ paginate: false });
+    const { data: packages } = usePackage({ paginate: false, where: "isActive:true" });
 
     const [formData, setFormData] = useState({
         name: "",

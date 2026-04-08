@@ -9,6 +9,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { usePackage } from "../hooks/usePackage";
 import { useWilayah } from "../hooks/useWilayah";
@@ -123,6 +124,10 @@ export default function PackagePricingPage() {
         }
     };
 
+    const handleToggleStatus = async (pkg: Package) => {
+        await update(pkg.id, { isActive: !pkg.isActive });
+    };
+
     const columns = [
         {
             header: "KODE",
@@ -138,6 +143,27 @@ export default function PackagePricingPage() {
             header: "NAMA PAKET",
             accessorKey: "name",
             className: "font-bold text-brand-blue",
+        },
+        {
+            header: "STATUS",
+            accessorKey: "isActive",
+            cell: (row: Package) => (
+                <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full border transition-all duration-300 w-fit ${
+                    row.isActive 
+                        ? 'bg-emerald-50/50 border-emerald-100 shadow-sm shadow-emerald-100/50' 
+                        : 'bg-slate-50 border-slate-200 opacity-70'
+                }`}>
+                    <Switch
+                        checked={row.isActive}
+                        onCheckedChange={() => handleToggleStatus(row)}
+                        className={`scale-75 data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-200 transition-colors shadow-inner`}
+                        disabled={isLoading}
+                    />
+                    <span className={`text-[10px] font-bold uppercase tracking-wider min-w-[36px] ${row.isActive ? 'text-emerald-600' : 'text-slate-500'}`}>
+                        {row.isActive ? 'Aktif' : 'Off'}
+                    </span>
+                </div>
+            )
         },
         {
             header: "WILAYAH",
@@ -276,8 +302,25 @@ export default function PackagePricingPage() {
                     packages.slice(0, 3).map((pkg) => (
                         <div
                             key={pkg.id}
-                            className="bg-white rounded-4xl p-6 border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:scale-[1.02] transition-all"
+                            className={`bg-white rounded-4xl p-6 border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:scale-[1.02] transition-all ${!pkg.isActive ? 'grayscale-[0.5] opacity-80' : ''}`}
                         >
+                            {/* Status Indicator Card */}
+                            <div className={`absolute top-4 right-4 flex items-center gap-2 z-20 px-3 py-1.5 rounded-full border backdrop-blur-sm shadow-sm transition-all duration-300 ${
+                                pkg.isActive 
+                                    ? 'bg-emerald-500/90 border-emerald-400 shadow-emerald-200/50' 
+                                    : 'bg-slate-700/80 border-slate-600 shadow-slate-900/10'
+                            }`}>
+                                <Switch
+                                    checked={pkg.isActive}
+                                    onCheckedChange={() => handleToggleStatus(pkg)}
+                                    className={`scale-75 data-[state=checked]:bg-white/30 data-[state=unchecked]:bg-slate-400 transition-colors cursor-pointer`}
+                                    disabled={isLoading}
+                                />
+                                <span className={`text-[9px] font-bold uppercase tracking-[0.1em] pointer-events-none drop-shadow-sm ${pkg.isActive ? 'text-white' : 'text-slate-200'}`}>
+                                    {pkg.isActive ? 'Aktif' : 'Off'}
+                                </span>
+                            </div>
+
                             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-all text-blue-900">
                                 <Wifi size={80} />
                             </div>
