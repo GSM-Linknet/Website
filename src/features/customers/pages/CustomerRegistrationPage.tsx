@@ -20,6 +20,8 @@ import { LinknetPipelineModal } from "../components/LinknetPipelineModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { AuthService } from "@/services/auth.service";
 import { CustomerService } from "@/services/customer.service";
+import { MasterService } from "@/services/master.service";
+import { UserService } from "@/services/user.service";
 import { useCustomers } from "../hooks/useCustomers";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
@@ -74,8 +76,45 @@ export default function CustomerRegistrationPage() {
     status: "all",
     internet: "all",
     wilayah: "all",
+    unit: "all",
+    upline: "all",
     linknetStatus: "all",
   });
+
+  const [units, setUnits] = useState<{ label: string; value: string }[]>([]);
+  const [uplines, setUplines] = useState<{ label: string; value: string }[]>([]);
+
+  // Fetch unit and upline options
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [unitsRes, usersRes] = await Promise.all([
+          MasterService.getUnits({ paginate: false }),
+          UserService.findAll({ paginate: false }),
+        ]);
+
+        if (unitsRes.data) {
+          const unitOptions = (unitsRes.data as any).items?.map((u: any) => ({
+            label: u.name,
+            value: u.id,
+          })) || [];
+          setUnits([{ label: "Semua Unit", value: "all" }, ...unitOptions]);
+        }
+
+        if (usersRes.data) {
+          const uplineOptions = (usersRes.data as any).items?.map((u: any) => ({
+            label: u.name,
+            value: u.id,
+          })) || [];
+          setUplines([{ label: "Semua Upline", value: "all" }, ...uplineOptions]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch filter options", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
 
   // Update query when debounced search or filters change
@@ -87,6 +126,8 @@ export default function CustomerRegistrationPage() {
     if (filters.status !== "all") searchParts.push(`statusCust:${filters.status === "verified"}`);
     if (filters.internet !== "all") searchParts.push(`statusNet:${filters.internet === "online"}`);
     if (filters.wilayah !== "all") searchParts.push(`idWilayah:${filters.wilayah}`);
+    if (filters.unit !== "all") searchParts.push(`unitId:${filters.unit}`);
+    if (filters.upline !== "all") searchParts.push(`idUpline:${filters.upline}`);
     if (filters.linknetStatus !== "all") searchParts.push(`linknetStatus:${filters.linknetStatus}`);
 
     const whereParam = searchParts.join("+");
@@ -494,6 +535,20 @@ export default function CustomerRegistrationPage() {
             { label: "Menunggu IKR", value: "OM_SUBMITTED" },
           ]}
           onSelect={(val) => handleFilterChange("linknetStatus", val)}
+        />
+
+        <FilterDropdown
+          label="Semua Unit"
+          activeValue={filters.unit}
+          options={units}
+          onSelect={(val) => handleFilterChange("unit", val)}
+        />
+
+        <FilterDropdown
+          label="Semua Upline"
+          activeValue={filters.upline}
+          options={uplines}
+          onSelect={(val) => handleFilterChange("upline", val)}
         />
 
       </div>

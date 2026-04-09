@@ -47,6 +47,7 @@ export default function FinancialReportPage() {
     const [loading, setLoading] = useState(true);
     const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
     const [unitFilter, setUnitFilter] = useState<string>('all');
+    const [hierarchyFilter, setHierarchyFilter] = useState<'all' | 'parent_only' | 'child_only'>('all');
     const [units, setUnits] = useState<Unit[]>([]);
     
     // Pagination state
@@ -61,7 +62,7 @@ export default function FinancialReportPage() {
     // Reset page when tab or other filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [activeTab, legacyFilter, unitFilter, filters.startDate, filters.endDate]);
+    }, [activeTab, legacyFilter, unitFilter, hierarchyFilter, filters.startDate, filters.endDate]);
 
     // Fetch units on mount
     useEffect(() => {
@@ -80,15 +81,16 @@ export default function FinancialReportPage() {
         if (activeTab !== 'profitLoss') {
             fetchReportData();
         }
-    }, [filters, activeTab, legacyFilter, unitFilter, currentPage, pageSize]);
+    }, [filters, activeTab, legacyFilter, unitFilter, hierarchyFilter, currentPage, pageSize]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
             const reportFilters = {
                 ...filters,
-                isLegacy: legacyFilter,
+                isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
                 unitId: unitFilter !== 'all' ? unitFilter : undefined,
+                hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
                 page: currentPage,
                 limit: pageSize,
                 paginate: true
@@ -130,16 +132,18 @@ export default function FinancialReportPage() {
     const handleExportExcel = async () => {
         await reportService.exportFinancialReportExcel(activeTab, {
             ...filters,
-            isLegacy: legacyFilter,
+            isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
             unitId: unitFilter !== 'all' ? unitFilter : undefined,
+            hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
         });
     };
 
     const handleExportPDF = async () => {
         await reportService.exportFinancialReportPDF(activeTab, {
             ...filters,
-            isLegacy: legacyFilter,
+            isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
             unitId: unitFilter !== 'all' ? unitFilter : undefined,
+            hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
         });
     };
 
@@ -444,6 +448,26 @@ export default function FinancialReportPage() {
                                     </option>
                                 ))}
                             </select>
+                            
+                            {/* Hierarchy Filter Tabs */}
+                            <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+                                {[
+                                    { value: 'all' as const, label: 'Semua Hierarki' },
+                                    { value: 'parent_only' as const, label: 'Induk (Reguler)' },
+                                    { value: 'child_only' as const, label: 'Khusus Anakan' },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.value}
+                                        onClick={() => setHierarchyFilter(tab.value)}
+                                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all ${hierarchyFilter === tab.value
+                                            ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
+                                            : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                                            }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
 
                             {/* Legacy Filter Tabs */}
                             <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
@@ -475,7 +499,12 @@ export default function FinancialReportPage() {
 
                 {activeTab === 'profitLoss' ? (
                     <div className="mt-8">
-                         <ProfitLossReportView filters={filters} />
+                         <ProfitLossReportView filters={{
+                            ...filters,
+                            isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+                            unitId: unitFilter !== 'all' ? unitFilter : undefined,
+                            hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
+                         }} />
                     </div>
                 ) : (
                     <>

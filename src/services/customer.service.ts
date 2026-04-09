@@ -68,6 +68,24 @@ export interface Customer {
   onLeaveStartDate?: string;
   onLeaveEndDate?: string;
 
+  // === Parent-Child ===
+  parentCustomerId?: string | null;
+  isParent?: boolean;
+  parent?: {
+    id: string;
+    name: string;
+    customerId?: string;
+    statusNet: boolean;
+  } | null;
+  children?: Array<{
+    id: string;
+    name: string;
+    customerId?: string;
+    statusCust: boolean;
+    statusNet: boolean;
+    customerStatus?: string;
+  }>;
+
   createdAt?: string;
   updatedAt?: string;
 
@@ -204,5 +222,43 @@ export const CustomerService = {
     a.download = `data-pelanggan-${Date.now()}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
+  },
+
+  // ─── Parent-Child Endpoints ───────────────────────────────────────────────
+
+  /** Set customer sebagai anakan dari parent */
+  setParent: async (childId: string, parentCustomerId: string) => {
+    return apiClient.post<Customer>(`${ENDPOINT}/set-parent/${childId}`, { parentCustomerId });
+  },
+
+  /** Lepaskan relasi parent (jadikan mandiri) */
+  removeParent: async (childId: string) => {
+    return apiClient.delete<Customer>(`${ENDPOINT}/remove-parent/${childId}`);
+  },
+
+  /** Ambil semua anakan dari parent */
+  getChildren: async (parentId: string) => {
+    return apiClient.get<{ parent: Partial<Customer>; children: Customer[]; total: number }>(
+      `${ENDPOINT}/children/${parentId}`
+    );
+  },
+
+  /** Transfer semua anakan ke parent baru atau jadikan mandiri */
+  transferChildren: async (parentId: string, newParentCustomerId: string | null) => {
+    return apiClient.patch<{ message: string; transferred: number }>(
+      `${ENDPOINT}/transfer-children/${parentId}`,
+      { newParentCustomerId }
+    );
+  },
+
+  /** Hapus parent dengan penanganan anakan */
+  deleteWithOptions: async (
+    id: string,
+    options: { transferToParentId?: string; forceDeleteChildren?: boolean }
+  ) => {
+    return apiClient.delete<{ message: string }>(
+      `${ENDPOINT}/delete-with-options/${id}`,
+      { data: options }
+    );
   },
 };

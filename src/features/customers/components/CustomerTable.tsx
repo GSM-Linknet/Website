@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power, LogIn } from "lucide-react";
+import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power, LogIn, GitFork } from "lucide-react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { ParentChildManageDialog } from "./ParentChildManageDialog";
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -39,6 +40,9 @@ interface CustomerTableProps {
   onDetail?: (customer: Customer) => void;
   onEdit?: (customer: Customer) => void;
   onDelete?: (id: string) => void;
+  /** Daftar semua customer untuk pilihan parent di dialog hierarki */
+  allCustomers?: Customer[];
+  onRefresh?: () => void;
 }
 
 const userProfile = AuthService.getUser();
@@ -61,6 +65,8 @@ export const CustomerTable = ({
   onDetail,
   onEdit,
   onDelete,
+  allCustomers = [],
+  onRefresh,
 }: CustomerTableProps) => {
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -72,6 +78,12 @@ export const CustomerTable = ({
   const [linknetDialogOpen, setLinknetDialogOpen] = useState(false);
   const [linknetCustomer, setLinknetCustomer] = useState<Customer | null>(null);
   const [impersonatingMap, setImpersonatingMap] = useState<Record<string, boolean>>({});
+
+  // Parent-child dialog
+  const [hierarchyDialogOpen, setHierarchyDialogOpen] = useState(false);
+  const [hierarchyCustomer, setHierarchyCustomer] = useState<Customer | null>(null);
+
+  const canManageHierarchy = AuthService.hasPermission(userRole, "pelanggan.pendaftaran", "edit");
 
   const handleLinknetPipeline = (customer: Customer) => {
     setLinknetCustomer(customer);
@@ -173,7 +185,24 @@ export const CustomerTable = ({
                   FREE
                 </Badge>
               )}
+              {/* Parent-child badges */}
+              {row.isParent && (
+                <Badge className="bg-violet-100 text-violet-700 border-none text-[9px] px-1.5 h-4 font-bold rounded-full flex items-center gap-0.5">
+                  <GitFork size={8} /> Parent
+                </Badge>
+              )}
+              {row.parentCustomerId && (
+                <Badge className="bg-sky-100 text-sky-700 border-none text-[9px] px-1.5 h-4 font-bold rounded-full">
+                  Anakan
+                </Badge>
+              )}
             </div>
+            {/* Parent info for child customers */}
+            {row.parentCustomerId && row.parent && (
+              <span className="text-[10px] text-violet-600 font-medium">
+                ↖ {row.parent.name}
+              </span>
+            )}
             <div className="flex flex-wrap gap-1 mt-1.5 mb-1">
               {row.labels?.map((label) => (
                 <Badge
@@ -419,16 +448,34 @@ export const CustomerTable = ({
                 <DropdownMenuItem
                   className={cn(
                     "cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2",
-                    row.statusNet ? "text-orange-600" : "text-emerald-600"
+                    // Disable jika customer adalah anakan
+                    row.parentCustomerId
+                      ? "text-slate-400 opacity-50 cursor-not-allowed"
+                      : row.statusNet ? "text-orange-600" : "text-emerald-600"
                   )}
-                  onClick={() => openSuspendConfirm(row)}
-                  disabled={suspendingId === row.id}
+                  onClick={() => !row.parentCustomerId && openSuspendConfirm(row)}
+                  disabled={suspendingId === row.id || !!row.parentCustomerId}
                 >
                   <Power size={14} />
                   {row.statusNet ? "Suspend" : "Unsuspend"}
+                  {row.parentCustomerId && (
+                    <span className="text-[9px] font-medium ml-1">(ikut parent)</span>
+                  )}
                 </DropdownMenuItem>
               )}
-             
+              {canManageHierarchy && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-violet-600 flex items-center gap-2"
+                  onClick={() => {
+                    setHierarchyCustomer(row);
+                    setHierarchyDialogOpen(true);
+                  }}
+                >
+                  <GitFork size={14} />
+                  {row.isParent ? `Hierarki (${row.children?.length ?? 0} anakan)` : row.parentCustomerId ? 'Info Hierarki' : 'Set Hierarki'}
+                </DropdownMenuItem>
+              )}
+
               {canDelete && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
@@ -477,13 +524,18 @@ export const CustomerTable = ({
           open={linknetDialogOpen}
           onOpenChange={setLinknetDialogOpen}
           customer={linknetCustomer}
-          onSuccess={() => {
-            // In a real scenario we might re-fetch table data here
-            // onPageChange?.(page || 1)
-            // or mutate the current customer directly
-          }}
+          onSuccess={() => {}}
         />
       )}
+
+      {/* Parent-Child Manage Dialog */}
+      <ParentChildManageDialog
+        open={hierarchyDialogOpen}
+        onOpenChange={setHierarchyDialogOpen}
+        customer={hierarchyCustomer}
+        allCustomers={allCustomers}
+        onSuccess={onRefresh}
+      />
 
       {/* Suspend/Unsuspend Confirmation Dialog */}
       <AlertDialog open={!!suspendConfirm} onOpenChange={(open) => !open && setSuspendConfirm(null)}>

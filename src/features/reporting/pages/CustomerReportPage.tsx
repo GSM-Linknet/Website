@@ -49,6 +49,7 @@ export default function CustomerReportPage() {
   const [legacyFilter, setLegacyFilter] = useState<"all" | "new" | "legacy">(
     "all",
   );
+  const [hierarchyFilter, setHierarchyFilter] = useState<"all" | "parent_only" | "child_only">("all");
   const [activeTab, setActiveTab] = useState<"ringkasan" | "penjelasan">(
     "ringkasan",
   );
@@ -97,19 +98,20 @@ export default function CustomerReportPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.startDate, filters.endDate, filters.unitId, legacyFilter]);
+  }, [filters.startDate, filters.endDate, filters.unitId, legacyFilter, hierarchyFilter]);
 
   // Fetch report data
   useEffect(() => {
     fetchReportData();
-  }, [filters, legacyFilter, currentPage, pageSize]);
+  }, [filters, legacyFilter, hierarchyFilter, currentPage, pageSize]);
 
   const fetchReportData = async () => {
     try {
       setLoading(true);
       const reportFilters = {
         ...filters,
-        isLegacy: legacyFilter,
+        isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+        hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
         page: currentPage,
         limit: pageSize,
         paginate: true
@@ -134,14 +136,16 @@ export default function CustomerReportPage() {
   const handleExportExcel = async () => {
     await reportService.exportCustomerReportExcel({
       ...filters,
-      isLegacy: legacyFilter,
+      isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+      hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
     });
   };
 
   const handleExportPDF = async () => {
     await reportService.exportCustomerReportPDF({
       ...filters,
-      isLegacy: legacyFilter,
+      isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+      hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
     });
   };
 
@@ -150,6 +154,13 @@ export default function CustomerReportPage() {
     { value: "all" as const, label: "Semua Customer" },
     { value: "new" as const, label: "Customer Baru" },
     { value: "legacy" as const, label: "Customer Legacy" },
+  ];
+
+  // Hierarchy filter tabs
+  const hierarchyTabs = [
+    { value: "all" as const, label: "Semua Hierarki" },
+    { value: "parent_only" as const, label: "Induk (Reguler)" },
+    { value: "child_only" as const, label: "Khusus Anakan" },
   ];
 
   // Table columns configuration
@@ -217,7 +228,22 @@ export default function CustomerReportPage() {
       key: "unit",
       header: "Unit",
       sortable: true,
-      width: "150px",
+      width: "140px",
+    },
+    {
+      key: "hierarchy",
+      header: "Hierarki",
+      width: "160px",
+      render: (_: any, row: any) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-xs text-gray-800">
+            {row.isChild ? "Pelanggan Anak" : "Reguler / Induk"}
+          </span>
+          {row.isChild && (
+            <span className="text-[10px] text-gray-500 font-medium">Induk: {row.parentName}</span>
+          )}
+        </div>
+      )
     },
     {
       key: "totalBilling",
@@ -437,21 +463,40 @@ export default function CustomerReportPage() {
                 Filter Data
               </h3>
             </div>
-            {/* Legacy Filter Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
-              {legacyTabs.map((tab) => (
-                <button
-                  key={tab.value}
-                  onClick={() => setLegacyFilter(tab.value)}
-                  className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                    legacyFilter === tab.value
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-3">
+              {/* Hierarchy Filter Tabs */}
+              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+                {hierarchyTabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setHierarchyFilter(tab.value)}
+                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                      hierarchyFilter === tab.value
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Legacy Filter Tabs */}
+              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+                {legacyTabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setLegacyFilter(tab.value)}
+                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                      legacyFilter === tab.value
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           

@@ -11,6 +11,7 @@ export interface ReportFilters {
   status?: string;
   type?: string;
   isLegacy?: "all" | "new" | "legacy";
+  hierarchy?: "all" | "parent_only" | "child_only";
   page?: number;
   limit?: number;
   paginate?: boolean;

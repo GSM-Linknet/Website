@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AddLegacyCustomerDialog } from "../components/AddLegacyCustomerDialog";
+import { DeleteParentDialog } from "../components/DeleteParentDialog";
 
 // ==================== Page Component ====================
 
@@ -49,6 +50,7 @@ export default function CustomerListPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleteParentOpen, setIsDeleteParentOpen] = useState(false);
 
   // Dropdown filters
   const [filters, setFilters] = useState({
@@ -152,7 +154,12 @@ export default function CustomerListPage() {
     const customer = customers.find((c) => c.id === id);
     if (customer) {
       setSelectedCustomer(customer);
-      setIsDeleteOpen(true);
+      // Jika customer adalah parent dengan anakan, buka dialog khusus
+      if (customer.isParent && (customer.children?.length ?? 0) > 0) {
+        setIsDeleteParentOpen(true);
+      } else {
+        setIsDeleteOpen(true);
+      }
     }
   };
 
@@ -424,6 +431,8 @@ export default function CustomerListPage() {
           onDetail={handleDetail}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          allCustomers={customers}
+          onRefresh={refresh}
         />
       </div>
 
@@ -453,6 +462,15 @@ export default function CustomerListPage() {
         isOpen={isAddLegacyOpen}
         onClose={() => setIsAddLegacyOpen(false)}
         onSuccess={() => { setIsAddLegacyOpen(false); refresh(); }}
+      />
+
+      {/* Delete parent with children options */}
+      <DeleteParentDialog
+        open={isDeleteParentOpen}
+        onOpenChange={setIsDeleteParentOpen}
+        customer={selectedCustomer}
+        allCustomers={customers}
+        onSuccess={() => { setIsDeleteParentOpen(false); setSelectedCustomer(null); refresh(); }}
       />
     </div>
   );
