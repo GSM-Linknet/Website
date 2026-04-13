@@ -136,6 +136,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/reporting/financial",
         resource: "reporting.keuangan",
       },
+       {
+        title: "Billing Linknet",
+        href: "/keuangan/linknet-billing",
+        resource: "keuangan.linknet-billing",
+      },
       // Using invoice permission for now
       // {
       //   title: "Laporan Produksi",

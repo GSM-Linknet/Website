@@ -54,6 +54,7 @@ const AgingReportsPage = lazy(
 const PayoutPage = lazy(() => import("@/features/finance/pages/PayoutPage"));
 const CommissionPage = lazy(() => import("@/features/finance/pages/CommissionPage"));
 const CommissionManagementPage = lazy(() => import("@/features/finance/pages/CommissionManagementPage"));
+const LinknetBillingPage = lazy(() => import("@/features/finance/pages/LinknetBillingPage"));
 const WilayahPage = lazy(() => import("@/features/master/pages/WilayahPage"));
 const AreaPage = lazy(() => import("@/features/master/pages/AreaPage"));
 const CabangPage = lazy(() => import("@/features/master/pages/CabangPage"));
@@ -627,6 +628,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <DailyJournalPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "linknet-billing",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <LinknetBillingPage />
               </Suspense>
             ),
           },
