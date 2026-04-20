@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -31,17 +30,15 @@ import {
   Link2Off,
   GitFork,
 } from "lucide-react";
-import { CustomerService, type Customer } from "@/services/customer.service";
+import { type Customer } from "@/services/customer.service";
 import { SearchableSelect } from "@/components/shared/SearchableSelect";
+import { useParentChildManage } from "../hooks/useParentChildManage";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 interface ParentChildManageDialogProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   customer: Customer | null;
-  /** Daftar semua customer aktif untuk pilihan re-parenting */
-  allCustomers?: Customer[];
   onSuccess?: () => void;
 }
 
@@ -59,132 +56,33 @@ const StatusNetBadge = ({ online }: { online: boolean }) => (
 );
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export function ParentChildManageDialog({
-  open,
-  onOpenChange,
-  customer,
-  allCustomers = [],
-  onSuccess,
-}: ParentChildManageDialogProps) {
-  const [children, setChildren] = useState<Customer["children"]>([]);
-  const [loadingChildren, setLoadingChildren] = useState(false);
-
-  // Set-parent state
-  const [selectedParentId, setSelectedParentId] = useState("");
-  const [settingParent, setSettingParent] = useState(false);
-
-  // Remove-parent state
-  const [removingParent, setRemovingParent] = useState(false);
-
-  // Transfer state
-  const [transferTargetId, setTransferTargetId] = useState("");
-  const [transferring, setTransferring] = useState(false);
-
-  // Confirm dialog state
-  const [confirmAction, setConfirmAction] = useState<
-    | { type: "removeParent" }
-    | { type: "transferIndependent" }
-    | null
-  >(null);
-
-  const isChild = !!customer?.parentCustomerId;
-  const isParent = !!customer?.isParent;
-
-  // Fetch children when dialog opens and customer is a parent
-  useEffect(() => {
-    if (!open || !isParent || !customer) {
-      setChildren([]);
-      return;
-    }
-    setLoadingChildren(true);
-    CustomerService.getChildren(customer.id)
-      .then((res: any) => {
-        const data = res?.data ?? res;
-        setChildren(data?.children ?? []);
-      })
-      .catch(() => setChildren([]))
-      .finally(() => setLoadingChildren(false));
-  }, [open, customer, isParent]);
-
-  // Eligible parents: active, not a child, not self
-  const eligibleParents = allCustomers.filter(
-    (c) =>
-      c.id !== customer?.id &&
-      c.customerStatus === "ACTIVE" &&
-      c.statusCust === true &&
-      !c.parentCustomerId
-  );
+export function ParentChildManageDialog(props: ParentChildManageDialogProps) {
+  const { customer, open, onOpenChange } = props;
+  
+  const {
+    children,
+    loadingChildren,
+    selectedParentId,
+    setSelectedParentId,
+    settingParent,
+    removingParent,
+    transferTargetId,
+    setTransferTargetId,
+    transferring,
+    confirmAction,
+    setConfirmAction,
+    remoteParents,
+    isSearching,
+    isChild,
+    isParent,
+    fetchParents,
+    handleSetParent,
+    handleRemoveParent,
+    handleTransfer,
+    handleMakeIndependent,
+  } = useParentChildManage(props);
 
   if (!customer) return null;
-
-  // ─── Set Parent ───────────────────────────────────────────────────────────
-  const handleSetParent = async () => {
-    if (!selectedParentId) return;
-    setSettingParent(true);
-    try {
-      await CustomerService.setParent(customer.id, selectedParentId);
-      toast.success("Customer berhasil ditetapkan sebagai anakan");
-      onSuccess?.();
-      onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Gagal menetapkan parent");
-    } finally {
-      setSettingParent(false);
-    }
-  };
-
-  // ─── Remove Parent ────────────────────────────────────────────────────────
-  const handleRemoveParent = async () => {
-    setConfirmAction(null);
-    setRemovingParent(true);
-    try {
-      await CustomerService.removeParent(customer.id);
-      toast.success("Relasi parent berhasil dilepaskan");
-      onSuccess?.();
-      onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Gagal melepas relasi parent");
-    } finally {
-      setRemovingParent(false);
-    }
-  };
-
-  // ─── Transfer Children to new parent ─────────────────────────────────────
-  const handleTransfer = async () => {
-    if (!transferTargetId) return;
-    setTransferring(true);
-    try {
-      const res: any = await CustomerService.transferChildren(
-        customer.id,
-        transferTargetId || null
-      );
-      const data = res?.data ?? res;
-      toast.success(data?.message || "Transfer berhasil");
-      onSuccess?.();
-      onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Gagal transfer anakan");
-    } finally {
-      setTransferring(false);
-    }
-  };
-
-  // ─── Make children independent ────────────────────────────────────────────
-  const handleMakeIndependent = async () => {
-    setConfirmAction(null);
-    setTransferring(true);
-    try {
-      const res: any = await CustomerService.transferChildren(customer.id, null);
-      const data = res?.data ?? res;
-      toast.success(data?.message || "Semua anakan berhasil dijadikan mandiri");
-      onSuccess?.();
-      onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Gagal menjadikan anakan mandiri");
-    } finally {
-      setTransferring(false);
-    }
-  };
 
   return (
     <>
@@ -247,12 +145,14 @@ export function ParentChildManageDialog({
                   Pilih customer aktif yang akan menjadi parent dari <span className="font-semibold text-slate-600">{customer.name}</span>.
                 </p>
                 <SearchableSelect
-                  options={eligibleParents.map((c) => ({
+                  options={remoteParents.map((c) => ({
                     id: c.id,
                     name: `${c.name} ${c.customerId ? `(${c.customerId})` : ""}`,
                   }))}
                   value={selectedParentId}
                   onValueChange={setSelectedParentId}
+                  onSearch={fetchParents}
+                  isLoading={isSearching}
                   placeholder="Pilih customer sebagai parent..."
                   searchPlaceholder="Cari nama pelanggan..."
                 />
@@ -316,7 +216,7 @@ export function ParentChildManageDialog({
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <SearchableSelect
-                            options={eligibleParents
+                            options={remoteParents
                               .filter((c) => c.id !== customer.id)
                               .map((c) => ({
                                 id: c.id,
@@ -324,6 +224,8 @@ export function ParentChildManageDialog({
                               }))}
                             value={transferTargetId}
                             onValueChange={setTransferTargetId}
+                            onSearch={fetchParents}
+                            isLoading={isSearching}
                             placeholder="Pilih parent baru..."
                             searchPlaceholder="Cari parent..."
                           />
@@ -357,7 +259,7 @@ export function ParentChildManageDialog({
             )}
 
             {/* ── Info: customer biasa tanpa relasi ── */}
-            {!isChild && !isParent && eligibleParents.length === 0 && (
+            {!isChild && !isParent && !isSearching && remoteParents.length === 0 && (
               <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center">
                 <GitFork size={24} className="mx-auto text-slate-300 mb-2" />
                 <p className="text-xs text-slate-400 font-medium">

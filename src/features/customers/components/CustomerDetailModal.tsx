@@ -46,17 +46,20 @@ export function CustomerDetailModal({
   canVerify,
   verifying,
 }: CustomerDetailModalProps) {
+  if (!customer) return null;
+
   const { data: packages } = usePackage({ paginate: false });
+
   const packageName =
     packages.find((p) => p.id === customer?.idPackages)?.name ||
     "Unknown Package";
+
   const [previewImage, setPreviewImage] = useState<{
     src: string;
     label: string;
   } | null>(null);
 
   const [siteId, setSiteId] = useState("");
-  if (!customer) return null;
 
   const InfoItem = ({ icon: Icon, label, value, isMono = false, onClick }: any) => (
     <div

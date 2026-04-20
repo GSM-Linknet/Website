@@ -431,32 +431,37 @@ export default function CustomerListPage() {
           onDetail={handleDetail}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          allCustomers={customers}
           onRefresh={refresh}
         />
       </div>
 
       {/* ── Modals ── */}
-      <CustomerDetailModal
-        isOpen={isDetailOpen}
-        onClose={() => { setIsDetailOpen(false); setSelectedCustomer(null); }}
-        customer={selectedCustomer}
-      />
+      {isDetailOpen && selectedCustomer && (
+        <CustomerDetailModal
+          isOpen={isDetailOpen}
+          onClose={() => { setIsDetailOpen(false); setSelectedCustomer(null); }}
+          customer={selectedCustomer}
+        />
+      )}
 
-      <ManageCustomerModal
-        isOpen={isManageOpen}
-        onClose={() => { setIsManageOpen(false); setSelectedCustomer(null); }}
-        customer={selectedCustomer}
-        onSuccess={refresh}
-      />
+      {isManageOpen && selectedCustomer && (
+        <ManageCustomerModal
+          isOpen={isManageOpen}
+          onClose={() => { setIsManageOpen(false); setSelectedCustomer(null); }}
+          customer={selectedCustomer}
+          onSuccess={refresh}
+        />
+      )}
 
-      <DeleteConfirmationModal
-        isOpen={isDeleteOpen}
-        onClose={() => { setIsDeleteOpen(false); setSelectedCustomer(null); }}
-        onConfirm={confirmDelete}
-        itemName={selectedCustomer?.name}
-        isLoading={deleting}
-      />
+      {isDeleteOpen && selectedCustomer && (
+        <DeleteConfirmationModal
+          isOpen={isDeleteOpen}
+          onClose={() => { setIsDeleteOpen(false); setSelectedCustomer(null); }}
+          onConfirm={confirmDelete}
+          itemName={selectedCustomer?.name}
+          isLoading={deleting}
+        />
+      )}
 
       <AddLegacyCustomerDialog
         isOpen={isAddLegacyOpen}
@@ -464,14 +469,14 @@ export default function CustomerListPage() {
         onSuccess={() => { setIsAddLegacyOpen(false); refresh(); }}
       />
 
-      {/* Delete parent with children options */}
-      <DeleteParentDialog
-        open={isDeleteParentOpen}
-        onOpenChange={setIsDeleteParentOpen}
-        customer={selectedCustomer}
-        allCustomers={customers}
-        onSuccess={() => { setIsDeleteParentOpen(false); setSelectedCustomer(null); refresh(); }}
-      />
+      {isDeleteParentOpen && selectedCustomer && (
+        <DeleteParentDialog
+          open={isDeleteParentOpen}
+          onOpenChange={setIsDeleteParentOpen}
+          customer={selectedCustomer}
+          onSuccess={() => { setIsDeleteParentOpen(false); setSelectedCustomer(null); refresh(); }}
+        />
+      )}
     </div>
   );
 }

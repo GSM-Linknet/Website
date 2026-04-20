@@ -40,8 +40,6 @@ interface CustomerTableProps {
   onDetail?: (customer: Customer) => void;
   onEdit?: (customer: Customer) => void;
   onDelete?: (id: string) => void;
-  /** Daftar semua customer untuk pilihan parent di dialog hierarki */
-  allCustomers?: Customer[];
   onRefresh?: () => void;
 }
 
@@ -65,7 +63,6 @@ export const CustomerTable = ({
   onDetail,
   onEdit,
   onDelete,
-  allCustomers = [],
   onRefresh,
 }: CustomerTableProps) => {
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
@@ -533,7 +530,6 @@ export const CustomerTable = ({
         open={hierarchyDialogOpen}
         onOpenChange={setHierarchyDialogOpen}
         customer={hierarchyCustomer}
-        allCustomers={allCustomers}
         onSuccess={onRefresh}
       />
 

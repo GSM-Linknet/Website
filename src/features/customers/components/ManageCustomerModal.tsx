@@ -75,9 +75,12 @@ export function ManageCustomerModal({
     customer,
     onSuccess,
 }: ManageCustomerModalProps) {
+    if (!customer) return null;
+
     const { toast } = useToast();
-    const { data: packages } = usePackage({ paginate: false });
-    const { data: users } = useUser({ paginate: false });
+    const queryOptions = useMemo(() => ({ paginate: false }), []);
+    const { data: packages } = usePackage(queryOptions);
+    const { data: users } = useUser(queryOptions);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<any>({});
     const [activeTab, setActiveTab] = useState("personal");
@@ -148,7 +151,6 @@ export function ManageCustomerModal({
         }
     }, [customer]);
 
-    if (!customer) return null;
 
     const handleSubmit = async () => {
         try {

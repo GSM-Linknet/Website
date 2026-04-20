@@ -8,6 +8,7 @@ import {
   History,
   Settings,
   DollarSignIcon,
+  Wrench,
 } from "lucide-react";
 import type { NavItem } from "@/types";
 
@@ -63,35 +64,35 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         resource: "pelanggan.trash",
       },
 
-      // {
-      //   title: "Layanan Link Net",
-      //   href: "/pelanggan/layanan",
-      //   resource: "pelanggan.layanan",
-      // },
+      {
+        title: "Layanan Link Net",
+        href: "/pelanggan/layanan",
+        resource: "pelanggan.layanan",
+      },
     ],
   },
-  // {
-  //   title: "Teknisi",
-  //   icon: Wrench,
-  //   resource: "teknisi",
-  //   items: [
-  //     {
-  //       title: "Database Teknisi",
-  //       href: "/teknisi/database",
-  //       resource: "teknisi.database",
-  //     },
-  //     {
-  //       title: "Tools & Peralatan",
-  //       href: "/teknisi/tools",
-  //       resource: "teknisi.tools",
-  //     },
-  //     {
-  //       title: "Harga Jasa (Labor)",
-  //       href: "/teknisi/harga-jasa",
-  //       resource: "teknisi.harga",
-  //     },
-  //   ],
-  // },
+  {
+    title: "Teknisi",
+    icon: Wrench,
+    resource: "teknisi",
+    items: [
+      {
+        title: "Database Teknisi",
+        href: "/teknisi/database",
+        resource: "teknisi.database",
+      },
+      {
+        title: "Tools & Peralatan",
+        href: "/teknisi/tools",
+        resource: "teknisi.tools",
+      },
+      {
+        title: "Harga Jasa (Labor)",
+        href: "/teknisi/harga-jasa",
+        resource: "teknisi.harga",
+      },
+    ],
+  },
   {
     title: "Produksi",
     icon: Factory,
@@ -102,23 +103,23 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/reporting/sales-target",
         resource: "reporting.sales-target",
       },
-      // { title: "Input Prospek", href: "/produksi/prospek", resource: "produksi.prospek" },
+      { title: "Input Prospek", href: "/produksi/prospek", resource: "produksi.prospek" },
       {
         title: "Peta Coverage",
         href: "/produksi/coverage-map",
         resource: "produksi.cakupan",
       },
-      // { title: "Verifikasi Admin", href: "/produksi/verifikasi", resource: "produksi.verifikasi" },
-      // {
-      //   title: "Schedule Pasang",
-      //   href: "/master/schedule",
-      //   resource: "master.schedule",
-      // },
-      // {
-      //   title: "Work Orders (WO)",
-      //   href: "/produksi/wo",
-      //   resource: "produksi.wo",
-      // },
+      { title: "Verifikasi Admin", href: "/produksi/verifikasi", resource: "produksi.verifikasi" },
+      {
+        title: "Schedule Pasang",
+        href: "/master/schedule",
+        resource: "master.schedule",
+      },
+      {
+        title: "Work Orders (WO)",
+        href: "/produksi/wo",
+        resource: "produksi.wo",
+      },
     ],
   },
   {
@@ -142,26 +143,26 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         resource: "keuangan.linknet-billing",
       },
       // Using invoice permission for now
-      // {
-      //   title: "Laporan Produksi",
-      //   href: "/reporting/production",
-      //   resource: "reporting.produksi",
-      // },
+      {
+        title: "Laporan Produksi",
+        href: "/reporting/production",
+        resource: "reporting.produksi",
+      },
       {
         title: "Expense Usage",
         href: "/reporting/expense-usage",
         resource: "reporting.expense",
       },
-      // {
-      //   title: "Sales Target",
-      //   href: "/reporting/sales-target",
-      //   resource: "reporting.sales-target",
-      // },
-      // {
-      //   title: "KA Unit Activity",
-      //   href: "/reporting/unit",
-      //   resource: "reporting.unit",
-      // },
+      {
+        title: "Sales Target",
+        href: "/reporting/sales-target",
+        resource: "reporting.sales-target",
+      },
+      {
+        title: "KA Unit Activity",
+        href: "/reporting/unit",
+        resource: "reporting.unit",
+      },
       {
         title: "Laporan Kinerja",
         href: "/reporting/kpi",

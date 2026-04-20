@@ -229,6 +229,13 @@ export const UnitFinanceService = {
     );
   },
 
+  exportLedger: async (query: BaseQuery = {}) => {
+    return apiClient.get<Blob>(
+      `${ENDPOINTS.BALANCE_LEDGER}/export`,
+      { params: query, responseType: "blob" },
+    );
+  },
+
   getUnitBalance: async (unitId: string) => {
     const response = await apiClient.get<any>(
       `${ENDPOINTS.BALANCE_LEDGER}/balance/${unitId}`,

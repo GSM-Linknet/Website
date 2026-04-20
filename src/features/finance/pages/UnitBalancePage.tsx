@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Button } from "@/components/ui/button";
-import { useBalanceLedger } from "../hooks/useBalanceLedger";
-import { ChevronDown, ArrowUpCircle, ArrowDownCircle, Wallet, Banknote, RefreshCcw } from "lucide-react";
+import { ChevronDown, ArrowUpCircle, ArrowDownCircle, Wallet, RefreshCcw, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
     DropdownMenu,
@@ -14,97 +12,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, cn } from "@/lib/utils";
 import moment from "moment";
 import type { BalanceLedger } from "@/services/unit-finance.service";
-import { UnitFinanceService } from "@/services/unit-finance.service";
-import { MasterService, type Unit } from "@/services/master.service";
 import { CreatePayoutModal } from "../components/CreatePayoutModal";
 import { AuthService } from "@/services/auth.service";
 
+import { useUnitBalancePage } from "../hooks/useUnitBalancePage";
+
 export default function UnitBalancePage() {
     const {
-        data: ledgers,
-        loading: isLoading,
+        ledgers,
+        isLoading,
         setPage,
         totalItems,
         page,
         totalPages,
-        setQuery,
-        refetch,
-    } = useBalanceLedger();
-
-    const [isPayoutOpen, setIsPayoutOpen] = useState(false);
-
-    // Filters state
-    const [filters, setFilters] = useState({
-        unit: "all",
-        type: "all",
-    });
-
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [selectedUnitBalance, setSelectedUnitBalance] = useState<{
-        currentBalance: number;
-        totalIncome: number;
-        totalExpense: number;
-    } | null>(null);
-
-    // Fetch units and initialize filter based on role
-    useEffect(() => {
-        const user = AuthService.getUser();
-        
-        MasterService.getUnits({ paginate: false })
-            .then((res) => {
-                const items = res.data?.items || [];
-                setUnits(items);
-
-                // Hierarchy Enforcement
-                if (user?.role === "ADMIN_UNIT" && user.unitId) {
-                    setFilters(prev => ({ ...prev, unit: user.unitId! }));
-                } else if (user?.role === "SUPERVISOR" && user.unitId) {
-                    setFilters(prev => ({ ...prev, unit: user.unitId! }));
-                }
-            })
-            .catch((err) => {
-                console.error("Failed to fetch units:", err);
-                setUnits([]);
-            });
-    }, []);
-
-    // Fetch balance summary when unit filter changes
-    useEffect(() => {
-        UnitFinanceService.getBalanceSummary(filters.unit)
-            .then((res) => {
-                setSelectedUnitBalance(res);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch balance summary:", err);
-                setSelectedUnitBalance(null);
-            });
-    }, [filters.unit]);
-
-    // Update query when filters change
-    useEffect(() => {
-        const whereParts: string[] = [];
-
-        if (filters.unit !== "all") whereParts.push(`unitId:${filters.unit}`);
-        if (filters.type !== "all") whereParts.push(`type:${filters.type}`);
-
-        const queryParams: any = {};
-        if (whereParts.length > 0) queryParams.where = whereParts.join("+");
-
-        setQuery(Object.keys(queryParams).length > 0 ? queryParams : { where: undefined });
-    }, [filters, setQuery]);
-
-    const handleFilterChange = (key: string, value: string) => {
-        setFilters({ ...filters, [key]: value });
-    };
-
-    const getTypeBadge = (type: string) => {
-        const isIncome = type === "INCOME";
-        return (
-            <Badge className={isIncome ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}>
-                {isIncome ? "Pemasukan" : "Pengeluaran"}
-            </Badge>
-        );
-    };
+        isPayoutOpen,
+        setIsPayoutOpen,
+        filters,
+        units,
+        selectedUnitBalance,
+        handleFilterChange,
+        handleExport,
+        refreshData
+    } = useUnitBalancePage();
 
     const columns: any[] = [
         {
@@ -116,30 +45,49 @@ export default function UnitBalancePage() {
             accessorKey: "unit.name",
             header: "Unit",
             cell: (ledger: BalanceLedger) => (
-                <span className="font-medium">{ledger.unit?.name || "-"}</span>
+                <span className="font-medium text-slate-700">
+                    {ledger.unit?.name || "-"}
+                </span>
             ),
         },
         {
             accessorKey: "type",
             header: "Tipe",
-            cell: (ledger: BalanceLedger) => getTypeBadge(ledger.type),
+            cell: (ledger: BalanceLedger) => (
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                    {ledger.type === "INCOME" ? (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100/50">
+                            Pemasukan
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100/50">
+                            Pengeluaran
+                        </div>
+                    )}
+                </div>
+            ),
         },
         {
             accessorKey: "description",
             header: "Keterangan",
             cell: (ledger: BalanceLedger) => (
-                <span className="truncate max-w-[250px] block">{ledger.description}</span>
+                <span className="text-sm font-medium text-slate-600">
+                    {ledger.description}
+                </span>
             ),
         },
         {
             accessorKey: "amount",
             header: "Jumlah",
             cell: (ledger: BalanceLedger) => (
-                <span className={cn(
-                    "font-semibold",
-                    ledger.type === "INCOME" ? "text-emerald-600" : "text-red-600"
-                )}>
-                    {ledger.type === "INCOME" ? "+" : "-"} {formatCurrency(ledger.amount)}
+                <span
+                    className={cn(
+                        "font-bold",
+                        ledger.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
+                    )}
+                >
+                    {ledger.type === "INCOME" ? "+" : "-"}{" "}
+                    {formatCurrency(ledger.amount)}
                 </span>
             ),
         },
@@ -177,22 +125,17 @@ export default function UnitBalancePage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <Button 
-                        onClick={() => {
-                            UnitFinanceService.getBalanceSummary(filters.unit)
-                                .then(res => setSelectedUnitBalance(res))
-                                .catch(err => console.error(err));
-                            refetch();
-                        }}
+                        onClick={refreshData}
                         variant="ghost" 
                         className="rounded-xl border-slate-200 hover:bg-slate-50 gap-2 text-slate-500 font-bold uppercase text-[10px] tracking-widest"
                     >
                         <RefreshCcw size={14} /> Refresh
                     </Button>
                     <Button 
-                        onClick={() => setIsPayoutOpen(true)}
-                        className="bg-[#101D42] hover:bg-[#0a1329] text-white rounded-xl shadow-xl shadow-blue-900/20 px-6 font-bold gap-2 h-11"
+                        onClick={handleExport}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xl shadow-emerald-600/20 px-6 font-bold gap-2 h-11"
                     >
-                        <Banknote size={18} /> Tarik Saldo
+                        <Download size={18} /> Export Data
                     </Button>
                 </div>
             </div>
@@ -200,12 +143,7 @@ export default function UnitBalancePage() {
             <CreatePayoutModal 
                 isOpen={isPayoutOpen}
                 onClose={() => setIsPayoutOpen(false)}
-                onSuccess={() => {
-                    UnitFinanceService.getBalanceSummary(filters.unit)
-                        .then(res => setSelectedUnitBalance(res))
-                        .catch(err => console.error(err));
-                    refetch();
-                }}
+                onSuccess={refreshData}
                 defaultCategory="COMMISSION"
             />
 
@@ -272,18 +210,23 @@ export default function UnitBalancePage() {
 
             {/* Filters Section */}
             <div className="flex flex-wrap items-center gap-3">
-                <FilterDropdown
-                    label="Pilih Unit"
-                    activeValue={filters.unit}
-                    disabled={AuthService.getUser()?.role === "ADMIN_UNIT" || AuthService.getUser()?.role === "SUPERVISOR"}
-                    options={[
-                        { label: "Semua Unit", value: "all" },
-                        ...(Array.isArray(units)
-                            ? units.map((u) => ({ label: u.name, value: u.id }))
-                            : []),
-                    ]}
-                    onSelect={(val) => handleFilterChange("unit", val)}
-                />
+                {(() => {
+                    const isRestricted = AuthService.getUser()?.role === "ADMIN_UNIT" || AuthService.getUser()?.role === "SUPERVISOR";
+                    const options = Array.isArray(units) ? units.map((u) => ({ label: u.name, value: u.id })) : [];
+                    if (!isRestricted) {
+                        options.unshift({ label: "Semua Unit", value: "all" });
+                    }
+                    
+                    return (
+                        <FilterDropdown
+                            label="Pilih Unit"
+                            activeValue={filters.unit}
+                            disabled={isRestricted}
+                            options={options}
+                            onSelect={(val) => handleFilterChange("unit", val)}
+                        />
+                    );
+                })()}
                 <FilterDropdown
                     label="Semua Tipe"
                     activeValue={filters.type}

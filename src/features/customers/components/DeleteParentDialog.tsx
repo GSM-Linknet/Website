@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,13 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { Trash2, ArrowRight, UserMinus, Loader2, AlertTriangle, GitFork } from "lucide-react";
 import { CustomerService, type Customer } from "@/services/customer.service";
 import { cn } from "@/lib/utils";
@@ -25,7 +19,6 @@ interface DeleteParentDialogProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   customer: Customer | null;
-  allCustomers?: Customer[];
   onSuccess?: () => void;
 }
 
@@ -35,25 +28,48 @@ export function DeleteParentDialog({
   open,
   onOpenChange,
   customer,
-  allCustomers = [],
   onSuccess,
 }: DeleteParentDialogProps) {
+  if (!customer) return null;
+
   const [mode, setMode] = useState<DeleteMode>(null);
   const [transferTargetId, setTransferTargetId] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (!customer) return null;
+  // Remote parents state
+  const [remoteParents, setRemoteParents] = useState<Customer[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const childCount = customer.children?.length ?? 0;
 
-  // Eligible parents: active, not self, not child of anyone, not already a tracked child
-  const eligibleParents = allCustomers.filter(
-    (c) =>
-      c.id !== customer.id &&
-      c.customerStatus === "ACTIVE" &&
-      c.statusCust === true &&
-      !c.parentCustomerId
-  );
+  // Fetch initial parents and search handler
+  const fetchParents = useCallback(async (search = "") => {
+    if (!open || !customer) return;
+    setIsSearching(true);
+    try {
+      const res = await CustomerService.getCustomers({
+        search: search || undefined,
+        where: "customerStatus:ACTIVE+statusCust:true",
+        isnull: "parentCustomerId",
+        not_: `id:${customer.id}`,
+        limit: 20,
+      });
+
+      // @ts-ignore
+      const data = res.data?.items ?? res.items ?? [];
+      setRemoteParents(data);
+    } catch (err) {
+      console.error("Failed to fetch parents", err);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [open, customer?.id]);
+
+  useEffect(() => {
+    if (open && customer && mode === "transfer") {
+      fetchParents();
+    }
+  }, [open, customer?.id, mode]);
 
   const handleConfirm = async () => {
     if (mode === "transfer" && !transferTargetId) return;
@@ -140,25 +156,20 @@ export function DeleteParentDialog({
                 </p>
 
                 {mode === "transfer" && (
-                  <Select value={transferTargetId} onValueChange={setTransferTargetId}>
-                    <SelectTrigger className="mt-3 h-9 bg-white border-blue-200 text-sm">
-                      <SelectValue placeholder="Pilih parent baru..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {eligibleParents.length === 0 ? (
-                        <div className="py-2 text-center text-xs text-slate-400">
-                          Tidak ada customer yang eligible menjadi parent
-                        </div>
-                      ) : (
-                        eligibleParents.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            <span className="font-medium">{c.name}</span>
-                            <span className="text-slate-400 ml-2 text-xs">{c.customerId || ""}</span>
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="mt-3">
+                    <SearchableSelect
+                      options={remoteParents.map((c) => ({
+                        id: c.id,
+                        name: `${c.name} ${c.customerId ? `(${c.customerId})` : ""}`,
+                      }))}
+                      value={transferTargetId}
+                      onValueChange={setTransferTargetId}
+                      onSearch={fetchParents}
+                      isLoading={isSearching}
+                      placeholder="Pilih parent baru..."
+                      searchPlaceholder="Cari parent..."
+                    />
+                  </div>
                 )}
               </div>
             </div>
