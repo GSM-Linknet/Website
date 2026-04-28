@@ -319,14 +319,22 @@ export function ManageCustomerModal({
                                     <div className="space-y-2">
                                         <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                             <Hash className="w-3.5 h-3.5" />
-                                            ID LinkNet
+                                            Service Order ID (Linknet)
                                         </Label>
-                                        <Input
-                                            value={formData.lnId || ""}
-                                            onChange={(e) => setFormData({ ...formData, lnId: e.target.value })}
-                                            className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors font-mono"
-                                            placeholder="Masukkan ID LN"
-                                        />
+                                        <div className="relative">
+                                            <Input
+                                                value={formData.lnId || ""}
+                                                readOnly
+                                                className="h-10 bg-slate-100 border-slate-200 font-mono text-slate-500 cursor-not-allowed"
+                                                placeholder="Diisi otomatis oleh sistem"
+                                            />
+                                            {formData.lnId && (
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-200 px-2 py-0.5 rounded-full">
+                                                    Read-only
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-[11px] text-slate-400">Diisi otomatis saat submit ke Linknet OM. Tidak dapat diubah manual.</p>
                                     </div>
                                 </div>
                             </div>

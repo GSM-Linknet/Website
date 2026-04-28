@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { LinkNetService } from "@/services/linknet.service";
 import type { TimeSlot } from "@/services/linknet.service";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 // ─── Appointment Tab ───
 
@@ -59,8 +61,20 @@ function AppointmentTab() {
     };
 
     const formatDateTime = (dt: string) => {
-        return new Date(dt).toLocaleString("id-ID", {
-            day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+        if (!dt) return "-";
+        // Linknet mengirim waktu WIB tanpa offset (misal: "2026-03-04T09:00:00")
+        // parse manual agar ditampilkan sebagai waktu lokal yang benar
+        const clean = dt.replace(/Z$/, '').replace(/\+\d{2}:\d{2}$/, '').split('.')[0];
+        const [datePart, timePart = '00:00:00'] = clean.split('T');
+        const [y, m, d] = datePart.split('-').map(Number);
+        const [h, min] = timePart.split(':').map(Number);
+        const localDate = new Date(y, m - 1, d, h, min);
+        return localDate.toLocaleString("id-ID", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
         });
     };
 
@@ -350,6 +364,174 @@ function TroubleTicketTab() {
     );
 }
 
+// ─── Survey & Locality Tab ───
+
+function SurveyTab() {
+    const [query, setQuery] = useState("");
+    const [localities, setLocalities] = useState<any[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [selectedLocality, setSelectedLocality] = useState<any | null>(null);
+
+    // Form Survey
+    const [customerId, setCustomerId] = useState("");
+    const [notes, setNotes] = useState("");
+    const [attachment, setAttachment] = useState<File | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSearchLocality = async () => {
+        if (!query.trim()) return;
+        setSearching(true);
+        try {
+            const res: any = await LinkNetService.searchLocality(query);
+            setLocalities(res?.data || []);
+            if (!res?.data?.length) toast.info("Tidak ditemukan lokasi yang cocok");
+        } catch (err: any) {
+            toast.error(err?.message || "Gagal mencari lokasi");
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    const handleCreateAccount = async () => {
+        if (!customerId || !selectedLocality) {
+            toast.error("Customer ID dan Lokasi wajib dipilih");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const formData = new FormData();
+            formData.append("customerId", customerId);
+            formData.append("localityId", selectedLocality.id);
+            formData.append("localityName", selectedLocality.name);
+            formData.append("notes", notes);
+            if (attachment) {
+                formData.append("attachment", attachment);
+            }
+
+            await LinkNetService.createSurveyAccount(formData);
+            toast.success("Permintaan survei berhasil diajukan!");
+            // Reset form
+            setCustomerId("");
+            setNotes("");
+            setAttachment(null);
+            setSelectedLocality(null);
+        } catch (err: any) {
+            toast.error(err?.message || "Gagal mengajukan survei");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Search Section */}
+            <Card className="border-slate-200 shadow-sm h-fit">
+                <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                        <Search size={18} className="text-blue-500" />
+                        Cari Lokasi (Linknet TMF)
+                    </CardTitle>
+                    <CardDescription>Cari alamat atau area untuk pengecekan coverage Linknet</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex gap-2">
+                        <Input
+                            placeholder="Ketik alamat atau nama jalan..."
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleSearchLocality()}
+                        />
+                        <Button onClick={handleSearchLocality} disabled={searching}>
+                            {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search size={18} />}
+                        </Button>
+                    </div>
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                        {localities.map((loc) => (
+                            <div
+                                key={loc.id}
+                                className={cn(
+                                    "p-3 rounded-xl border transition-all cursor-pointer text-sm",
+                                    selectedLocality?.id === loc.id
+                                        ? "bg-blue-50 border-blue-400 shadow-sm"
+                                        : "bg-slate-50 border-slate-100 hover:border-slate-200"
+                                )}
+                                onClick={() => setSelectedLocality(loc)}
+                            >
+                                <div className="font-bold text-slate-800">{loc.name}</div>
+                                <div className="text-xs text-slate-500 mt-1">{loc.description || "No description"}</div>
+                                {loc.localityType && (
+                                    <Badge variant="outline" className="mt-2 text-[10px] bg-white">
+                                        {loc.localityType}
+                                    </Badge>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Create Survey Account Section */}
+            <Card className={cn(
+                "border-slate-200 shadow-sm transition-opacity",
+                !selectedLocality && "opacity-50 pointer-events-none"
+            )}>
+                <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                        <Calendar size={18} className="text-indigo-500" />
+                        Buat Akun Survei
+                    </CardTitle>
+                    <CardDescription>Daftarkan pelanggan untuk tahap survei di lokasi terpilih</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {selectedLocality && (
+                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 mb-4">
+                            <p className="text-[10px] font-bold text-blue-600 uppercase">Lokasi Terpilih</p>
+                            <p className="text-sm font-semibold text-blue-900">{selectedLocality.name}</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Customer ID (System)</Label>
+                        <Input
+                            placeholder="ID pelanggan di database"
+                            value={customerId}
+                            onChange={(e) => setCustomerId(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Catatan Survei</Label>
+                        <Input
+                            placeholder="Misal: Patokan dekat masjid, dll"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Lampiran / Foto Lokasi (Opsional)</Label>
+                        <Input
+                            type="file"
+                            onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                            className="text-xs file:bg-blue-50 file:text-blue-700 file:border-none file:rounded-md h-auto py-1.5"
+                        />
+                    </div>
+
+                    <Button
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 mt-4"
+                        onClick={handleCreateAccount}
+                        disabled={submitting || !selectedLocality}
+                    >
+                        {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Ajukan Survei Sekarang"}
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 // ─── Main Page ───
 
 export default function LinkNetPage() {
@@ -364,6 +546,9 @@ export default function LinkNetPage() {
 
             <Tabs defaultValue="appointment" className="w-full">
                 <TabsList className="bg-slate-100 p-1 rounded-xl">
+                    <TabsTrigger value="survey" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-sm">
+                        <Search className="mr-2 h-4 w-4" /> Survei & Lokasi
+                    </TabsTrigger>
                     <TabsTrigger value="appointment" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-sm">
                         <Calendar className="mr-2 h-4 w-4" /> Appointment
                     </TabsTrigger>
@@ -374,6 +559,9 @@ export default function LinkNetPage() {
                         <AlertTriangle className="mr-2 h-4 w-4" /> Trouble Ticket
                     </TabsTrigger>
                 </TabsList>
+                <TabsContent value="survey" className="mt-6">
+                    <SurveyTab />
+                </TabsContent>
                 <TabsContent value="appointment" className="mt-6">
                     <AppointmentTab />
                 </TabsContent>
