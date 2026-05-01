@@ -76,10 +76,13 @@ export default function InvoicePage() {
     description: string;
     onConfirm: () => void;
     variant?: "destructive" | "default";
-  }>({ title: "", description: "", onConfirm: () => {} });
+  }>({ title: "", description: "", onConfirm: () => { } });
 
   // Filters state
-  const defaultStartDate = moment().startOf("month").format("YYYY-MM-DD");
+  const defaultStartDate = moment()
+    .subtract(1, "month")
+    .startOf("month")
+    .format("YYYY-MM-DD");
   const defaultEndDate = moment().format("YYYY-MM-DD"); // Up to today
 
   const [filters, setFilters] = useState({
@@ -187,21 +190,22 @@ export default function InvoicePage() {
       lteParts.push(`period:${endOfMonth}`);
     }
 
-    if (filters.createdAtStart) {
-      gteParts.push(
-        `createdAt:${moment(filters.createdAtStart).format("YYYY-MM-DD")}`,
-      );
-    }
-    if (filters.createdAtEnd) {
-      lteParts.push(
-        `createdAt:${moment(filters.createdAtEnd).format("YYYY-MM-DD")}`,
-      );
+    // Only apply date filters if search is empty to allow global search
+    if (!debouncedSearchQuery) {
+      if (filters.createdAtStart) {
+        gteParts.push(
+          `createdAt:${moment(filters.createdAtStart).format("YYYY-MM-DD")}`,
+        );
+      }
+      if (filters.createdAtEnd) {
+        lteParts.push(
+          `createdAt:${moment(filters.createdAtEnd).format("YYYY-MM-DD")}`,
+        );
+      }
     }
 
     const queryParams: any = {
-      search: debouncedSearchQuery
-        ? `customer.name:${debouncedSearchQuery}`
-        : undefined,
+      search: debouncedSearchQuery || undefined,
       where: whereParts.length > 0 ? whereParts.join("+") : undefined,
       gte: gteParts.length > 0 ? gteParts.join("+") : undefined,
       lte: lteParts.length > 0 ? lteParts.join("+") : undefined,
@@ -291,8 +295,8 @@ export default function InvoicePage() {
       header: "Link Bayar",
       cell: (invoice: any) =>
         invoice.paymentUrl &&
-        invoice.status !== "paid" &&
-        invoice.status !== "cancelled" ? (
+          invoice.status !== "paid" &&
+          invoice.status !== "cancelled" ? (
           <Button
             variant="link"
             className="text-blue-600 p-0 h-auto font-medium"
@@ -395,7 +399,7 @@ export default function InvoicePage() {
                           console.error(error);
                           toast.error(
                             error?.response?.data?.message ||
-                              "Gagal melakukan rollback invoice",
+                            "Gagal melakukan rollback invoice",
                           );
                         }
                       },
@@ -438,7 +442,7 @@ export default function InvoicePage() {
                     Laporkan Sudah Bayar
                   </DropdownMenuItem>
                 )}
-              {invoice.status !== "paid" && user?.role === "SUPER_ADMIN" &&(
+              {invoice.status !== "paid" && user?.role === "SUPER_ADMIN" && (
                 <DropdownMenuItem
                   onClick={() => {
                     setAlertConfig({
@@ -491,7 +495,7 @@ export default function InvoicePage() {
               size={18}
             />
             <Input
-              placeholder="Cari nama pelanggan..."
+              placeholder="Cari pelanggan atau invoice..."
               className="pl-10 w-full sm:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -778,7 +782,7 @@ const FilterDropdown = ({
           className={cn(
             "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
             activeValue !== "all" &&
-              "border-blue-500 text-blue-600 bg-blue-50/50",
+            "border-blue-500 text-blue-600 bg-blue-50/50",
             disabled && "opacity-50 cursor-not-allowed",
           )}
         >

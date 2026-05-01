@@ -324,17 +324,12 @@ export function ManageCustomerModal({
                                         <div className="relative">
                                             <Input
                                                 value={formData.lnId || ""}
-                                                readOnly
-                                                className="h-10 bg-slate-100 border-slate-200 font-mono text-slate-500 cursor-not-allowed"
-                                                placeholder="Diisi otomatis oleh sistem"
+                                                onChange={(e) => setFormData({ ...formData, lnId: e.target.value })}
+                                                className="h-10 bg-white border-slate-200 font-mono text-slate-700 focus:ring-blue-500"
+                                                placeholder="Service Order ID (Linknet)"
                                             />
-                                            {formData.lnId && (
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-200 px-2 py-0.5 rounded-full">
-                                                    Read-only
-                                                </span>
-                                            )}
                                         </div>
-                                        <p className="text-[11px] text-slate-400">Diisi otomatis saat submit ke Linknet OM. Tidak dapat diubah manual.</p>
+                                        <p className="text-[11px] text-slate-400">ID Service Order dari sistem Linknet. Dapat disesuaikan secara manual jika diperlukan.</p>
                                     </div>
                                 </div>
                             </div>
