@@ -96,6 +96,7 @@ const columns: Column<CommissionLedger>[] = [
     {
         header: "AKSI",
         accessorKey: "actions",
+        hideable: false,
         className: "text-right",
         cell: (row: CommissionLedger, { onUpdateStatus, isLoading }: any) => {
             if (row.status !== 'PENDING') return null;
@@ -414,6 +415,7 @@ export default function CommissionPage() {
                         </div>
 
                         <BaseTable
+                            tableId="finance-commission-history"
                             data={data}
                             columns={columns}
                             rowKey={(row: CommissionLedger) => row.id}
@@ -475,6 +477,7 @@ export default function CommissionPage() {
                         </div>
 
                         <BaseTable
+                            tableId="finance-commission-recap"
                             data={recapData}
                             columns={recapColumns}
                             rowKey={(row: any) => row.userId}

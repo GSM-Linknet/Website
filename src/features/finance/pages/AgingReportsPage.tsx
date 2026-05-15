@@ -152,6 +152,7 @@ export default function AgingReportsPage() {
                 </div>
 
                 <BaseTable
+                    tableId="finance-aging-reports"
                     data={invoices}
                     columns={columns}
                     rowKey={(row: Invoice) => row.id}

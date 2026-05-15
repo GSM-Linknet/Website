@@ -192,6 +192,7 @@ export default function CustomerRegistrationPage() {
     {
       header: "AKSI",
       accessorKey: "actions",
+      hideable: false,
       className: "w-10 text-center",
       cell: (row: Customer) => {
         const isPending = !row.statusCust;
@@ -381,6 +382,7 @@ export default function CustomerRegistrationPage() {
       {/* Table Content */}
       <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
         <BaseTable
+          tableId="customers-registration"
           data={customers}
           columns={columns}
           rowKey={(row) => row.id}

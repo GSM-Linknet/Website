@@ -134,6 +134,7 @@ export default function BatchPaymentPage() {
         {
             accessorKey: "id",
             header: "Aksi",
+            hideable: false,
             cell: (row: BatchPayment) => (
                 <Button
                     size="sm"
@@ -186,6 +187,7 @@ export default function BatchPaymentPage() {
             {/* Data Table Container */}
             <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
+                    tableId="finance-batch-payment"
                     data={batchPayments || []}
                     columns={columns}
                     rowKey={(row) => row.id}

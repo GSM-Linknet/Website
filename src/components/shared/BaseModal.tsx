@@ -24,6 +24,7 @@ interface BaseModalProps {
   primaryActionLabel?: string;
   primaryActionOnClick?: () => void;
   primaryActionLoading?: boolean;
+  primaryActionVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   secondaryActionLabel?: string;
 }
 
@@ -52,6 +53,7 @@ export function BaseModal({
   primaryActionLabel = "Simpan",
   primaryActionOnClick,
   primaryActionLoading = false,
+  primaryActionVariant = "default",
   secondaryActionLabel = "Batal",
 }: BaseModalProps) {
   return (
@@ -91,7 +93,7 @@ export function BaseModal({
 
         {/* Footer Section */}
         {showFooter && (
-          <DialogFooter className="p-6 pt-2 flex gap-2 flex-shrink-0 bg-white z-10">
+          <DialogFooter className="p-6 pt-2 flex flex-row items-center justify-end gap-3 flex-shrink-0 bg-white z-10">
             {footer || (
               <>
                 <Button
@@ -103,9 +105,14 @@ export function BaseModal({
                   {secondaryActionLabel}
                 </Button>
                 <Button
+                  variant={primaryActionVariant === 'default' ? undefined : primaryActionVariant}
                   onClick={primaryActionOnClick}
                   disabled={primaryActionLoading}
-                  className="bg-[#101D42] text-white rounded-xl font-bold px-6 shadow-lg shadow-blue-900/20 hover:bg-[#1a2b5a] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className={cn(
+                    "rounded-xl font-bold px-6 shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]",
+                    primaryActionVariant === 'default' && "bg-[#101D42] text-white shadow-blue-900/20 hover:bg-[#1a2b5a]",
+                    primaryActionVariant === 'destructive' && "bg-destructive text-white shadow-red-900/20 hover:bg-red-600"
+                  )}
                 >
                   {primaryActionLoading ? (
                     <div className="flex items-center gap-2">

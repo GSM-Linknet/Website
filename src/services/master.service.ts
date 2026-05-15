@@ -88,6 +88,7 @@ export interface Package extends BaseEntity {
   holdingCommission?: number;
   otherCommission?: number;
   isActive: boolean;
+  billingCycle: number;
 }
 
 export interface Discount extends BaseEntity {

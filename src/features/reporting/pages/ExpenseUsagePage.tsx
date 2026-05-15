@@ -211,6 +211,7 @@ export default function ExpenseUsagePage() {
             {/* Table */}
             <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
+                    tableId="reporting-expense-usage"
                     data={currentData}
                     columns={columns}
                     rowKey={(row: ExpenseUsageItem) => row.id}

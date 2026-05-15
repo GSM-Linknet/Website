@@ -241,4 +241,10 @@ export const FinanceService = {
       { amount, notes }
     );
   },
+  resetBucket: async (bucket: string, description?: string) => {
+    return apiClient.post<{ status: boolean; data: { resetId: string } }>(
+      "/keuangan/central-balance/reset",
+      { bucket, description }
+    );
+  },
 };

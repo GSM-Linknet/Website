@@ -232,6 +232,7 @@ export default function WorkOrderPage() {
         {
             header: "AKSI",
             id: "actions",
+            hideable: false,
             cell: (row: WorkOrder) => {
                 return (
                     <div className="flex items-center gap-2">
@@ -347,6 +348,7 @@ export default function WorkOrderPage() {
                 </div>
 
                 <BaseTable
+                    tableId="production-work-order"
                     data={data}
                     columns={columns}
                     rowKey={(row: WorkOrder) => row.id}

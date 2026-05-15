@@ -219,6 +219,7 @@ export default function LinkNetLogPage() {
 
         {/* Table */}
         <BaseTable
+          tableId="settings-linknet-logs"
           data={logs}
           columns={columns}
           rowKey={(row: LinkNetLog) => row.id}

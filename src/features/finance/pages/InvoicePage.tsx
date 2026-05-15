@@ -257,8 +257,23 @@ export default function InvoicePage() {
     {
       accessorKey: "period",
       header: "Periode",
+      cell: (invoice: any) => {
+        if (!invoice.period) return "-";
+        const start = moment(invoice.period);
+        if (invoice.billingCycle && invoice.billingCycle > 1) {
+          const end = moment(invoice.period).add(
+            invoice.billingCycle - 1,
+            "months",
+          );
+          return `${start.format("MMM")} - ${end.format("MMM YYYY")}`;
+        }
+        return start.format("MMMM YYYY");
+      },
+    },
+    {
+      header: "Siklus",
       cell: (invoice: any) =>
-        invoice.period ? moment(invoice.period).format("MMMM YYYY") : "-",
+        invoice.billingCycle ? `${invoice.billingCycle} Bln` : "1 Bln",
     },
     {
       accessorKey: "amount",
@@ -310,6 +325,7 @@ export default function InvoicePage() {
     },
     {
       header: "Aksi",
+      hideable: false,
       cell: (invoice: any) => (
         <div className="flex items-center gap-2">
           {AuthService.hasPermission(
@@ -684,6 +700,7 @@ export default function InvoicePage() {
       {/* Table Content */}
       <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
         <BaseTable
+          tableId="finance-invoice"
           data={invoices || []}
           columns={columns}
           rowKey={(row) => row.id}

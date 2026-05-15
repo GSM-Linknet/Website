@@ -630,6 +630,7 @@ export default function CustomerReportPage() {
                         </div>
                       </div>
                       <BaseTable
+                        tableId="reporting-customer-exemption"
                         data={reportData.exemptedBreakdown.items}
                         columns={exemptedColumns}
                         rowKey={(item: any) => item.reason}
@@ -660,6 +661,7 @@ export default function CustomerReportPage() {
                     </h2>
                   </div>
                   <BaseTable
+                    tableId="reporting-customer-packages"
                     data={Array.isArray(reportData.byPackage) ? reportData.byPackage : reportData.byPackage.items}
                     columns={packageColumns}
                     rowKey={(item: any) => item.name}
@@ -678,6 +680,7 @@ export default function CustomerReportPage() {
                     </h2>
                   </div>
                   <BaseTable
+                    tableId="reporting-customer-locations"
                     data={Array.isArray(reportData.byLocation) ? reportData.byLocation : reportData.byLocation.items}
                     columns={locationColumns}
                     rowKey={(item: any) => item.name}
@@ -696,6 +699,7 @@ export default function CustomerReportPage() {
                     </h2>
                   </div>
                   <BaseTable
+                    tableId="reporting-customer-uplines"
                     data={Array.isArray(reportData.byUpline) ? reportData.byUpline : reportData.byUpline.items}
                     columns={uplineColumns}
                     rowKey={(item: any) => item.uplineId}
@@ -710,6 +714,7 @@ export default function CustomerReportPage() {
                     Detail Pelanggan
                   </h2>
                   <ReportDataTable
+                    tableId="reporting-customer-detail"
                     serverSide={true}
                     data={reportData.customers}
                     columns={columns}

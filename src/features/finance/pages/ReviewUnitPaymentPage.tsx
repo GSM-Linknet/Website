@@ -75,6 +75,7 @@ export default function ReviewUnitPaymentPage() {
     {
       id: "select",
       accessorKey: "id",
+      hideable: false,
       header: (
         <input
           type="checkbox"
@@ -237,6 +238,7 @@ export default function ReviewUnitPaymentPage() {
       {/* Table Content */}
       <div className="bg-white rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
         <BaseTable
+          tableId="finance-review-unit-payment"
           data={invoices || []}
           columns={columns}
           rowKey={(row) => row.id}

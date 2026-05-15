@@ -158,6 +158,7 @@ export default function CabangPage() {
         id: "actions",
         accessorKey: "id",
         className: "w-[120px] text-center",
+        hideable: false,
         cell: (row: Cabang) => {
           if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
 
@@ -243,6 +244,7 @@ export default function CabangPage() {
 
         {/* Table */}
         <BaseTable
+          tableId="master-cabang"
           data={data}
           columns={columns}
           rowKey={(row: Cabang) => row.id}

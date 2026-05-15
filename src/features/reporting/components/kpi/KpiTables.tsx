@@ -129,6 +129,7 @@ export function UnitKpiTable({ data, onPageSizeChange, ...pagination }: KpiTable
 
     return (
         <BaseTable<UnitKpi> 
+            tableId="reporting-kpi-unit"
             data={items}
             columns={unitColumns}
             rowKey={(item) => item.unitId}
@@ -254,6 +255,7 @@ export function SalesKpiTable({ data, onPageSizeChange, ...pagination }: KpiTabl
 
     return (
         <BaseTable<SalesKpi> 
+            tableId="reporting-kpi-sales"
             data={items}
             columns={salesColumns}
             rowKey={(item) => item.salesId}

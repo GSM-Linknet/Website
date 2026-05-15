@@ -172,6 +172,7 @@ export function SuspendQueueTable({
         {
             header: "Aksi",
             accessorKey: "id",
+            hideable: false,
             className: "text-right w-[210px]",
             cell: (item) => (
                 <div className="flex justify-end gap-2">
@@ -214,6 +215,7 @@ export function SuspendQueueTable({
     return (
         <>
             <BaseTable<SuspendQueueItem>
+                tableId="customers-suspend-queue"
                 data={data}
                 columns={columns}
                 rowKey={(item) => item.id}

@@ -1,5 +1,12 @@
 # Memori - Perubahan Besar
 
+## 2026-05-15
+### Fitur: Reset Saldo Virtual (Super Admin)
+- Menambahkan fitur reset saldo untuk bucket Revenue, Allocation, dan Holding Commission.
+- Menambahkan `ResetBalanceModal` component untuk konfirmasi penyesuaian saldo.
+- Memperbarui `SaldoPage` dan `useSaldoPage` hook untuk mendukung aksi reset.
+- Memperbarui `FinanceService` untuk integrasi dengan endpoint `/keuangan/central-balance/reset`.
+
 ## 2026-05-01
 ### Fitur: Pemilihan & Tampilan Metode Pembayaran di Customer Invoice Dialog
 - Menambahkan dialog pemilihan metode pembayaran (Cash vs Xendit) sebelum memproses pembayaran invoice.

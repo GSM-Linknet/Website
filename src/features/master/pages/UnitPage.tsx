@@ -191,6 +191,7 @@ export default function UnitPage() {
             id: "actions",
             accessorKey: "id",
             className: "w-[120px] text-center",
+            hideable: false,
             cell: (row: Unit) => {
                 if (!canEdit && !canDelete && !canVerify) return <span className="text-slate-400">-</span>;
 
@@ -280,6 +281,7 @@ export default function UnitPage() {
 
                 {/* Table */}
                 <BaseTable
+                    tableId="master-unit"
                     data={data}
                     columns={columns}
                     rowKey={(row: Unit) => row.id}

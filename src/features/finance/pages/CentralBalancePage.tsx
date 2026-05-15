@@ -165,7 +165,7 @@ export default function CentralBalancePage() {
                     balance: summary?.holdingCommissionBalance ?? 0,
                     income: summary?.holdingCommissionStats.income ?? 0,
                     expense: summary?.holdingCommissionStats.expense ?? 0,
-                    label: "Komisi Bersih Holding",
+                    label: "Saldo Komisi",
                     badge: "Net Profit"
                 };
         }
@@ -268,7 +268,7 @@ export default function CentralBalancePage() {
                                 <div className="p-1.5 bg-emerald-100 rounded-lg text-emerald-600">
                                     <ArrowUpCircle className="h-4 w-4" />
                                 </div>
-                                Total Dana Masuk
+                                Total Pemasukan
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -287,7 +287,7 @@ export default function CentralBalancePage() {
                                 <div className="p-1.5 bg-red-100 rounded-lg text-red-600">
                                     <ArrowDownCircle className="h-4 w-4" />
                                 </div>
-                                Total Dana Keluar
+                                Total Pengeluaran
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -326,6 +326,7 @@ export default function CentralBalancePage() {
                 {/* Table Content */}
                 <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden mt-6">
                     <BaseTable
+                        tableId="finance-central-balance"
                         data={ledgers || []}
                         columns={columns}
                         rowKey={(row) => row.id}

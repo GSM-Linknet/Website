@@ -196,7 +196,16 @@ export default function PackagePricingPage() {
             ),
         },
         {
-            header: "HARGA / BULAN",
+            header: "SIKLUS",
+            accessorKey: "billingCycle",
+            cell: (row: Package) => (
+                <span className="font-bold text-slate-600">
+                    {row.billingCycle} Bulan
+                </span>
+            ),
+        },
+        {
+            header: "HARGA PAKET",
             accessorKey: "price",
             cell: (row: Package) => (
                 <span className="font-mono font-bold text-slate-700">
@@ -212,6 +221,7 @@ export default function PackagePricingPage() {
         {
             header: "AKSI",
             accessorKey: "id",
+            hideable: false,
             cell: (row: Package) => {
                 if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
 
@@ -257,7 +267,7 @@ export default function PackagePricingPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-brand-blue">Paket & Harga</h1>
                     <p className="text-sm text-slate-500">
-                        Manajemen paket internet dan harga berlangganan bulanan
+                        Manajemen paket internet dan harga berlangganan sesuai siklus penagihan
                     </p>
                 </div>
 
@@ -337,7 +347,7 @@ export default function PackagePricingPage() {
                                 </p>
                                 <p className="text-2xl font-black text-brand-blue">
                                     Rp {pkg.price.toLocaleString("id-ID")}
-                                    <span className="text-sm font-bold text-slate-400">/bln</span>
+                                    <span className="text-sm font-bold text-slate-400">/{pkg.billingCycle > 1 ? `${pkg.billingCycle} bln` : 'bln'}</span>
                                 </p>
                             </div>
                         </div>
@@ -365,6 +375,7 @@ export default function PackagePricingPage() {
 
             <div className="bg-white rounded-4xl p-4 border border-slate-100 shadow-xl shadow-slate-200/40 mt-8">
                 <BaseTable
+                    tableId="master-package-pricing"
                     data={packages}
                     columns={columns}
                     rowKey={(row: Package) => row.id}

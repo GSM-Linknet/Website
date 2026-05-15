@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DollarSign, Wallet, Landmark, RefreshCw } from 'lucide-react';
+import { DollarSign, Wallet, Landmark, RefreshCw, CircleDollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { BalanceData } from '../hooks/useSaldoPage';
 
@@ -38,12 +38,21 @@ export function BalanceSummaryCards({ balance, loading, onTransferClick }: Balan
             description: 'Dana khusus untuk pencairan operasional unit (RAB).',
             showButton: false,
         },
+        {
+            title: 'Saldo Komisi',
+            amount: balance?.holdingCommissionBalance,
+            icon: CircleDollarSign,
+            color: 'orange',
+            description: 'Akumulasi komisi yang tertahan sebelum dibayarkan.',
+            showButton: false,
+        },
     ];
 
     const colorStyles: Record<string, string> = {
         blue: 'bg-blue-50 text-blue-600',
         emerald: 'bg-emerald-50 text-emerald-600',
-        indigo: 'bg-indigo-50 text-indigo-600 text-indigo-600',
+        indigo: 'bg-indigo-50 text-indigo-600',
+        orange: 'bg-orange-50 text-orange-600',
     };
 
     return (
@@ -64,7 +73,12 @@ export function BalanceSummaryCards({ balance, loading, onTransferClick }: Balan
                                 <Skeleton className="h-10 w-3/4 rounded-lg" />
                             </div>
                         ) : (
-                            <div className={`text-3xl font-black font-mono tracking-tighter ${card.color === 'blue' ? 'text-slate-900' : card.color === 'emerald' ? 'text-emerald-600' : 'text-indigo-600'}`}>
+                            <div className={`text-3xl font-black font-mono tracking-tighter ${
+                                card.color === 'blue' ? 'text-slate-900' : 
+                                card.color === 'emerald' ? 'text-emerald-600' : 
+                                card.color === 'indigo' ? 'text-indigo-600' : 
+                                'text-orange-600'
+                            }`}>
                                 Rp {card.amount?.toLocaleString('id-ID') || '0'}
                             </div>
                         )}

@@ -242,6 +242,7 @@ export default function SalesTargetPage() {
         {
             header: "Opsi",
             accessorKey: "actions",
+            hideable: false,
             cell: (item: SalesTarget) => (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -355,6 +356,7 @@ export default function SalesTargetPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                     <BaseTable
+                        tableId="reporting-sales-targets"
                         data={targets}
                         columns={columns}
                         rowKey={(item: SalesTarget) => item.id}

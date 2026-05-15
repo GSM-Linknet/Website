@@ -112,6 +112,7 @@ export default function WilayahPage() {
             id: "actions",
             accessorKey: "id",
             className: "w-[120px]",
+            hideable: false,
             cell: (row: Wilayah) => {
                 if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
 
@@ -223,6 +224,7 @@ export default function WilayahPage() {
 
                 {/* Table */}
                 <BaseTable
+                    tableId="master-wilayah"
                     data={data}
                     columns={columns}
                     rowKey={(row: Wilayah) => row.id}

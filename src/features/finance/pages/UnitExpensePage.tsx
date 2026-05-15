@@ -172,6 +172,7 @@ export default function UnitExpensePage() {
         },
         {
             header: "Aksi",
+            hideable: false,
             cell: (expense: UnitExpense) => (
                 <div className="flex items-center gap-2">
                     <Button
@@ -273,6 +274,7 @@ export default function UnitExpensePage() {
             {/* Table Content */}
             <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
+                    tableId="finance-unit-expense"
                     data={expenses || []}
                     columns={columns}
                     rowKey={(row) => row.id}

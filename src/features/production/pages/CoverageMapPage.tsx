@@ -292,6 +292,7 @@ export default function CoverageMapPage() {
             ) : (
                 <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
                     <BaseTable
+                        tableId="production-coverage-list"
                         columns={columns}
                         data={results}
                         loading={loading}

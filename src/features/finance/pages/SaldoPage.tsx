@@ -1,9 +1,10 @@
-import { RefreshCw, Info } from 'lucide-react';
+import { RefreshCw, Info, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSaldoPage } from '../hooks/useSaldoPage';
 import { BalanceSummaryCards } from '../components/BalanceSummaryCards';
 import { TopUpAllocationModal } from '../components/TopUpAllocationModal';
 import { InternalTransferModal } from '../components/InternalTransferModal';
+import { ResetBalanceModal } from '../components/ResetBalanceModal';
 
 export default function SaldoPage() {
     const {
@@ -15,9 +16,12 @@ export default function SaldoPage() {
         setIsTransferModalOpen,
         isTopUpModalOpen,
         setIsTopUpModalOpen,
+        isResetModalOpen,
+        setIsResetModalOpen,
         handleRefresh,
         handleTransfer,
         handleTopUp,
+        handleReset,
     } = useSaldoPage();
 
     if (!isSuperAdmin) {
@@ -41,6 +45,15 @@ export default function SaldoPage() {
                 </div>
                 
                 <div className="flex items-center gap-3 self-end sm:self-auto">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsResetModalOpen(true)}
+                        className="w-12 h-12 rounded-2xl hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all duration-300 active:scale-90 border border-transparent"
+                        title="Reset Saldo"
+                    >
+                        <Trash2 className="h-5 w-5" />
+                    </Button>
                     <Button
                         variant="ghost"
                         size="icon"
@@ -101,6 +114,12 @@ export default function SaldoPage() {
                 isOpen={isTransferModalOpen}
                 onClose={() => setIsTransferModalOpen(false)}
                 onConfirm={handleTransfer}
+            />
+
+            <ResetBalanceModal
+                isOpen={isResetModalOpen}
+                onClose={() => setIsResetModalOpen(false)}
+                onConfirm={handleReset}
             />
         </div>
     );

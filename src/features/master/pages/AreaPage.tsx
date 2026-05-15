@@ -110,6 +110,7 @@ export default function AreaPage() {
             id: "actions",
             accessorKey: "id",
             className: "w-[120px]",
+            hideable: false,
             cell: (row: Area) => {
                 if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
 
@@ -221,6 +222,7 @@ export default function AreaPage() {
 
                 {/* Table */}
                 <BaseTable
+                    tableId="master-area"
                     data={data}
                     columns={columns}
                     rowKey={(row: Area) => row.id}

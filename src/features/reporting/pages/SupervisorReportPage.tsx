@@ -118,6 +118,7 @@ export default function SupervisorReportPage() {
                     </CardHeader>
                     <CardContent className="p-0">
                         <BaseTable
+                            tableId="reporting-supervisor-performance"
                             data={sales}
                             columns={salesColumns}
                             rowKey={(item: any) => item.salesId}

@@ -252,6 +252,7 @@ export default function UserPage() {
             header: "AKSI",
             accessorKey: "actions",
             className: "w-[120px] text-center",
+            hideable: false,
             cell: (row: User) => {
                 if (!canEdit && !canDelete && !canImpersonate) return <span className="text-slate-400">-</span>;
 
@@ -374,6 +375,7 @@ export default function UserPage() {
                 </div>
 
                 <BaseTable
+                    tableId="master-user"
                     data={data}
                     columns={columns}
                     rowKey={(row: User) => row.id}

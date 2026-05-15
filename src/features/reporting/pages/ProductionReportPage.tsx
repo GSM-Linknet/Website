@@ -212,6 +212,7 @@ export default function ProductionReportPage() {
                                 Detail Work Orders
                             </h2>
                             <ReportDataTable
+                                tableId="reporting-production-wo"
                                 serverSide={true}
                                 data={reportData.workOrders || []}
                                 columns={columns}

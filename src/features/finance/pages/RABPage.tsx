@@ -195,6 +195,7 @@ export default function RABPage() {
     {
       id: "actions",
       header: "Aksi",
+      hideable: false,
       cell: (rab: RAB) => (
         <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           {/* Submit button — shown to creator when DRAFT */}
@@ -435,6 +436,7 @@ export default function RABPage() {
           {/* ─── Table ─────────────────────────────────────────────────────────── */}
           <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden mx-2 cursor-pointer mt-2">
             <BaseTable
+              tableId="finance-rab-manage"
               data={rabs ?? []}
               columns={columns}
               rowKey={(row) => row.id}
@@ -592,6 +594,7 @@ export default function RABPage() {
           <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
             <h3 className="text-lg font-bold text-[#101D42] mb-4">Breakdown per Unit</h3>
             <BaseTable
+              tableId="finance-rab-estimation"
               data={estimationData?.units || []}
               columns={[
                 {

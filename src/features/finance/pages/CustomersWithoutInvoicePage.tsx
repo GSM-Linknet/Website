@@ -109,6 +109,8 @@ export default function CustomersWithoutInvoicePage() {
     const columns: any[] = [
         {
             header: "",
+            id: "select",
+            hideable: false,
             cell: (customer: any) => (
                 <Checkbox
                     checked={selectedCustomers.has(customer.id)}
@@ -243,6 +245,7 @@ export default function CustomersWithoutInvoicePage() {
             {/* Table Content */}
             <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
+                    tableId="finance-customers-no-invoice"
                     data={customers || []}
                     columns={columns}
                     rowKey={(row) => row.id}

@@ -399,6 +399,7 @@ export default function PayoutPage() {
     {
       id: "actions",
       header: "Aksi",
+      hideable: false,
       cell: (payout: any) => {
         const canSync = ['APPROVED', 'PENDING', 'PENDING_XENDIT', 'ACCEPTED', 'PROCESSED'].includes(payout.status);
         
@@ -645,6 +646,7 @@ export default function PayoutPage() {
         <TabsContent value="requests" className="mt-0 space-y-4">
             <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
                 <BaseTable
+                tableId="finance-payout-requests"
                 data={payouts || []}
                 columns={columns}
                 rowKey={(row) => row.id}
@@ -682,6 +684,7 @@ export default function PayoutPage() {
                     </Button>
                 </div>
                 <BaseTable
+                    tableId="finance-payout-statement"
                     data={statement}
                     columns={statementColumns}
                     rowKey={(row) => `${row.date}-${row.amount}-${row.balance}`}

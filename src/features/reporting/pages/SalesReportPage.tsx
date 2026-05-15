@@ -228,6 +228,7 @@ export default function SalesReportPage() {
                                 Detail Performance
                             </h2>
                             <ReportDataTable
+                                tableId="reporting-sales-performance"
                                 serverSide={true}
                                 data={reportData?.sales || []}
                                 columns={columns}

@@ -7,6 +7,7 @@ export interface BalanceData {
     balance: number;
     revenueBalance: number;
     allocationBalance: number;
+    holdingCommissionBalance: number;
     totalVirtual: number;
     currency?: string;
     accountType?: string;
@@ -19,6 +20,7 @@ export function useSaldoPage() {
     const [refreshing, setRefreshing] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
@@ -108,6 +110,19 @@ export function useSaldoPage() {
         }
     };
 
+    const handleReset = async (bucket: string, notes: string) => {
+        try {
+            await FinanceService.resetBucket(bucket, notes);
+            toast.success(`Saldo ${bucket} berhasil direset`);
+            setIsResetModalOpen(false);
+            fetchBalance();
+            return true;
+        } catch (error: any) {
+            toast.error(error.message || 'Gagal mereset saldo');
+            return false;
+        }
+    };
+
     return {
         balance,
         loading,
@@ -117,8 +132,11 @@ export function useSaldoPage() {
         setIsTransferModalOpen,
         isTopUpModalOpen,
         setIsTopUpModalOpen,
+        isResetModalOpen,
+        setIsResetModalOpen,
         handleRefresh,
         handleTransfer,
         handleTopUp,
+        handleReset,
     };
 }

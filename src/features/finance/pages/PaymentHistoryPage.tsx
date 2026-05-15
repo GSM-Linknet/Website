@@ -199,6 +199,7 @@ export default function PaymentHistoryPage() {
                 </div>
 
                 <BaseTable
+                    tableId="finance-payment-history"
                     data={data}
                     columns={columns}
                     rowKey={(row: Payment) => row.id}

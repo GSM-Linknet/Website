@@ -413,6 +413,7 @@ export default function LinknetBillingPage() {
                             Rekap HPP & Penjualan Paket
                         </h3>
                         <BaseTable
+                            tableId="finance-linknet-packages"
                             data={packages.data}
                             columns={packagesColumns}
                             rowKey={(row) => row.packageCode}
@@ -435,6 +436,7 @@ export default function LinknetBillingPage() {
                         </div>
 
                         <BaseTable
+                            tableId="finance-linknet-detail"
                             data={detail.data}
                             columns={detailColumns}
                             rowKey={(row) => row.invoiceNumber}

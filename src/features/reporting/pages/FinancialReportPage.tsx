@@ -544,6 +544,7 @@ export default function FinancialReportPage() {
                                         Detail {tabs.find((t) => t.id === activeTab)?.label}
                                     </h2>
                                     <ReportDataTable
+                                        tableId={`reporting-financial-${activeTab}`}
                                         serverSide={true}
                                         data={getTableRawData()}
                                         columns={getColumns()}

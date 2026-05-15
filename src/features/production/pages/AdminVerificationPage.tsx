@@ -62,6 +62,7 @@ export default function AdminVerificationPage() {
         {
             header: "AKSI",
             accessorKey: "id",
+            hideable: false,
             cell: (row: Prospect) => (
                 <Button size="sm" variant="outline" className="rounded-lg border-blue-100 text-blue-600 font-bold hover:bg-blue-50"
                     onClick={() => console.log("Verify prospect", row.id)}
@@ -93,6 +94,7 @@ export default function AdminVerificationPage() {
 
             <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
+                    tableId="production-admin-verification"
                     data={queue}
                     columns={columns}
                     rowKey={(row: Prospect) => row.id}

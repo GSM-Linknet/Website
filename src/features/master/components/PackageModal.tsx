@@ -35,6 +35,7 @@ export function PackageModal({
         duration: 30, // Default to 30 days
         costBandwidth: 0,
         isActive: true,
+        billingCycle: 1,
     });
 
     const isEdit = !!initialData;
@@ -53,6 +54,7 @@ export function PackageModal({
                     duration: initialData.duration || 30,
                     costBandwidth: initialData.costBandwidth || 0,
                     isActive: initialData.isActive ?? true,
+                    billingCycle: initialData.billingCycle || 1,
                 });
             } else {
                 setFormData({
@@ -65,6 +67,7 @@ export function PackageModal({
                     duration: 30,
                     costBandwidth: 0,
                     isActive: true,
+                    billingCycle: 1,
                 });
             }
         }
@@ -168,13 +171,28 @@ export function PackageModal({
                 {/* Price Field */}
                 <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        <DollarSign size={14} className="text-blue-500" /> Harga Per Bulan
+                        <DollarSign size={14} className="text-blue-500" /> Harga Paket
                     </Label>
                     <Input
                         type="number"
                         placeholder="Contoh: 150000"
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                        className="rounded-xl h-11"
+                        disabled={isLoading}
+                    />
+                </div>
+
+                {/* Billing Cycle Field */}
+                <div className="space-y-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                        <FileText size={14} className="text-blue-500" /> Siklus Penagihan (Bulan)
+                    </Label>
+                    <Input
+                        type="number"
+                        placeholder="Contoh: 1 atau 3"
+                        value={formData.billingCycle}
+                        onChange={(e) => setFormData({ ...formData, billingCycle: parseInt(e.target.value) || 1 })}
                         className="rounded-xl h-11"
                         disabled={isLoading}
                     />

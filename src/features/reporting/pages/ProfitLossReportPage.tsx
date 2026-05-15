@@ -172,6 +172,7 @@ export function ProfitLossReportView({ filters }: ProfitLossReportViewProps) {
         </CardHeader>
         <CardContent className="p-0">
           <BaseTable 
+            tableId="reporting-profitloss-unit"
             data={byUnit}
             columns={unitColumns}
             rowKey={(item) => item.unitId}
@@ -193,6 +194,7 @@ export function ProfitLossReportView({ filters }: ProfitLossReportViewProps) {
       >
         <div className="flex flex-col h-full max-h-[70vh]">
           <BaseTable
+            tableId="reporting-profitloss-detail"
             data={detailData}
             columns={detailColumns}
             rowKey={(item) => item.id}

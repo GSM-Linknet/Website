@@ -378,6 +378,7 @@ export const CustomerTable = ({
     {
       header: "AKSI",
       accessorKey: "actions",
+      hideable: false,
       className: "w-10 text-center",
       cell: (row: Customer) => {
         const hasActions = canEdit || canDelete;
@@ -492,6 +493,7 @@ export const CustomerTable = ({
   return (
     <>
       <BaseTable
+        tableId="customers-list"
         data={customers}
         columns={columns}
         rowKey={(row) => row.id}

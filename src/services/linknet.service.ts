@@ -244,12 +244,16 @@ export const LinkNetService = {
   suggestAddress: async (
     search: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
   ) => {
-    return apiClient.get<ResponseData<LinknetAddress[]>>(
-      `${ENDPOINT}/addresses/suggest`,
-      { params: { search, page, limit } }
-    );
+    return apiClient.get<
+      ResponseData<{
+        addresses: LinknetAddress[];
+        curl: string;
+        request_id: string;
+        timestamp: string;
+      }>
+    >(`${ENDPOINT}/addresses/suggest`, { params: { search, page, limit } });
   },
 
   /**
@@ -257,10 +261,14 @@ export const LinkNetService = {
    * Calls backend GET /linknet/addresses/nearest
    */
   nearestAddress: async (latitude: number, longitude: number) => {
-    return apiClient.get<ResponseData<LinknetAddress[]>>(
-      `${ENDPOINT}/addresses/nearest`,
-      { params: { latitude, longitude } }
-    );
+    return apiClient.get<
+      ResponseData<{
+        addresses: LinknetAddress[];
+        curl: string;
+        request_id: string;
+        timestamp: string;
+      }>
+    >(`${ENDPOINT}/addresses/nearest`, { params: { latitude, longitude } });
   },
 
   /**
@@ -268,10 +276,12 @@ export const LinkNetService = {
    * Calls backend GET /linknet/search-locality
    */
   searchLocality: async (query: string) => {
-    return apiClient.get<ResponseData<any[]>>(
-      `${ENDPOINT}/search-locality`,
-      { params: { query } }
-    );
+    return apiClient.get<
+      ResponseData<{
+        localities: any[];
+        curl: string;
+      }>
+    >(`${ENDPOINT}/search-locality`, { params: { query } });
   },
 
   /**
@@ -286,7 +296,7 @@ export const LinkNetService = {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      }
+      },
     );
   },
 
@@ -298,17 +308,14 @@ export const LinkNetService = {
     customerId: string,
     action: "ADD_DEVICE" | "REM_DEVICE",
     characteristics: ServiceCharacteristic[],
-    state?: string
+    state?: string,
   ) => {
-    return apiClient.post<ResponseData<any>>(
-      `${ENDPOINT}/change-device`,
-      {
-        customerId,
-        action,
-        characteristics,
-        state,
-      }
-    );
+    return apiClient.post<ResponseData<any>>(`${ENDPOINT}/change-device`, {
+      customerId,
+      action,
+      characteristics,
+      state,
+    });
   },
   /**
    * Get Work Order status from Linknet
@@ -317,7 +324,7 @@ export const LinkNetService = {
   getWorkOrderStatus: async (customerId: string, soId: string) => {
     return apiClient.get<ResponseData<any>>(
       `${ENDPOINT}/work-order-status/${soId}`,
-      { params: { customerId } }
+      { params: { customerId } },
     );
   },
 };

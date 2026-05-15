@@ -13,7 +13,10 @@
  */
 
 import { useState, useRef, useCallback } from "react";
-import { LinkNetService, type LinknetAddress } from "@/services/linknet.service";
+import {
+  LinkNetService,
+  type LinknetAddress,
+} from "@/services/linknet.service";
 
 export type SearchMode = "idle" | "address" | "coordinate";
 
@@ -33,7 +36,10 @@ export function useCoverageMap() {
   const [loading, setLoading] = useState(false);
   const [searchMode, setSearchMode] = useState<SearchMode>("idle");
   const [searchQuery, setSearchQuery] = useState("");
-  const [clickedCoord, setClickedCoord] = useState<{ lat: number; lng: number } | null>(null);
+  const [clickedCoord, setClickedCoord] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [focusedItem, setFocusedItem] = useState<LinknetAddress | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -58,7 +64,8 @@ export function useCoverageMap() {
         setClickedCoord(null);
         setFocusedItem(null);
         const res = await LinkNetService.suggestAddress(query.trim());
-        setResults(res.data ?? []);
+        const data = res.data as any;
+        setResults(data?.addresses ?? []);
       } catch (err) {
         console.error("[useCoverageMap] suggestByAddress failed", err);
         setResults([]);
@@ -77,7 +84,8 @@ export function useCoverageMap() {
       setClickedCoord({ lat, lng });
       setFocusedItem(null);
       const res = await LinkNetService.nearestAddress(lat, lng);
-      setResults(res.data ?? []);
+      const data = res.data as any;
+      setResults(data?.addresses ?? []);
     } catch (err) {
       console.error("[useCoverageMap] suggestByCoordinate failed", err);
       setResults([]);
