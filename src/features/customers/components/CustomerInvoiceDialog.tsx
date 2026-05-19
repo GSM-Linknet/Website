@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { X, FileText, Calendar, Plus } from "lucide-react";
+import { X, FileText, Calendar, Plus, Banknote, CreditCard, Loader2, } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -13,6 +15,8 @@ import { CreatePaymentModal } from "@/features/finance/components/CreatePaymentM
 import { CreateInvoiceModal } from "@/features/finance/components/CreateInvoiceModal";
 import { cn } from "@/lib/utils";
 import { AuthService } from "@/services/auth.service";
+import { useToast } from "@/hooks/useToast";
+import { FinanceService } from "@/services/finance.service";
 
 interface CustomerInvoiceDialogProps {
   open: boolean;
@@ -36,6 +40,9 @@ export function CustomerInvoiceDialog({
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
+  const [isMethodSelectOpen, setIsMethodSelectOpen] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const { toast } = useToast();
   const user = AuthService.getUser();
 
   useEffect(() => {
@@ -64,7 +71,51 @@ export function CustomerInvoiceDialog({
 
   const handlePayInvoice = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
+    setIsMethodSelectOpen(true);
+  };
+
+  const handleSelectCash = () => {
+    setIsMethodSelectOpen(false);
     setIsPaymentOpen(true);
+  };
+
+  const handleSelectXendit = async () => {
+    if (!selectedInvoice) return;
+
+    if (selectedInvoice.paymentUrl) {
+      window.open(selectedInvoice.paymentUrl, "_blank");
+      setIsMethodSelectOpen(false);
+      return;
+    }
+
+    try {
+      setIsGeneratingLink(true);
+      const result = await FinanceService.regeneratePaymentLink(
+        selectedInvoice.id,
+      );
+      const paymentUrl = (result as any).data?.paymentUrl || (result as any).paymentUrl;
+
+      if (paymentUrl) {
+        window.open(paymentUrl, "_blank");
+        fetchInvoices();
+      } else {
+        toast({
+          title: "Gagal",
+          description: "Gagal membuat link pembayaran",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to generate payment link:", error);
+      toast({
+        title: "Error",
+        description: "Terjadi kesalahan saat membuat link pembayaran",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingLink(false);
+      setIsMethodSelectOpen(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -216,6 +267,35 @@ export function CustomerInvoiceDialog({
                     )}
                   </div>
 
+                  {invoice.status === "paid" && (invoice as any).payments?.[0] && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          Metode
+                        </span>
+                        <span className="text-xs font-bold text-slate-700">
+                          {(invoice as any).payments[0].method || "-"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          Sistem
+                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-bold text-slate-700">
+                            {(invoice as any).payments[0].paymentSystem || "-"}
+                          </span>
+                          {((invoice as any).payments[0].paymentSystem === "VIRTUAL_ACCOUNT" || 
+                            (invoice as any).payments[0].isAutomatic) && (
+                            <Badge className="w-fit text-[9px] h-4 px-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100 shadow-none font-bold">
+                              Sistem Xendit
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {invoice.status !== "paid" &&
                     invoice.status !== "cancelled" && (
                       <div className="mt-3 pt-3 border-t border-slate-100 flex justify-end gap-2">
@@ -293,6 +373,70 @@ export function CustomerInvoiceDialog({
         }}
         initialCustomerId={customer?.id}
       />
+
+      {/* Payment Method Selection Dialog */}
+      <Dialog open={isMethodSelectOpen} onOpenChange={setIsMethodSelectOpen}>
+        <DialogContent className="sm:max-w-[450px] bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-900">
+              Pilih Metode Pembayaran
+            </DialogTitle>
+            <DialogDescription>
+              Silakan pilih cara pembayaran untuk invoice{" "}
+              <span className="font-semibold text-blue-600">
+                {selectedInvoice?.invoiceNumber}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 gap-4 py-4">
+            <button
+              onClick={handleSelectCash}
+              className="flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 hover:border-green-500 hover:bg-green-50/50 transition-all group text-left"
+            >
+              <div className="p-3 bg-green-100 rounded-lg text-green-600 group-hover:bg-green-200 transition-colors">
+                <Banknote size={24} />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-slate-800">Bayar Cash</h4>
+                <p className="text-xs text-slate-500">
+                  Pembayaran manual via Unit atau Sales
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={handleSelectXendit}
+              disabled={isGeneratingLink}
+              className="flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50/50 transition-all group text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="p-3 bg-blue-100 rounded-lg text-blue-600 group-hover:bg-blue-200 transition-colors">
+                {isGeneratingLink ? (
+                  <Loader2 size={24} className="animate-spin" />
+                ) : (
+                  <CreditCard size={24} />
+                )}
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-slate-800">Otomatis via Xendit</h4>
+                <p className="text-xs text-slate-500">
+                  VA, E-Wallet, QRIS, atau Retail Outlet
+                </p>
+              </div>
+            </button>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setIsMethodSelectOpen(false)}
+              className="w-full"
+            >
+              Batal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

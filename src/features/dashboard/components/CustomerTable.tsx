@@ -78,6 +78,7 @@ export const CustomerTable = ({ customers }: CustomerTableProps) => {
                 </div>
             </div>
             <BaseTable
+                tableId="dashboard-recent-customers"
                 data={customers}
                 columns={columns}
                 rowKey={(c) => c.id}

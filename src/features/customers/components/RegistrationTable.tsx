@@ -35,6 +35,7 @@ export const RegistrationTable = ({
         {
             header: "NO",
             accessorKey: "no",
+            hideable: false,
             className: "w-12 text-center",
             // Compute index if possible, or leave as is
         },
@@ -106,6 +107,7 @@ export const RegistrationTable = ({
         {
             header: "AKSI",
             accessorKey: "actions",
+            hideable: false,
             className: "w-10 text-center",
             cell: (row: Customer) => {
                 const currentUser = AuthService.getMockUsers()[2]; // Simulating "Unit Supervisor" (User 3) to see verify button
@@ -142,6 +144,7 @@ export const RegistrationTable = ({
 
     return (
         <BaseTable
+            tableId="customers-registration-list"
             data={registrations}
             columns={columns}
             rowKey={(row) => row.id}

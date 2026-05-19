@@ -34,6 +34,8 @@ import {
   formatDate,
   getDateRangePreset,
 } from "../utils/report.utils";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
+import { MasterService } from "@/services/master.service";
 import {
   LOADING_MESSAGES,
   ERROR_MESSAGES,
@@ -47,6 +49,7 @@ export default function CustomerReportPage() {
   const [legacyFilter, setLegacyFilter] = useState<"all" | "new" | "legacy">(
     "all",
   );
+  const [hierarchyFilter, setHierarchyFilter] = useState<"all" | "parent_only" | "child_only">("all");
   const [activeTab, setActiveTab] = useState<"ringkasan" | "penjelasan">(
     "ringkasan",
   );
@@ -61,6 +64,32 @@ export default function CustomerReportPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
+  const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
+  const [loadingUnits, setLoadingUnits] = useState(false);
+
+  useEffect(() => {
+    fetchUnits();
+  }, []);
+
+  const fetchUnits = async () => {
+    try {
+      setLoadingUnits(true);
+      const res = await MasterService.getUnits({ limit: 1000 });
+      if (res.status && res.data?.items) {
+        setUnits(
+          res.data.items.map((u) => ({
+            id: u.id,
+            name: `${u.name} - ${u.code}`,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch units:", error);
+    } finally {
+      setLoadingUnits(false);
+    }
+  };
+
   const [filters, setFilters] = useState<ReportFilters>(() => {
     const { startDate, endDate } = getDateRangePreset("month");
     return { startDate, endDate };
@@ -69,19 +98,20 @@ export default function CustomerReportPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.startDate, filters.endDate, legacyFilter]);
+  }, [filters.startDate, filters.endDate, filters.unitId, legacyFilter, hierarchyFilter]);
 
   // Fetch report data
   useEffect(() => {
     fetchReportData();
-  }, [filters, legacyFilter, currentPage, pageSize]);
+  }, [filters, legacyFilter, hierarchyFilter, currentPage, pageSize]);
 
   const fetchReportData = async () => {
     try {
       setLoading(true);
       const reportFilters = {
         ...filters,
-        isLegacy: legacyFilter,
+        isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+        hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
         page: currentPage,
         limit: pageSize,
         paginate: true
@@ -106,14 +136,16 @@ export default function CustomerReportPage() {
   const handleExportExcel = async () => {
     await reportService.exportCustomerReportExcel({
       ...filters,
-      isLegacy: legacyFilter,
+      isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+      hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
     });
   };
 
   const handleExportPDF = async () => {
     await reportService.exportCustomerReportPDF({
       ...filters,
-      isLegacy: legacyFilter,
+      isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+      hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
     });
   };
 
@@ -122,6 +154,13 @@ export default function CustomerReportPage() {
     { value: "all" as const, label: "Semua Customer" },
     { value: "new" as const, label: "Customer Baru" },
     { value: "legacy" as const, label: "Customer Legacy" },
+  ];
+
+  // Hierarchy filter tabs
+  const hierarchyTabs = [
+    { value: "all" as const, label: "Semua Hierarki" },
+    { value: "parent_only" as const, label: "Induk (Reguler)" },
+    { value: "child_only" as const, label: "Khusus Anakan" },
   ];
 
   // Table columns configuration
@@ -189,7 +228,22 @@ export default function CustomerReportPage() {
       key: "unit",
       header: "Unit",
       sortable: true,
-      width: "150px",
+      width: "140px",
+    },
+    {
+      key: "hierarchy",
+      header: "Hierarki",
+      width: "160px",
+      render: (_: any, row: any) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-xs text-gray-800">
+            {row.isChild ? "Pelanggan Anak" : "Reguler / Induk"}
+          </span>
+          {row.isChild && (
+            <span className="text-[10px] text-gray-500 font-medium">Induk: {row.parentName}</span>
+          )}
+        </div>
+      )
     },
     {
       key: "totalBilling",
@@ -401,32 +455,74 @@ export default function CustomerReportPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
+        <div className="relative z-20 bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-gray-600" />
               <h3 className="text-lg font-semibold text-gray-800">
-                Filter Periode
+                Filter Data
               </h3>
             </div>
-            {/* Legacy Filter Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
-              {legacyTabs.map((tab) => (
-                <button
-                  key={tab.value}
-                  onClick={() => setLegacyFilter(tab.value)}
-                  className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                    legacyFilter === tab.value
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-3">
+              {/* Hierarchy Filter Tabs */}
+              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+                {hierarchyTabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setHierarchyFilter(tab.value)}
+                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                      hierarchyFilter === tab.value
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Legacy Filter Tabs */}
+              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+                {legacyTabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setLegacyFilter(tab.value)}
+                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                      legacyFilter === tab.value
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <DateRangeFilter onFilterChange={handleDateRangeChange} />
+          
+          <div className="flex flex-wrap items-end gap-4">
+            <DateRangeFilter onFilterChange={handleDateRangeChange} />
+            <div className="w-full md:w-64 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Unit Operasional
+              </label>
+              <SearchableSelect
+                options={[
+                  { id: "all", name: "Semua Unit" },
+                  ...units
+                ]}
+                value={filters.unitId || "all"}
+                onValueChange={(val) => 
+                  setFilters((prev) => ({ 
+                    ...prev, 
+                    unitId: val === "all" ? undefined : val 
+                  }))
+                }
+                placeholder={loadingUnits ? "Memuat Unit..." : "Pilih Unit"}
+                searchPlaceholder="Cari Unit..."
+              />
+            </div>
+          </div>
         </div>
 
         {loading ? (
@@ -534,6 +630,7 @@ export default function CustomerReportPage() {
                         </div>
                       </div>
                       <BaseTable
+                        tableId="reporting-customer-exemption"
                         data={reportData.exemptedBreakdown.items}
                         columns={exemptedColumns}
                         rowKey={(item: any) => item.reason}
@@ -564,6 +661,7 @@ export default function CustomerReportPage() {
                     </h2>
                   </div>
                   <BaseTable
+                    tableId="reporting-customer-packages"
                     data={Array.isArray(reportData.byPackage) ? reportData.byPackage : reportData.byPackage.items}
                     columns={packageColumns}
                     rowKey={(item: any) => item.name}
@@ -582,6 +680,7 @@ export default function CustomerReportPage() {
                     </h2>
                   </div>
                   <BaseTable
+                    tableId="reporting-customer-locations"
                     data={Array.isArray(reportData.byLocation) ? reportData.byLocation : reportData.byLocation.items}
                     columns={locationColumns}
                     rowKey={(item: any) => item.name}
@@ -600,6 +699,7 @@ export default function CustomerReportPage() {
                     </h2>
                   </div>
                   <BaseTable
+                    tableId="reporting-customer-uplines"
                     data={Array.isArray(reportData.byUpline) ? reportData.byUpline : reportData.byUpline.items}
                     columns={uplineColumns}
                     rowKey={(item: any) => item.uplineId}
@@ -614,6 +714,7 @@ export default function CustomerReportPage() {
                     Detail Pelanggan
                   </h2>
                   <ReportDataTable
+                    tableId="reporting-customer-detail"
                     serverSide={true}
                     data={reportData.customers}
                     columns={columns}

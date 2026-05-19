@@ -247,6 +247,7 @@ export default function ActivityReportPage() {
                                 Activity Logs
                             </h2>
                             <ReportDataTable
+                                tableId="reporting-activity-logs"
                                 serverSide={true}
                                 data={reportData.logs}
                                 columns={columns}

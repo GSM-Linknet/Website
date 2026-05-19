@@ -35,6 +35,7 @@ import {
 import { CreateInvoiceModal } from "../components/CreateInvoiceModal";
 import { BulkGenerateModal } from "../components/BulkGenerateModal";
 import { CreatePaymentModal } from "../components/CreatePaymentModal";
+import { DeleteInvoiceModal } from "../components/DeleteInvoiceModal";
 import { formatCurrency, cn } from "@/lib/utils";
 import moment from "moment";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ export default function InvoicePage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -76,10 +78,13 @@ export default function InvoicePage() {
     description: string;
     onConfirm: () => void;
     variant?: "destructive" | "default";
-  }>({ title: "", description: "", onConfirm: () => {} });
+  }>({ title: "", description: "", onConfirm: () => { } });
 
   // Filters state
-  const defaultStartDate = moment().startOf("month").format("YYYY-MM-DD");
+  const defaultStartDate = moment()
+    .subtract(1, "month")
+    .startOf("month")
+    .format("YYYY-MM-DD");
   const defaultEndDate = moment().format("YYYY-MM-DD"); // Up to today
 
   const [filters, setFilters] = useState({
@@ -187,21 +192,22 @@ export default function InvoicePage() {
       lteParts.push(`period:${endOfMonth}`);
     }
 
-    if (filters.createdAtStart) {
-      gteParts.push(
-        `createdAt:${moment(filters.createdAtStart).format("YYYY-MM-DD")}`,
-      );
-    }
-    if (filters.createdAtEnd) {
-      lteParts.push(
-        `createdAt:${moment(filters.createdAtEnd).format("YYYY-MM-DD")}`,
-      );
+    // Only apply date filters if search is empty to allow global search
+    if (!debouncedSearchQuery) {
+      if (filters.createdAtStart) {
+        gteParts.push(
+          `createdAt:${moment(filters.createdAtStart).format("YYYY-MM-DD")}`,
+        );
+      }
+      if (filters.createdAtEnd) {
+        lteParts.push(
+          `createdAt:${moment(filters.createdAtEnd).format("YYYY-MM-DD")}`,
+        );
+      }
     }
 
     const queryParams: any = {
-      search: debouncedSearchQuery
-        ? `customer.name:${debouncedSearchQuery}`
-        : undefined,
+      search: debouncedSearchQuery || undefined,
       where: whereParts.length > 0 ? whereParts.join("+") : undefined,
       gte: gteParts.length > 0 ? gteParts.join("+") : undefined,
       lte: lteParts.length > 0 ? lteParts.join("+") : undefined,
@@ -253,8 +259,23 @@ export default function InvoicePage() {
     {
       accessorKey: "period",
       header: "Periode",
+      cell: (invoice: any) => {
+        if (!invoice.period) return "-";
+        const start = moment(invoice.period);
+        if (invoice.billingCycle && invoice.billingCycle > 1) {
+          const end = moment(invoice.period).add(
+            invoice.billingCycle - 1,
+            "months",
+          );
+          return `${start.format("MMM")} - ${end.format("MMM YYYY")}`;
+        }
+        return start.format("MMMM YYYY");
+      },
+    },
+    {
+      header: "Siklus",
       cell: (invoice: any) =>
-        invoice.period ? moment(invoice.period).format("MMMM YYYY") : "-",
+        invoice.billingCycle ? `${invoice.billingCycle} Bln` : "1 Bln",
     },
     {
       accessorKey: "amount",
@@ -291,8 +312,8 @@ export default function InvoicePage() {
       header: "Link Bayar",
       cell: (invoice: any) =>
         invoice.paymentUrl &&
-        invoice.status !== "paid" &&
-        invoice.status !== "cancelled" ? (
+          invoice.status !== "paid" &&
+          invoice.status !== "cancelled" ? (
           <Button
             variant="link"
             className="text-blue-600 p-0 h-auto font-medium"
@@ -306,6 +327,7 @@ export default function InvoicePage() {
     },
     {
       header: "Aksi",
+      hideable: true,
       cell: (invoice: any) => (
         <div className="flex items-center gap-2">
           {AuthService.hasPermission(
@@ -395,7 +417,7 @@ export default function InvoicePage() {
                           console.error(error);
                           toast.error(
                             error?.response?.data?.message ||
-                              "Gagal melakukan rollback invoice",
+                            "Gagal melakukan rollback invoice",
                           );
                         }
                       },
@@ -408,25 +430,44 @@ export default function InvoicePage() {
                   Rollback ke Pending
                 </DropdownMenuItem>
               )}
-              {invoice.status !== "paid" && user?.role === "SUPER_ADMIN" &&(
+              {invoice.status !== "paid" &&
+                invoice.status !== "cancelled" &&
+                !invoice.isReportedPaid && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setAlertConfig({
+                        title: "Laporkan Sudah Bayar",
+                        description: `Apakah Anda yakin ingin melaporkan bahwa invoice ${invoice.invoiceNumber} sudah dibayar? Ini akan melindungi pelanggan dari isolir otomatis hingga pembayaran batch diproses.`,
+                        variant: "default",
+                        onConfirm: async () => {
+                          try {
+                            await FinanceService.reportPaid(invoice.id);
+                            await refetch();
+                            toast.success(
+                              "Tagihan berhasil dilaporkan sudah bayar",
+                            );
+                          } catch (error) {
+                            console.error(error);
+                            toast.error("Gagal melaporkan pembayaran");
+                          }
+                        },
+                      });
+                      setAlertOpen(true);
+                    }}
+                    className="cursor-pointer text-blue-600 focus:text-blue-600"
+                  >
+                    <Receipt className="mr-2 h-4 w-4" />
+                    Laporkan Sudah Bayar
+                  </DropdownMenuItem>
+                )}
+              {invoice.status !== "paid" && AuthService.hasPermission(
+                user?.role || "USER",
+                "keuangan.invoice",
+                "delete") && (
                 <DropdownMenuItem
                   onClick={() => {
-                    setAlertConfig({
-                      title: "Hapus Invoice",
-                      description: `Apakah Anda yakin ingin menghapus invoice ${invoice.invoiceNumber}? Tindakan ini tidak dapat dibatalkan.`,
-                      variant: "destructive",
-                      onConfirm: async () => {
-                        try {
-                          await FinanceService.deleteInvoice(invoice.id);
-                          await refetch();
-                          toast.success("Invoice berhasil dihapus");
-                        } catch (error) {
-                          console.error(error);
-                          toast.error("Gagal menghapus invoice");
-                        }
-                      },
-                    });
-                    setAlertOpen(true);
+                    setSelectedInvoice(invoice);
+                    setIsDeleteModalOpen(true);
                   }}
                   className="cursor-pointer text-red-600 focus:text-red-600"
                 >
@@ -461,7 +502,7 @@ export default function InvoicePage() {
               size={18}
             />
             <Input
-              placeholder="Cari nama pelanggan..."
+              placeholder="Cari pelanggan atau invoice..."
               className="pl-10 w-full sm:w-72 rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -650,6 +691,7 @@ export default function InvoicePage() {
       {/* Table Content */}
       <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
         <BaseTable
+          tableId="finance-invoice"
           data={invoices || []}
           columns={columns}
           rowKey={(row) => row.id}
@@ -678,6 +720,16 @@ export default function InvoicePage() {
         isOpen={isPaymentOpen}
         onClose={() => {
           setIsPaymentOpen(false);
+          setSelectedInvoice(null);
+        }}
+        invoice={selectedInvoice}
+        onSuccess={refetch}
+      />
+
+      <DeleteInvoiceModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
           setSelectedInvoice(null);
         }}
         invoice={selectedInvoice}
@@ -748,7 +800,7 @@ const FilterDropdown = ({
           className={cn(
             "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
             activeValue !== "all" &&
-              "border-blue-500 text-blue-600 bg-blue-50/50",
+            "border-blue-500 text-blue-600 bg-blue-50/50",
             disabled && "opacity-50 cursor-not-allowed",
           )}
         >

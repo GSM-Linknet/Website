@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
+import { SuspendQueueService } from "@/services/suspend-queue.service";
 import { useSuspendQueue } from "./useSuspendQueue";
 import { SystemSettingService } from "@/services/system-setting.service";
 import { AuthService } from "@/services/auth.service";
 import { useToast } from "@/hooks/useToast";
 import { useDebounce } from "@/hooks/useDebounce";
+import { MasterService, type Unit } from "@/services/master.service";
+import { UserService, type User } from "@/services/user.service";
 
 export const useSuspendReviewPage = () => {
   const { toast } = useToast();
@@ -18,6 +21,7 @@ export const useSuspendReviewPage = () => {
     approve,
     reject,
     bulkApprove,
+    fetchData,
   } = useSuspendQueue();
 
 //   sadsa
@@ -26,6 +30,11 @@ export const useSuspendReviewPage = () => {
   const [settingLoading, setSettingLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [search, setSearch] = useState("");
+  const [unitId, setUnitId] = useState<string>("");
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [uplineId, setUplineId] = useState<string>("");
+  const [uplines, setUplines] = useState<User[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
   const debouncedSearch = useDebounce(search, 500);
 
   const user = AuthService.getUser();
@@ -33,20 +42,51 @@ export const useSuspendReviewPage = () => {
 
   useEffect(() => {
     const trimmed = debouncedSearch.trim();
+    const query: any = {};
+    
     if (trimmed) {
-      // Format: field:value+field2:value+... — diparse BaseService menjadi OR contains
-      setQuery({
-        search: `customer.name:${trimmed}`,
-      });
-    } else {
-      setQuery({});
+      query.search = `customer.name:${trimmed}`;
     }
+
+    if (unitId || uplineId) {
+      const filters = [];
+      if (unitId) filters.push(`customer.unitId:${unitId}`);
+      if (uplineId) filters.push(`customer.idUpline:${uplineId}`);
+      query.where = filters.join("+");
+    }
+
+    setQuery(query);
     setPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, unitId, uplineId]);
 
   useEffect(() => {
     fetchSystemSetting();
+    if (isAdmin) {
+      fetchUnits();
+      fetchUplines();
+    }
   }, []);
+
+  const fetchUplines = async () => {
+    try {
+      const res = await UserService.findAll({
+        where: "role:SALES",
+        paginate: "false",
+      });
+      setUplines(res.data.items);
+    } catch (error) {
+      console.error("Failed to fetch uplines", error);
+    }
+  };
+
+  const fetchUnits = async () => {
+    try {
+      const res = await MasterService.getUnits({ limit: 1000 });
+      setUnits(res.data.items);
+    } catch (error) {
+      console.error("Failed to fetch units", error);
+    }
+  };
 
   const fetchSystemSetting = async () => {
     try {
@@ -69,7 +109,27 @@ export const useSuspendReviewPage = () => {
         "AUTO_SUSPEND_DIRECT",
         checked ? "true" : "false",
       );
+      
       setIsAutoSuspend(checked);
+
+      if (checked) {
+        toast({
+          title: "Memproses Antrean...",
+          description: "Sistem akan memproses suspend di latar belakang.",
+        });
+        const res = await SuspendQueueService.approveAllPending();
+        setPage(1); // Reset page which triggers a refetch implicitly via effect
+        // Panggil manual agar segera terupdate meski page sudah 1
+        fetchData();
+        // Juga kosongkan pilihan (selectedIds) karena data sudah hilang
+        setSelectedIds([]);
+        
+        toast({
+          title: "Proses Berjalan",
+          description: (res as any)?.data?.message || "Sedang memproses suspend di latar belakang.",
+        });
+      }
+
       toast({
         title: "Pengaturan Diperbarui",
         description: `Auto Suspend Langsung kini ${checked ? "AKTIF" : "NONAKTIF"}.`,
@@ -149,6 +209,43 @@ export const useSuspendReviewPage = () => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const filters = [];
+      if (search) filters.push(`customer.name:${search}`);
+      if (unitId) filters.push(`customer.unitId:${unitId}`);
+      if (uplineId) filters.push(`customer.idUpline:${uplineId}`);
+
+      const query: any = {};
+      if (filters.length > 0) {
+        query.where = filters.join("+");
+      }
+
+      const res = await SuspendQueueService.exportExcel(query);
+
+      // apiClient.get for blob responseType returns the response.data (the Blob)
+      const blob = res instanceof Blob ? res : new Blob([(res as any).data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `suspend-queue-${Date.now()}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to export excel", error);
+      toast({
+        variant: "destructive",
+        title: "Gagal Ekspor",
+        description: "Terjadi kesalahan saat mengekspor data ke Excel.",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return {
     queue,
     loading,
@@ -169,5 +266,13 @@ export const useSuspendReviewPage = () => {
     handleReject,
     handleBulkApprove,
     isAdmin,
+    unitId,
+    setUnitId,
+    units,
+    uplineId,
+    setUplineId,
+    uplines,
+    isExporting,
+    handleExport,
   };
 };

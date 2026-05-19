@@ -11,6 +11,7 @@ export interface ReportFilters {
   status?: string;
   type?: string;
   isLegacy?: "all" | "new" | "legacy";
+  hierarchy?: "all" | "parent_only" | "child_only";
   page?: number;
   limit?: number;
   paginate?: boolean;
@@ -402,4 +403,55 @@ export interface KpiReportData {
   summary: KpiSummary;
   unitKpis: PaginatedData<UnitKpi> | UnitKpi[];
   salesKpis: PaginatedData<SalesKpi> | SalesKpi[];
+}
+
+export interface ProfitLossReportData {
+  period: {
+    month: number;
+    year: number;
+    startDate: string;
+    endDate: string;
+  };
+  summary: {
+    routine: {
+      revenue: number;
+      commission: number;
+      opsRoutine: number;
+      bandwidth: number;
+      profitNet: number;
+    };
+    newCustomer: {
+      revenue: number;
+      salesCommission: number;
+      unitCommission: number;
+      holdingCommission: number;
+      profitNet: number;
+    };
+  };
+  byUnit: Array<{
+    unitId: string;
+    unitName: string;
+    routine: {
+      revenue: number;
+      commission: number;
+      opsRoutine: number;
+      bandwidth: number;
+      profitNet: number;
+    };
+    newCustomer: {
+      revenue: number;
+      salesCommission: number;
+      unitCommission: number;
+      holdingCommission: number;
+      profitNet: number;
+    };
+  }>;
+}
+
+export interface ProfitLossDetail {
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  amount: number;
+  date: string;
 }

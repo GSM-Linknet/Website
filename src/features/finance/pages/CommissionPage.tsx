@@ -8,6 +8,7 @@ import { FinanceService, type CommissionLedger } from "@/services/finance.servic
 import { useToast } from "@/hooks/useToast";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CommissionDistributionModal } from "../components/CommissionDistributionModal";
 
 // ==================== Column Definitions ====================
 
@@ -61,7 +62,14 @@ const columns: Column<CommissionLedger>[] = [
     {
         header: "INVOICE",
         accessorKey: "invoiceNumber",
-        cell: (row: CommissionLedger) => row.invoice?.invoiceNumber || "-"
+        cell: (row: CommissionLedger, { onShowDistribution }: any) => (
+            <button 
+                onClick={() => onShowDistribution?.(row.invoiceId, row.invoice?.invoiceNumber)}
+                className="font-mono font-bold text-blue-600 hover:text-blue-700 hover:underline transition-all uppercase"
+            >
+                {row.invoice?.invoiceNumber || "-"}
+            </button>
+        )
     },
     {
         header: "KETERANGAN",
@@ -88,6 +96,7 @@ const columns: Column<CommissionLedger>[] = [
     {
         header: "AKSI",
         accessorKey: "actions",
+        hideable: false,
         className: "text-right",
         cell: (row: CommissionLedger, { onUpdateStatus, isLoading }: any) => {
             if (row.status !== 'PENDING') return null;
@@ -180,8 +189,11 @@ export default function CommissionPage() {
     const [summary, setSummary] = useState({
         totalPending: 0,
         totalPaid: 0,
-        totalCancelled: 0,
-        activeCustomers: 0
+        totalWithdrawn: 0,
+        totalCommission: 0,
+        totalEarned: 0,
+        activeCustomers: 0,
+        breakdown: [] as Array<{ type: string; amount: number }>
     });
 
     // Recap State
@@ -190,10 +202,17 @@ export default function CommissionPage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
-    useEffect(() => {
-        fetchSummary();
-        fetchRecap();
-    }, []);
+    // Distribution Detail Modal
+    const [selectedInvoice, setSelectedInvoice] = useState<{ id: string | null; number: string | null }>({ id: null, number: null });
+    const [showDistribution, setShowDistribution] = useState(false);
+
+    const handleShowDistribution = (id: string | null, number: string | null) => {
+        if (!id) return;
+        setSelectedInvoice({ id, number });
+        setShowDistribution(true);
+    };
+
+
 
     const fetchRecap = async () => {
         setRecapLoading(true);
@@ -216,7 +235,11 @@ export default function CommissionPage() {
 
     const fetchSummary = async () => {
         try {
-            const res = await FinanceService.getCommissionSummary();
+            const query: any = {};
+            if (startDate) query.startDate = startDate;
+            if (endDate) query.endDate = endDate;
+            
+            const res = await FinanceService.getCommissionSummary(query);
             if (res.data) {
                 setSummary(res.data);
             }
@@ -224,6 +247,11 @@ export default function CommissionPage() {
             console.error("Failed to fetch summary:", error);
         }
     };
+
+    useEffect(() => {
+        fetchSummary();
+        fetchRecap();
+    }, [startDate, endDate, fetchRecap, fetchSummary]);
 
     const handleFilterChange = (type: string) => {
         setActiveFilter(type);
@@ -301,14 +329,40 @@ export default function CommissionPage() {
                         {formatCurrency(summary.totalPending)}
                     </h2>
                 </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40">
-                    <div className="flex justify-between items-start mb-1">
-                        <p className="text-slate-400 text-sm font-medium">Total Terbayar</p>
-                        <CircleDollarSign size={16} className="text-green-500" />
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col justify-between">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Rincian Pembagian</p>
+                            <h2 className="text-xl font-black text-slate-800 leading-none">
+                                {formatCurrency(summary.totalPaid)}
+                            </h2>
+                        </div>
+                        <div className="p-2 bg-green-50 text-green-600 rounded-xl">
+                            <CircleDollarSign size={18} />
+                        </div>
                     </div>
-                    <h2 className="text-2xl font-bold font-mono text-slate-800">
-                        {formatCurrency(summary.totalPaid)}
-                    </h2>
+                    
+                    <div className="space-y-2 max-h-[100px] overflow-y-auto pr-1">
+                        {[
+                            { key: 'SALES', label: 'Sales' },
+                            { key: 'SPV', label: 'Supervisor' },
+                            { key: 'UNIT', label: 'Unit' },
+                            { key: 'COORDINATOR', label: 'Koordinator' },
+                            { key: 'HOLDING', label: 'Pusat' },
+                        ].map((cat) => {
+                            const detail = summary.breakdown?.find(b => b.type === cat.key);
+                            const amount = detail?.amount || 0;
+                            
+                            return (
+                                <div key={cat.key} className="flex justify-between items-center text-xs border-b border-dashed border-slate-50 pb-1.5 last:border-0 last:pb-0">
+                                    <span className="text-slate-500 font-medium">{cat.label}</span>
+                                    <span className={`font-mono font-bold ${amount > 0 ? 'text-slate-700' : 'text-slate-300'}`}>
+                                        {formatCurrency(amount)}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40">
                     <div className="flex justify-between items-start mb-1">
@@ -361,6 +415,7 @@ export default function CommissionPage() {
                         </div>
 
                         <BaseTable
+                            tableId="finance-commission-history"
                             data={data}
                             columns={columns}
                             rowKey={(row: CommissionLedger) => row.id}
@@ -372,6 +427,7 @@ export default function CommissionPage() {
                             onPageChange={setPage}
                             meta={{
                                 onUpdateStatus: handleUpdateStatus,
+                                onShowDistribution: handleShowDistribution,
                                 isLoading: loading
                             }}
                         />
@@ -421,6 +477,7 @@ export default function CommissionPage() {
                         </div>
 
                         <BaseTable
+                            tableId="finance-commission-recap"
                             data={recapData}
                             columns={recapColumns}
                             rowKey={(row: any) => row.userId}
@@ -433,7 +490,15 @@ export default function CommissionPage() {
                         />
                     </div>
                 </TabsContent>
+
             </Tabs>
+
+            <CommissionDistributionModal 
+                isOpen={showDistribution}
+                onClose={() => setShowDistribution(false)}
+                invoiceId={selectedInvoice.id}
+                invoiceNumber={selectedInvoice.number}
+            />
         </div>
     );
 }

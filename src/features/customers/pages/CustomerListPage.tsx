@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { MasterService, type Unit, type SubUnit } from "@/services/master.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AddLegacyCustomerDialog } from "../components/AddLegacyCustomerDialog";
+import { DeleteParentDialog } from "../components/DeleteParentDialog";
 
 // ==================== Page Component ====================
 
@@ -49,6 +50,7 @@ export default function CustomerListPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleteParentOpen, setIsDeleteParentOpen] = useState(false);
 
   // Dropdown filters
   const [filters, setFilters] = useState({
@@ -152,7 +154,12 @@ export default function CustomerListPage() {
     const customer = customers.find((c) => c.id === id);
     if (customer) {
       setSelectedCustomer(customer);
-      setIsDeleteOpen(true);
+      // Jika customer adalah parent dengan anakan, buka dialog khusus
+      if (customer.isParent && (customer.children?.length ?? 0) > 0) {
+        setIsDeleteParentOpen(true);
+      } else {
+        setIsDeleteOpen(true);
+      }
     }
   };
 
@@ -424,36 +431,52 @@ export default function CustomerListPage() {
           onDetail={handleDetail}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onRefresh={refresh}
         />
       </div>
 
       {/* ── Modals ── */}
-      <CustomerDetailModal
-        isOpen={isDetailOpen}
-        onClose={() => { setIsDetailOpen(false); setSelectedCustomer(null); }}
-        customer={selectedCustomer}
-      />
+      {isDetailOpen && selectedCustomer && (
+        <CustomerDetailModal
+          isOpen={isDetailOpen}
+          onClose={() => { setIsDetailOpen(false); setSelectedCustomer(null); }}
+          customer={selectedCustomer}
+        />
+      )}
 
-      <ManageCustomerModal
-        isOpen={isManageOpen}
-        onClose={() => { setIsManageOpen(false); setSelectedCustomer(null); }}
-        customer={selectedCustomer}
-        onSuccess={refresh}
-      />
+      {isManageOpen && selectedCustomer && (
+        <ManageCustomerModal
+          isOpen={isManageOpen}
+          onClose={() => { setIsManageOpen(false); setSelectedCustomer(null); }}
+          customer={selectedCustomer}
+          onSuccess={refresh}
+        />
+      )}
 
-      <DeleteConfirmationModal
-        isOpen={isDeleteOpen}
-        onClose={() => { setIsDeleteOpen(false); setSelectedCustomer(null); }}
-        onConfirm={confirmDelete}
-        itemName={selectedCustomer?.name}
-        isLoading={deleting}
-      />
+      {isDeleteOpen && selectedCustomer && (
+        <DeleteConfirmationModal
+          isOpen={isDeleteOpen}
+          onClose={() => { setIsDeleteOpen(false); setSelectedCustomer(null); }}
+          onConfirm={confirmDelete}
+          itemName={selectedCustomer?.name}
+          isLoading={deleting}
+        />
+      )}
 
       <AddLegacyCustomerDialog
         isOpen={isAddLegacyOpen}
         onClose={() => setIsAddLegacyOpen(false)}
         onSuccess={() => { setIsAddLegacyOpen(false); refresh(); }}
       />
+
+      {isDeleteParentOpen && selectedCustomer && (
+        <DeleteParentDialog
+          open={isDeleteParentOpen}
+          onOpenChange={setIsDeleteParentOpen}
+          customer={selectedCustomer}
+          onSuccess={() => { setIsDeleteParentOpen(false); setSelectedCustomer(null); refresh(); }}
+        />
+      )}
     </div>
   );
 }

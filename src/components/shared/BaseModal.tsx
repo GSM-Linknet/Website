@@ -19,11 +19,12 @@ interface BaseModalProps {
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "6xl" | "full";
   showFooter?: boolean;
   primaryActionLabel?: string;
   primaryActionOnClick?: () => void;
   primaryActionLoading?: boolean;
+  primaryActionVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   secondaryActionLabel?: string;
 }
 
@@ -33,6 +34,9 @@ const sizeClasses = {
   lg: "sm:max-w-lg",
   xl: "sm:max-w-xl",
   "2xl": "sm:max-w-2xl",
+  "4xl": "sm:max-w-4xl",
+  "6xl": "sm:max-w-6xl",
+  full: "sm:max-w-[95vw]",
 };
 
 export function BaseModal({
@@ -49,6 +53,7 @@ export function BaseModal({
   primaryActionLabel = "Simpan",
   primaryActionOnClick,
   primaryActionLoading = false,
+  primaryActionVariant = "default",
   secondaryActionLabel = "Batal",
 }: BaseModalProps) {
   return (
@@ -64,7 +69,7 @@ export function BaseModal({
         <DialogHeader className="p-6 pb-2 space-y-3 flex-shrink-0">
           <div className="flex items-center gap-3">
             {Icon && (
-              <div className="p-2.5 bg-blue-50 text-[#101D42] rounded-xl ring-1 ring-blue-100/50">
+              <div className="p-2.5 bg-blue-50 text-blue-500 rounded-xl ring-1 ring-blue-100/50">
                 <Icon size={20} />
               </div>
             )}
@@ -88,7 +93,7 @@ export function BaseModal({
 
         {/* Footer Section */}
         {showFooter && (
-          <DialogFooter className="p-6 pt-2 flex gap-2 flex-shrink-0 bg-white z-10">
+          <DialogFooter className="p-6 pt-2 flex flex-row items-center justify-end gap-3 flex-shrink-0 bg-white z-10">
             {footer || (
               <>
                 <Button
@@ -100,9 +105,14 @@ export function BaseModal({
                   {secondaryActionLabel}
                 </Button>
                 <Button
+                  variant={primaryActionVariant === 'default' ? undefined : primaryActionVariant}
                   onClick={primaryActionOnClick}
                   disabled={primaryActionLoading}
-                  className="bg-[#101D42] text-white rounded-xl font-bold px-6 shadow-lg shadow-blue-900/20 hover:bg-[#1a2b5a] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className={cn(
+                    "rounded-xl font-bold px-6 shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]",
+                    primaryActionVariant === 'default' && "bg-[#101D42] text-white shadow-blue-900/20 hover:bg-[#1a2b5a]",
+                    primaryActionVariant === 'destructive' && "bg-destructive text-white shadow-red-900/20 hover:bg-red-600"
+                  )}
                 >
                   {primaryActionLoading ? (
                     <div className="flex items-center gap-2">

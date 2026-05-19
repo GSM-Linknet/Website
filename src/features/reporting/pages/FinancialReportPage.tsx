@@ -36,8 +36,9 @@ import {
     LOADING_MESSAGES,
     ERROR_MESSAGES,
 } from "../constants/report.constants";
+import { ProfitLossReportView } from "./ProfitLossReportPage";
 
-type TabType = "invoice" | "payment" | "revenue" | "aging" | "summary";
+type TabType = "invoice" | "payment" | "revenue" | "aging" | "summary" | "profitLoss";
 type FinancialData = InvoiceReportData | PaymentReportData | RevenueReportData | AgingReportData | any;
 
 export default function FinancialReportPage() {
@@ -46,6 +47,7 @@ export default function FinancialReportPage() {
     const [loading, setLoading] = useState(true);
     const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
     const [unitFilter, setUnitFilter] = useState<string>('all');
+    const [hierarchyFilter, setHierarchyFilter] = useState<'all' | 'parent_only' | 'child_only'>('all');
     const [units, setUnits] = useState<Unit[]>([]);
     
     // Pagination state
@@ -60,7 +62,7 @@ export default function FinancialReportPage() {
     // Reset page when tab or other filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [activeTab, legacyFilter, unitFilter, filters.startDate, filters.endDate]);
+    }, [activeTab, legacyFilter, unitFilter, hierarchyFilter, filters.startDate, filters.endDate]);
 
     // Fetch units on mount
     useEffect(() => {
@@ -76,16 +78,19 @@ export default function FinancialReportPage() {
     }, []);
 
     useEffect(() => {
-        fetchReportData();
-    }, [filters, activeTab, legacyFilter, unitFilter, currentPage, pageSize]);
+        if (activeTab !== 'profitLoss') {
+            fetchReportData();
+        }
+    }, [filters, activeTab, legacyFilter, unitFilter, hierarchyFilter, currentPage, pageSize]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
             const reportFilters = {
                 ...filters,
-                isLegacy: legacyFilter,
+                isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
                 unitId: unitFilter !== 'all' ? unitFilter : undefined,
+                hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
                 page: currentPage,
                 limit: pageSize,
                 paginate: true
@@ -127,16 +132,18 @@ export default function FinancialReportPage() {
     const handleExportExcel = async () => {
         await reportService.exportFinancialReportExcel(activeTab, {
             ...filters,
-            isLegacy: legacyFilter,
+            isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
             unitId: unitFilter !== 'all' ? unitFilter : undefined,
+            hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
         });
     };
 
     const handleExportPDF = async () => {
         await reportService.exportFinancialReportPDF(activeTab, {
             ...filters,
-            isLegacy: legacyFilter,
+            isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
             unitId: unitFilter !== 'all' ? unitFilter : undefined,
+            hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
         });
     };
 
@@ -146,6 +153,7 @@ export default function FinancialReportPage() {
         { id: "revenue" as TabType, label: "Revenue", icon: BarChart3 },
         { id: "aging" as TabType, label: "Aging", icon: Clock },
         { id: "summary" as TabType, label: "Ringkasan", icon: PieChart },
+        { id: "profitLoss" as TabType, label: "Laba Rugi", icon: BarChart3 },
     ];
 
     const getColumns = () => {
@@ -296,7 +304,7 @@ export default function FinancialReportPage() {
     };
 
     const summaryCards = useMemo(() => {
-        if (!reportData) return null;
+        if (!reportData || activeTab === 'profitLoss') return null;
 
         if (activeTab === "invoice" && 'invoices' in reportData) {
             const s = (reportData as InvoiceReportData).summary;
@@ -440,6 +448,26 @@ export default function FinancialReportPage() {
                                     </option>
                                 ))}
                             </select>
+                            
+                            {/* Hierarchy Filter Tabs */}
+                            <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+                                {[
+                                    { value: 'all' as const, label: 'Semua Hierarki' },
+                                    { value: 'parent_only' as const, label: 'Induk (Reguler)' },
+                                    { value: 'child_only' as const, label: 'Khusus Anakan' },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.value}
+                                        onClick={() => setHierarchyFilter(tab.value)}
+                                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all ${hierarchyFilter === tab.value
+                                            ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
+                                            : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                                            }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
 
                             {/* Legacy Filter Tabs */}
                             <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
@@ -469,53 +497,67 @@ export default function FinancialReportPage() {
                     </div>
                 </div>
 
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-white/50 backdrop-blur-sm rounded-2xl border border-dashed border-gray-300">
-                        <div className="relative w-16 h-16 mb-6">
-                            <div className="absolute inset-0 border-4 border-green-200 rounded-full animate-ping"></div>
-                            <div className="absolute inset-0 border-4 border-t-green-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-                        </div>
-                        <p className="text-lg font-medium text-gray-700">
-                            {LOADING_MESSAGES.FETCHING_REPORT}
-                        </p>
-                    </div>
-                ) : !reportData ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-white/50 backdrop-blur-sm rounded-2xl border border-dashed border-gray-300">
-                        <div className="w-24 h-24 mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                            <DollarSign className="w-12 h-12 text-gray-400" />
-                        </div>
-                        <p className="text-lg font-medium text-gray-700">
-                            {ERROR_MESSAGES.NO_DATA}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-2">
-                            Coba ubah filter atau periode laporan
-                        </p>
+                {activeTab === 'profitLoss' ? (
+                    <div className="mt-8">
+                         <ProfitLossReportView filters={{
+                            ...filters,
+                            isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+                            unitId: unitFilter !== 'all' ? unitFilter : undefined,
+                            hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
+                         }} />
                     </div>
                 ) : (
                     <>
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {summaryCards}
-                        </div>
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-20 bg-white/50 backdrop-blur-sm rounded-2xl border border-dashed border-gray-300">
+                                <div className="relative w-16 h-16 mb-6">
+                                    <div className="absolute inset-0 border-4 border-green-200 rounded-full animate-ping"></div>
+                                    <div className="absolute inset-0 border-4 border-t-green-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+                                </div>
+                                <p className="text-lg font-medium text-gray-700">
+                                    {LOADING_MESSAGES.FETCHING_REPORT}
+                                </p>
+                            </div>
+                        ) : !reportData ? (
+                            <div className="flex flex-col items-center justify-center py-20 bg-white/50 backdrop-blur-sm rounded-2xl border border-dashed border-gray-300">
+                                <div className="w-24 h-24 mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <DollarSign className="w-12 h-12 text-gray-400" />
+                                </div>
+                                <p className="text-lg font-medium text-gray-700">
+                                    {ERROR_MESSAGES.NO_DATA}
+                                </p>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    Coba ubah filter atau periode laporan
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Summary Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {summaryCards}
+                                </div>
 
-                        {/* Data Table */}
-                        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                <div className="w-1 h-6 bg-gradient-to-b from-green-600 to-emerald-600 rounded-full"></div>
-                                Detail {tabs.find((t) => t.id === activeTab)?.label}
-                            </h2>
-                            <ReportDataTable
-                                serverSide={true}
-                                data={getTableRawData()}
-                                columns={getColumns()}
-                                page={currentPage}
-                                limit={pageSize}
-                                loading={loading}
-                                onPageChange={setCurrentPage}
-                                onPageSizeChange={setPageSize}
-                                searchPlaceholder={`Cari ${tabs.find(t => t.id === activeTab)?.label.toLowerCase()}...`}
-                            />
-                        </div>
+                                {/* Data Table */}
+                                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
+                                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                        <div className="w-1 h-6 bg-gradient-to-b from-green-600 to-emerald-600 rounded-full"></div>
+                                        Detail {tabs.find((t) => t.id === activeTab)?.label}
+                                    </h2>
+                                    <ReportDataTable
+                                        tableId={`reporting-financial-${activeTab}`}
+                                        serverSide={true}
+                                        data={getTableRawData()}
+                                        columns={getColumns()}
+                                        page={currentPage}
+                                        limit={pageSize}
+                                        loading={loading}
+                                        onPageChange={setCurrentPage}
+                                        onPageSizeChange={setPageSize}
+                                        searchPlaceholder={`Cari ${tabs.find(t => t.id === activeTab)?.label.toLowerCase()}...`}
+                                    />
+                                </div>
+                            </>
+                        )}
                     </>
                 )}
             </div>

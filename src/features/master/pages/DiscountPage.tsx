@@ -60,6 +60,7 @@ export default function DiscountPage() {
                 </div>
 
                 <BaseTable
+                    tableId="master-discount"
                     data={discounts}
                     columns={columns}
                     rowKey={(row: Discount) => row.id}

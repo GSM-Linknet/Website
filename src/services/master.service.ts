@@ -38,6 +38,7 @@ export interface Unit extends BaseEntity {
   cabang?: Cabang;
   quota: number;
   quotaUsed: number;
+  wilayahId?: string;
   wilayahIds?: string[];
   areaIds?: string[];
   unitWilayah?: { wilayah: Wilayah }[];
@@ -86,6 +87,8 @@ export interface Package extends BaseEntity {
   unitGlobalCommission?: number;
   holdingCommission?: number;
   otherCommission?: number;
+  isActive: boolean;
+  billingCycle: number;
 }
 
 export interface Discount extends BaseEntity {
@@ -220,7 +223,7 @@ export const MasterService = {
     );
   },
   getUnit: async (id: string) => {
-    return apiClient.get<Unit>(`${ENDPOINTS.UNIT}/find-one/${id}`);
+    return apiClient.get<ApiResponse<Unit>>(`${ENDPOINTS.UNIT}/find-one/${id}`);
   },
   createUnit: async (data: Partial<Unit>) => {
     return apiClient.post<Unit>(`${ENDPOINTS.UNIT}/create`, data);
@@ -260,7 +263,7 @@ export const MasterService = {
     );
   },
   getPackage: async (id: string) => {
-    return apiClient.get<Package>(`${ENDPOINTS.PACKAGE}/find-one/${id}`);
+    return apiClient.get<ApiResponse<Package>>(`${ENDPOINTS.PACKAGE}/find-one/${id}`);
   },
   createPackage: async (data: Partial<Package>) => {
     return apiClient.post<Package>(`${ENDPOINTS.PACKAGE}/create`, data);

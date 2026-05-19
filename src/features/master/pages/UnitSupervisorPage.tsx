@@ -57,6 +57,7 @@ export default function UnitSupervisorPage() {
                 </div>
 
                 <BaseTable
+                    tableId="master-unit-supervisor"
                     data={units}
                     columns={columns}
                     rowKey={(row: Unit) => row.id}

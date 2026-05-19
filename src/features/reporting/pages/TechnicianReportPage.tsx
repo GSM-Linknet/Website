@@ -221,6 +221,7 @@ export default function TechnicianReportPage() {
                                 Detail Work Orders
                             </h2>
                             <ReportDataTable
+                                tableId="reporting-technician-performance"
                                 serverSide={true}
                                 data={reportData.workOrders || []}
                                 columns={columns}

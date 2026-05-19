@@ -153,6 +153,7 @@ export default function ServicePricingPage() {
         {
             header: "AKSI",
             accessorKey: "actions",
+            hideable: false,
             className: "w-[100px] text-center",
             cell: (row: LaborPrice) => (
                 <div className="flex items-center justify-center gap-2">
@@ -245,6 +246,7 @@ export default function ServicePricingPage() {
             {/* Content */}
             <div className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
+                    tableId="technicians-service-pricing"
                     data={data}
                     columns={columns}
                     rowKey={(row: LaborPrice) => row.id}

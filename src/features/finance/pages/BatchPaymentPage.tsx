@@ -59,12 +59,7 @@ export default function BatchPaymentPage() {
     const [selectedBatch, setSelectedBatch] = useState<BatchPayment | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-    // Derived State: Quota Information
-    const quotaInfo = batchPayments?.[0]?.unit || batchPayments?.[0]?.subUnit;
-    const expenseQuota = quotaInfo?.expenseQuota || 0;
-    const expenseQuotaUsed = quotaInfo?.expenseQuotaUsed || 0;
-    const quotaAvailable = Math.max(0, expenseQuota - expenseQuotaUsed);
-
+ 
     // Table Column Definitions
     const columns = useMemo(() => [
         {
@@ -139,6 +134,7 @@ export default function BatchPaymentPage() {
         {
             accessorKey: "id",
             header: "Aksi",
+            hideable: false,
             cell: (row: BatchPayment) => (
                 <Button
                     size="sm"
@@ -191,6 +187,7 @@ export default function BatchPaymentPage() {
             {/* Data Table Container */}
             <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
+                    tableId="finance-batch-payment"
                     data={batchPayments || []}
                     columns={columns}
                     rowKey={(row) => row.id}
@@ -208,7 +205,7 @@ export default function BatchPaymentPage() {
                 isOpen={isCreateOpen}
                 onClose={() => setIsCreateOpen(false)}
                 onSuccess={refetch}
-                quotaAvailable={quotaAvailable}
+               
             />
 
             <BatchPaymentDetailModal

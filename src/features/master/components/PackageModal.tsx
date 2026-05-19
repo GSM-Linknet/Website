@@ -3,8 +3,9 @@ import { BaseModal } from "@/components/shared/BaseModal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
-import { Package, Wifi, DollarSign, FileText, MapPin, Hash } from "lucide-react";
+import { Package, Wifi, DollarSign, FileText, MapPin, Hash, Power } from "lucide-react";
 import { useWilayah } from "../hooks/useWilayah";
 import type { Package as PackageType } from "@/services/master.service";
 
@@ -33,14 +34,8 @@ export function PackageModal({
         wilayahIds: [],
         duration: 30, // Default to 30 days
         costBandwidth: 0,
-        holdingIncome: 0,
-        unitGlobalIncome: 0,
-        spCommission: 0,
-        adminCommission: 0,
-        unitCommission: 0,
-        unitGlobalCommission: 0,
-        holdingCommission: 0,
-        otherCommission: 0,
+        isActive: true,
+        billingCycle: 1,
     });
 
     const isEdit = !!initialData;
@@ -58,14 +53,8 @@ export function PackageModal({
                     wilayahIds: initialData.packagesWilayah?.map(pw => pw.wilayah.id) || [],
                     duration: initialData.duration || 30,
                     costBandwidth: initialData.costBandwidth || 0,
-                    holdingIncome: initialData.holdingIncome || 0,
-                    unitGlobalIncome: initialData.unitGlobalIncome || 0,
-                    spCommission: initialData.spCommission || 0,
-                    adminCommission: initialData.adminCommission || 0,
-                    unitCommission: initialData.unitCommission || 0,
-                    unitGlobalCommission: initialData.unitGlobalCommission || 0,
-                    holdingCommission: initialData.holdingCommission || 0,
-                    otherCommission: initialData.otherCommission || 0,
+                    isActive: initialData.isActive ?? true,
+                    billingCycle: initialData.billingCycle || 1,
                 });
             } else {
                 setFormData({
@@ -77,25 +66,13 @@ export function PackageModal({
                     wilayahIds: [],
                     duration: 30,
                     costBandwidth: 0,
-                    holdingIncome: 0,
-                    unitGlobalIncome: 0,
-                    spCommission: 0,
-                    adminCommission: 0,
-                    unitCommission: 0,
-                    unitGlobalCommission: 0,
-                    holdingCommission: 0,
-                    otherCommission: 0,
+                    isActive: true,
+                    billingCycle: 1,
                 });
             }
         }
     }, [isOpen, initialData]);
 
-    const totalCommission = (formData.spCommission || 0) +
-        (formData.adminCommission || 0) +
-        (formData.unitCommission || 0) +
-        (formData.unitGlobalCommission || 0) +
-        (formData.holdingCommission || 0) +
-        (formData.otherCommission || 0);
 
     const handleSubmit = async () => {
         if (!formData.name || !formData.code || !formData.price || !formData.speed || !formData.wilayahIds?.length) {
@@ -103,10 +80,6 @@ export function PackageModal({
             return;
         }
 
-        if (totalCommission > 100) {
-            alert(`Total komisi tidak boleh lebih dari 100%. Saat ini: ${totalCommission}%`);
-            return;
-        }
 
         const success = await onSubmit(formData);
         if (success) {
@@ -130,7 +103,28 @@ export function PackageModal({
             primaryActionLoading={isLoading}
             size="lg"
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 overflow-y-auto h-[calc(100vh-20rem)]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 overflow-y-auto h-[calc(100vh-20rem)] p-1">
+                {/* Status Toggle */}
+                <div className="md:col-span-2 flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-xl ${formData.isActive ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
+                            <Power size={18} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-slate-700">Status Paket</p>
+                            <p className="text-xs text-slate-500">
+                                {formData.isActive 
+                                    ? "Paket aktif dan tampil di form pendaftaran" 
+                                    : "Paket dinonaktifkan (disembunyikan dari form)"}
+                            </p>
+                        </div>
+                    </div>
+                    <Switch
+                        checked={formData.isActive}
+                        onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                    />
+                </div>
+
                 {/* Name Field */}
                 <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
@@ -177,13 +171,28 @@ export function PackageModal({
                 {/* Price Field */}
                 <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        <DollarSign size={14} className="text-blue-500" /> Harga Per Bulan
+                        <DollarSign size={14} className="text-blue-500" /> Harga Paket
                     </Label>
                     <Input
                         type="number"
                         placeholder="Contoh: 150000"
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                        className="rounded-xl h-11"
+                        disabled={isLoading}
+                    />
+                </div>
+
+                {/* Billing Cycle Field */}
+                <div className="space-y-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                        <FileText size={14} className="text-blue-500" /> Siklus Penagihan (Bulan)
+                    </Label>
+                    <Input
+                        type="number"
+                        placeholder="Contoh: 1 atau 3"
+                        value={formData.billingCycle}
+                        onChange={(e) => setFormData({ ...formData, billingCycle: parseInt(e.target.value) || 1 })}
                         className="rounded-xl h-11"
                         disabled={isLoading}
                     />
@@ -271,80 +280,6 @@ export function PackageModal({
                     />
                 </div> */}
 
-                <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-100">
-                    <div className="flex justify-between items-center">
-                        <div className="space-y-1">
-                            <h4 className="font-bold text-slate-700 text-sm">Pengaturan Komisi</h4>
-
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-[11px] font-bold border ${totalCommission === 100 ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-                            Total: {totalCommission}% {totalCommission === 100 ? '✓' : '⚠'}
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-
-
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Unit Global (%)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.unitGlobalCommission}
-                                onChange={(e) => setFormData({ ...formData, unitGlobalCommission: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Holding (%)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.holdingCommission}
-                                onChange={(e) => setFormData({ ...formData, holdingCommission: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-
-                    </div>
-                </div>
-
-                {/* Recurring Commission Section */}
-                <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-100">
-                    <div className="space-y-1">
-                        <h4 className="font-bold text-slate-700 text-sm">Komisi Rutin (Fixed Price)</h4>
-                        <p className="text-xs text-slate-400">Komisi tetap per pembayaran bulanan (dalam Rupiah)</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Holding Income (Rp)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.holdingIncome}
-                                onChange={(e) => setFormData({ ...formData, holdingIncome: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                Unit Global Income (Rp)
-                            </Label>
-                            <Input
-                                type="number"
-                                placeholder="0"
-                                className="h-9 rounded-lg text-sm"
-                                value={formData.unitGlobalIncome}
-                                onChange={(e) => setFormData({ ...formData, unitGlobalIncome: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                    </div>
-                </div>
 
                 {/* Description Field */}
                 <div className="space-y-2 md:col-span-2">

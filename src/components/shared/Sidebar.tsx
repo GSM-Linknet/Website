@@ -1,11 +1,12 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { Wallet, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react";
 import { NavLink, Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { NAVIGATION_ITEMS } from "@/constants/navigation";
 import { useSidebar } from "@/providers/sidebar-provider";
 // import { useDisclosure } from "@/hooks/use-disclosure";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthService, type PermissionResource } from "@/services/auth.service";
+import { commissionService } from "@/services/commission.service";
 import {
   Tooltip,
   TooltipContent,
@@ -15,9 +16,25 @@ import {
 
 export const Sidebar = () => {
   const { isCollapsed, toggleCollapse } = useSidebar();
-  // const { isOpen: showSaldo, onToggle: toggleSaldo } = useDisclosure(false);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [showSaldo, setShowSaldo] = useState(() => {
+    const saved = localStorage.getItem("sidebar_show_saldo");
+    return saved === null ? true : saved === "true";
+  });
+  const [balance, setBalance] = useState<number | null>(null);
   const user = AuthService.getUser();
+
+  useEffect(() => {
+    localStorage.setItem("sidebar_show_saldo", showSaldo.toString());
+  }, [showSaldo]);
+
+  useEffect(() => {
+    if (user) {
+      commissionService.getSummary({ personal: true })
+        .then(data => setBalance(data.totalCommission))
+        .catch(err => console.error("Failed to fetch commission summary", err));
+    }
+  }, [user]);
 
   const toggleExpand = (title: string) => {
     if (isCollapsed) {
@@ -115,17 +132,17 @@ export const Sidebar = () => {
         </Link>
 
         {/* Saldo Widget */}
-        {/* {!isCollapsed && (
+        {!isCollapsed && user && (
           <div className="px-4 mb-6 animate-in fade-in zoom-in-95 duration-300">
-            <div className="bg-blue-600/20 rounded-2xl p-4 relative overflow-hidden group border border-blue-500/10">
+            <div className="bg-white/5 rounded-2xl p-4 relative overflow-hidden group border border-white/5">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Available Balance
+                  Saldo Komisi
                 </span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
-                    toggleSaldo();
+                    setShowSaldo(!showSaldo);
                   }}
                   className="p-1 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
                 >
@@ -135,16 +152,21 @@ export const Sidebar = () => {
               <div className="flex items-end justify-between">
                 <div>
                   <span className="text-lg font-bold text-white tracking-tight font-mono">
-                    {showSaldo ? "Rp 12.450.000" : "Rp ••••••••"}
+                    {showSaldo
+                      ? formatCurrency(balance || 0)
+                      : "Rp ••••••••"}
                   </span>
                 </div>
-                <div className="bg-blue-500/30 p-2 rounded-xl">
-                  <Wallet size={20} className="text-blue-400" />
-                </div>
+                <Link 
+                  to="/keuangan/payout"
+                  className="bg-blue-500/20 p-2 rounded-xl hover:bg-blue-500/30 transition-colors group/wallet"
+                >
+                  <Wallet size={20} className="text-blue-400 group-hover/wallet:scale-110 transition-transform" />
+                </Link>
               </div>
             </div>
           </div>
-        )} */}
+        )}
 
         {/* Navigation */}
         <div className="flex-1 px-3 space-y-1">

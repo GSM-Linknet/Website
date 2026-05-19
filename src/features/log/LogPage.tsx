@@ -187,6 +187,7 @@ export default function LogPage() {
       {
         header: "AKSI",
         accessorKey: "id",
+        hideable: false,
         className: "w-[80px] text-center",
         cell: (row: Log) => (
           <Button
@@ -236,6 +237,7 @@ export default function LogPage() {
 
         {/* Table */}
         <BaseTable
+          tableId="system-audit-logs"
           data={data}
           columns={columns}
           rowKey={(row: Log) => row.id}

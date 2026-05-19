@@ -383,6 +383,7 @@ export default function UnitDashboard({ userName }: UnitDashboardProps) {
           </div>
         ) : (
           <BaseTable
+            tableId="dashboard-unit-customers"
             data={customers.map((c: Customer, i: number) => ({ ...c, no: i + 1 }))}
             columns={columns}
             rowKey={(row) => row.id}

@@ -184,6 +184,7 @@ export default function SubUnitPage() {
             id: "actions",
             accessorKey: "id",
             className: "w-[120px] text-center",
+            hideable: false,
             cell: (row: SubUnit) => {
                 if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
 
@@ -262,6 +263,7 @@ export default function SubUnitPage() {
 
                 {/* Table */}
                 <BaseTable
+                    tableId="master-subunit"
                     data={data}
                     columns={columns}
                     rowKey={(row: SubUnit) => row.id}

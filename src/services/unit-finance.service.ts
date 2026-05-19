@@ -229,16 +229,25 @@ export const UnitFinanceService = {
     );
   },
 
-  getUnitBalance: async (unitId: string) => {
-    return apiClient.get<{ balance: number }>(
-      `${ENDPOINTS.BALANCE_LEDGER}/balance/${unitId}`,
+  exportLedger: async (query: BaseQuery = {}) => {
+    return apiClient.get<Blob>(
+      `${ENDPOINTS.BALANCE_LEDGER}/export`,
+      { params: query, responseType: "blob" },
     );
   },
 
+  getUnitBalance: async (unitId: string) => {
+    const response = await apiClient.get<any>(
+      `${ENDPOINTS.BALANCE_LEDGER}/balance/${unitId}`,
+    );
+    return response.data;
+  },
+
   getBalanceSummary: async (unitId: string) => {
-    return apiClient.get<BalanceSummary>(
+    const response = await apiClient.get<any>(
       `${ENDPOINTS.BALANCE_LEDGER}/summary/${unitId}`,
     );
+    return response.data;
   },
 
   getLedgerHistory: async (

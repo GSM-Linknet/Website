@@ -9,6 +9,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { usePackage } from "../hooks/usePackage";
 import { useWilayah } from "../hooks/useWilayah";
@@ -123,6 +124,10 @@ export default function PackagePricingPage() {
         }
     };
 
+    const handleToggleStatus = async (pkg: Package) => {
+        await update(pkg.id, { isActive: !pkg.isActive });
+    };
+
     const columns = [
         {
             header: "KODE",
@@ -138,6 +143,27 @@ export default function PackagePricingPage() {
             header: "NAMA PAKET",
             accessorKey: "name",
             className: "font-bold text-brand-blue",
+        },
+        {
+            header: "STATUS",
+            accessorKey: "isActive",
+            cell: (row: Package) => (
+                <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full border transition-all duration-300 w-fit ${
+                    row.isActive 
+                        ? 'bg-emerald-50/50 border-emerald-100 shadow-sm shadow-emerald-100/50' 
+                        : 'bg-slate-50 border-slate-200 opacity-70'
+                }`}>
+                    <Switch
+                        checked={row.isActive}
+                        onCheckedChange={() => handleToggleStatus(row)}
+                        className={`scale-75 data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-200 transition-colors shadow-inner`}
+                        disabled={isLoading}
+                    />
+                    <span className={`text-[10px] font-bold uppercase tracking-wider min-w-[36px] ${row.isActive ? 'text-emerald-600' : 'text-slate-500'}`}>
+                        {row.isActive ? 'Aktif' : 'Off'}
+                    </span>
+                </div>
+            )
         },
         {
             header: "WILAYAH",
@@ -170,34 +196,21 @@ export default function PackagePricingPage() {
             ),
         },
         {
-            header: "HARGA / BULAN",
+            header: "SIKLUS",
+            accessorKey: "billingCycle",
+            cell: (row: Package) => (
+                <span className="font-bold text-slate-600">
+                    {row.billingCycle} Bulan
+                </span>
+            ),
+        },
+        {
+            header: "HARGA PAKET",
             accessorKey: "price",
             cell: (row: Package) => (
                 <span className="font-mono font-bold text-slate-700">
                     Rp {row.price.toLocaleString("id-ID")}
                 </span>
-            ),
-        },
-        {
-            header: "KOMISI",
-            accessorKey: "spCommission",
-            cell: (row: Package) => (
-                <div className="space-y-1 text-xs">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">Registrasi</span>
-                        <div className="flex gap-2">
-                            <span className="text-green-600 font-semibold">Sales: {row.spCommission || 0}%</span>
-                            <span className="text-blue-600 font-semibold">SPV: {row.unitGlobalCommission || 0}%</span>
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">Rutin</span>
-                        <div className="flex gap-2">
-                            <span className="text-green-600 font-mono">Sales : Rp {(row.holdingIncome || 0).toLocaleString("id-ID")}</span>
-                            <span className="text-blue-600 font-mono">SPV : Rp {(row.unitGlobalIncome || 0).toLocaleString("id-ID")}</span>
-                        </div>
-                    </div>
-                </div>
             ),
         },
         {
@@ -208,6 +221,7 @@ export default function PackagePricingPage() {
         {
             header: "AKSI",
             accessorKey: "id",
+            hideable: false,
             cell: (row: Package) => {
                 if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
 
@@ -253,7 +267,7 @@ export default function PackagePricingPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-brand-blue">Paket & Harga</h1>
                     <p className="text-sm text-slate-500">
-                        Manajemen paket internet dan harga berlangganan bulanan
+                        Manajemen paket internet dan harga berlangganan sesuai siklus penagihan
                     </p>
                 </div>
 
@@ -298,8 +312,25 @@ export default function PackagePricingPage() {
                     packages.slice(0, 3).map((pkg) => (
                         <div
                             key={pkg.id}
-                            className="bg-white rounded-4xl p-6 border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:scale-[1.02] transition-all"
+                            className={`bg-white rounded-4xl p-6 border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:scale-[1.02] transition-all ${!pkg.isActive ? 'grayscale-[0.5] opacity-80' : ''}`}
                         >
+                            {/* Status Indicator Card */}
+                            <div className={`absolute top-4 right-4 flex items-center gap-2 z-20 px-3 py-1.5 rounded-full border backdrop-blur-sm shadow-sm transition-all duration-300 ${
+                                pkg.isActive 
+                                    ? 'bg-emerald-500/90 border-emerald-400 shadow-emerald-200/50' 
+                                    : 'bg-slate-700/80 border-slate-600 shadow-slate-900/10'
+                            }`}>
+                                <Switch
+                                    checked={pkg.isActive}
+                                    onCheckedChange={() => handleToggleStatus(pkg)}
+                                    className={`scale-75 data-[state=checked]:bg-white/30 data-[state=unchecked]:bg-slate-400 transition-colors cursor-pointer`}
+                                    disabled={isLoading}
+                                />
+                                <span className={`text-[9px] font-bold uppercase tracking-[0.1em] pointer-events-none drop-shadow-sm ${pkg.isActive ? 'text-white' : 'text-slate-200'}`}>
+                                    {pkg.isActive ? 'Aktif' : 'Off'}
+                                </span>
+                            </div>
+
                             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-all text-blue-900">
                                 <Wifi size={80} />
                             </div>
@@ -316,7 +347,7 @@ export default function PackagePricingPage() {
                                 </p>
                                 <p className="text-2xl font-black text-brand-blue">
                                     Rp {pkg.price.toLocaleString("id-ID")}
-                                    <span className="text-sm font-bold text-slate-400">/bln</span>
+                                    <span className="text-sm font-bold text-slate-400">/{pkg.billingCycle > 1 ? `${pkg.billingCycle} bln` : 'bln'}</span>
                                 </p>
                             </div>
                         </div>
@@ -344,6 +375,7 @@ export default function PackagePricingPage() {
 
             <div className="bg-white rounded-4xl p-4 border border-slate-100 shadow-xl shadow-slate-200/40 mt-8">
                 <BaseTable
+                    tableId="master-package-pricing"
                     data={packages}
                     columns={columns}
                     rowKey={(row: Package) => row.id}

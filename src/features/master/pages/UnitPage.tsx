@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
-import { Plus, Building2, Edit2, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Building2, Edit2, Trash2, CircleDollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { UnitModal } from "../components/UnitModal";
@@ -15,6 +16,7 @@ import { AuthService } from "@/services/auth.service";
 
 export default function UnitPage() {
     const { toast } = useToast();
+    const navigate = useNavigate();
     const userProfile = AuthService.getUser();
     const userRole = userProfile?.role || "USER";
     const resource = "master.unit";
@@ -22,6 +24,7 @@ export default function UnitPage() {
     const canCreate = AuthService.hasPermission(userRole, resource, "create");
     const canEdit = AuthService.hasPermission(userRole, resource, "edit");
     const canDelete = AuthService.hasPermission(userRole, resource, "delete");
+    const canVerify = AuthService.hasPermission(userRole, resource, "verify");
 
     const {
         data,
@@ -188,11 +191,23 @@ export default function UnitPage() {
             id: "actions",
             accessorKey: "id",
             className: "w-[120px] text-center",
+            hideable: false,
             cell: (row: Unit) => {
-                if (!canEdit && !canDelete) return <span className="text-slate-400">-</span>;
+                if (!canEdit && !canDelete && !canVerify) return <span className="text-slate-400">-</span>;
 
                 return (
                     <div className="flex items-center justify-center gap-2">
+                        {canVerify && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full text-emerald-600 hover:bg-emerald-50"
+                                onClick={() => navigate(`/master/unit/${row.id}/commission`)}
+                                title="Konfigurasi Komisi"
+                            >
+                                <CircleDollarSign size={16} />
+                            </Button>
+                        )}
                         {canEdit && (
                             <Button
                                 variant="ghost"
@@ -266,6 +281,7 @@ export default function UnitPage() {
 
                 {/* Table */}
                 <BaseTable
+                    tableId="master-unit"
                     data={data}
                     columns={columns}
                     rowKey={(row: Unit) => row.id}

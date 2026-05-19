@@ -5,6 +5,8 @@
   --color-brand-accent: #3b82f6;
   --color-popover: #ffffff;
   --color-popover-foreground: #0f172a;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
 }
 
 @layer base {

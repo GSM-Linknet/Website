@@ -190,6 +190,7 @@ export default function UnitActivityPage() {
         {
             header: "OPSI",
             accessorKey: "actions",
+            hideable: false,
             cell: (item: ActivityReportDetail) => (
                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button 
@@ -304,6 +305,7 @@ export default function UnitActivityPage() {
                         </CardHeader>
                         <CardContent className="p-0">
                             <BaseTable
+                                tableId="reporting-unit-activities"
                                 data={reports}
                                 columns={historyColumns}
                                 rowKey={(item: ActivityReportDetail) => item.id}

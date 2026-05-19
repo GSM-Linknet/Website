@@ -16,6 +16,10 @@ export interface Invoice {
   dueDate: string;
   paidDate?: string;
   status: string; // pending, paid, overdue, cancelled
+  isReportedPaid?: boolean;
+  reportedPaidAt?: string;
+  reportedPaidById?: string;
+  reportedPaidBy?: any;
   daysPastDue?: number;
   notes?: string;
   payments?: Payment[];
@@ -98,8 +102,23 @@ export const FinanceService = {
   updateInvoice: async (id: string, data: Partial<Invoice>) => {
     return apiClient.patch<Invoice>(`${ENDPOINTS.INVOICE}/update/${id}`, data);
   },
-  deleteInvoice: async (id: string): Promise<void> => {
-    await apiClient.delete(`${ENDPOINTS.INVOICE}/delete/${id}`);
+  deleteInvoice: async (id: string, reason?: string): Promise<void> => {
+    await apiClient.delete(`${ENDPOINTS.INVOICE}/delete/${id}`, { data: { reason } });
+  },
+  requestDeleteInvoice: async (id: string, reason: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/request-delete/${id}`, { reason });
+  },
+  approveDeleteInvoice: async (id: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/approve-delete/${id}`);
+  },
+  rejectDeleteInvoice: async (id: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/reject-delete/${id}`);
+  },
+  getDeleteRequests: async (query: BaseQuery = {}) => {
+    return apiClient.get<ApiResponse<PaginatedResponse<Invoice>>>(
+      `${ENDPOINTS.INVOICE}/delete-requests`,
+      { params: query },
+    );
   },
 
   createRegistrationBill: async (customerId: string) => {
@@ -187,20 +206,60 @@ export const FinanceService = {
       { params: query },
     );
   },
-  getCommissionSummary: async () => {
+  getCommissionSummary: async (query: any = {}) => {
     return apiClient.get<{
       data: {
         totalPending: number;
         totalPaid: number;
-        totalCancelled: number;
+        totalWithdrawn: number;
+        totalCommission: number;
+        totalEarned: number;
         activeCustomers: number;
+        breakdown: Array<{ type: string; amount: number }>;
       };
-    }>(`${ENDPOINTS.COMMISSION}/summary`);
+    }>(`${ENDPOINTS.COMMISSION}/summary`, { params: query });
   },
   updateCommissionStatus: async (
     id: string,
     status: "PAID" | "CANCELLED" | "PENDING",
   ) => {
     return apiClient.patch(`${ENDPOINTS.COMMISSION}/status/${id}`, { status });
+  },
+  getCommissionStatement: async (query: any = {}) => {
+    return apiClient.get<ApiResponse<any[]>>(
+      `${ENDPOINTS.COMMISSION}/statement`,
+      { params: query },
+    );
+  },
+  getCommissionEstimation: async (query: any = {}) => {
+    return apiClient.get<ApiResponse<any>>(`${ENDPOINTS.COMMISSION}/estimation-comparison`, { params: query });
+  },
+  getCommissionDistribution: async (invoiceId: string) => {
+    return apiClient.get<ApiResponse<any[]>>(
+      `${ENDPOINTS.COMMISSION}/distribution/${invoiceId}`,
+    );
+  },
+  reportPaid: async (id: string) => {
+    return apiClient.patch(`${ENDPOINTS.INVOICE}/report-paid/${id}`);
+  },
+
+  // Central Balance Multi-Bucket
+  topUpAllocation: async (amount: number, notes?: string) => {
+    return apiClient.post<{ status: boolean; data: { paymentUrl: string } }>(
+      "/xendit/topup-allocation",
+      { amount, notes }
+    );
+  },
+  internalTransfer: async (amount: number, notes?: string) => {
+    return apiClient.post<{ status: boolean; message: string }>(
+      "/xendit/internal-transfer",
+      { amount, notes }
+    );
+  },
+  resetBucket: async (bucket: string, description?: string) => {
+    return apiClient.post<{ status: boolean; data: { resetId: string } }>(
+      "/keuangan/central-balance/reset",
+      { bucket, description }
+    );
   },
 };

@@ -94,6 +94,7 @@ export const API_ENDPOINTS = {
   FINANCIAL_PAYOUT: '/reporting/reports/financial/payout',
   FINANCIAL_PROFITABILITY: '/reporting/reports/financial/profitability',
   FINANCIAL_SUMMARY: '/reporting/reports/financial/summary',
+  FINANCIAL_PROFIT_LOSS: '/reporting/reports/financial/profit-loss',
   TECHNICIAN_PERFORMANCE: '/reporting/reports/technicians/performance',
   TECHNICIAN_WORKORDERS: '/reporting/reports/technicians/workorders',
   TECHNICIAN_TOOLS: '/reporting/reports/technicians/tools',

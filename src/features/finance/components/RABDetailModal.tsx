@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useToast";
 import { formatCurrency } from "@/lib/utils";
-import { X, CheckCircle2, XCircle, ChevronDown, User, Calendar, Loader2, Edit2, Trash2 } from "lucide-react";
+import { X, CheckCircle2, XCircle, ChevronDown, User, Calendar, Loader2, Edit2, Trash2, AlertCircle } from "lucide-react";
 import moment from "moment";
+import { useEffect } from "react";
 
 const STATUS_CONFIG: Record<RABStatus, { label: string; color: string }> = {
   DRAFT: { label: "Draft", color: "bg-slate-100 text-slate-600 border-slate-200" },
@@ -36,7 +37,35 @@ export function RABDetailModal({ rabId, isReviewer, onClose, onSuccess, onEditDr
   const [approvedAmount, setApprovedAmount] = useState("");
   const [reviewNotes, setReviewNotes] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [refCommission, setRefCommission] = useState<{ amount: number; month: number; year: number } | null>(null);
+  const [loadingRef, setLoadingRef] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (rab) {
+      fetchRefCommission();
+    }
+  }, [rab?.id]);
+
+  const fetchRefCommission = async () => {
+    if (!rab) return;
+    setLoadingRef(true);
+    try {
+      const res = await RABService.getReferenceCommission({
+        unitId: rab.unitId ?? undefined,
+        month: rab.month,
+        year: rab.year,
+        isHolding: rab.isHolding
+      });
+      if (res.status) {
+        setRefCommission(res.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch reference commission", error);
+    } finally {
+      setLoadingRef(false);
+    }
+  };
 
   if (!rabId) return null;
 
@@ -162,6 +191,7 @@ export function RABDetailModal({ rabId, isReviewer, onClose, onSuccess, onEditDr
                       <thead className="bg-slate-50">
                         <tr>
                           <th className="text-left py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Deskripsi</th>
+                          <th className="text-left py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-20">Jenis</th>
                           <th className="text-center py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-16">Qty</th>
                           <th className="text-right py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Harga</th>
                           <th className="text-right py-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Subtotal</th>
@@ -171,6 +201,11 @@ export function RABDetailModal({ rabId, isReviewer, onClose, onSuccess, onEditDr
                         {(catItems as any[]).map((item: any) => (
                           <tr key={item.id}>
                             <td className="py-2.5 px-3 text-slate-700">{item.description}</td>
+                            <td className="py-2.5 px-3">
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.type === 'TETAP' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                                {item.type === 'TETAP' ? 'Tetap' : 'T. Tetap'}
+                              </span>
+                            </td>
                             <td className="py-2.5 px-3 text-center text-slate-500">{item.quantity}</td>
                             <td className="py-2.5 px-3 text-right text-slate-500">{formatCurrency(item.unitPrice)}</td>
                             <td className="py-2.5 px-3 text-right font-semibold text-slate-700">{formatCurrency(item.totalPrice)}</td>
@@ -184,9 +219,21 @@ export function RABDetailModal({ rabId, isReviewer, onClose, onSuccess, onEditDr
 
               {/* Totals */}
               <div className="bg-slate-50 rounded-2xl p-4 space-y-2">
-                <div className="flex justify-between text-sm text-slate-600">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Subtotal Biaya Tetap</span>
+                  <span className="font-medium text-indigo-600">
+                    {formatCurrency(rab.items.filter(i => i.type === 'TETAP').reduce((s, i) => s + i.totalPrice, 0))}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Subtotal Biaya Tidak Tetap</span>
+                  <span className="font-medium text-slate-600">
+                    {formatCurrency(rab.items.filter(i => i.type !== 'TETAP').reduce((s, i) => s + i.totalPrice, 0))}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm text-slate-700 font-bold border-t border-slate-200 pt-2 mt-1">
                   <span>Total Diajukan</span>
-                  <span className="font-semibold">{formatCurrency(rab.totalAmount)}</span>
+                  <span>{formatCurrency(rab.totalAmount)}</span>
                 </div>
                 {rab.rolloverAmount > 0 && (
                   <div className="flex justify-between text-sm text-blue-600">
@@ -201,6 +248,40 @@ export function RABDetailModal({ rabId, isReviewer, onClose, onSuccess, onEditDr
                   </div>
                 )}
               </div>
+
+              {/* Reference Info for Reviewer/Admin */}
+              {loadingRef ? (
+                <div className="flex items-center gap-2 px-2 py-4 text-[10px] text-slate-400">
+                  <Loader2 size={10} className="animate-spin" />
+                  <span>Mengambil data referensi komisi...</span>
+                </div>
+              ) : refCommission && (
+                <div className={`p-4 rounded-2xl border ${rab.totalAmount > refCommission.amount ? "bg-amber-50 border-amber-100" : "bg-slate-50 border-slate-100"}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Referensi Pendapatan</div>
+                    <div className="text-[10px] font-medium text-slate-500">
+                      {MONTH_NAMES[refCommission.month - 1]} {refCommission.year}
+                    </div>
+                  </div>
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <div className="text-sm font-black text-slate-700">{formatCurrency(refCommission.amount)}</div>
+                      <div className="text-[10px] text-slate-400">Total Komisi Unit</div>
+                    </div>
+                    {rab.totalAmount > refCommission.amount && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 rounded-lg text-amber-700 shrink-0">
+                        <AlertCircle size={10} />
+                        <span className="text-[10px] font-bold uppercase tracking-tight">Melebihi Pendapatan</span>
+                      </div>
+                    )}
+                  </div>
+                  {rab.totalAmount > refCommission.amount && isReviewer && rab.status === "SUBMITTED" && (
+                     <p className="mt-3 text-[10px] text-amber-700 leading-relaxed font-medium">
+                       * Anggaran yang diajukan melebihi pendapatan komisi bulan lalu. Harap tinjau kembali alasan pengaju atau sesuaikan nominal yang disetujui.
+                     </p>
+                  )}
+                </div>
+              )}
 
               {/* Review notes from reviewer */}
               {rab.reviewNotes && (

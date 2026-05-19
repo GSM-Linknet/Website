@@ -4,7 +4,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlayCircle, Search, X } from "lucide-react";
+import { Download, PlayCircle, Search, X } from "lucide-react";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
 
 export default function SuspendReviewPage() {
     const {
@@ -27,6 +28,14 @@ export default function SuspendReviewPage() {
         handleReject,
         handleBulkApprove,
         isAdmin,
+        unitId,
+        setUnitId,
+        units,
+        uplineId,
+        setUplineId,
+        uplines,
+        isExporting,
+        handleExport,
     } = useSuspendReviewPage();
 
     return (
@@ -73,26 +82,68 @@ export default function SuspendReviewPage() {
                 )}
             </div>
 
-            {/* Search Bar */}
-            <div className="relative group w-full md:w-72">
-                <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
-                    size={16}
-                />
-                <Input
-                    placeholder="Cari nama pelanggan"
-                    className="pl-9 pr-9 w-full rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm text-sm"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-                {search && (
-                    <button
-                        onClick={() => setSearch("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        <X size={14} />
-                    </button>
+            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                <div className="relative group w-full md:w-72">
+                    <Search
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
+                        size={16}
+                    />
+                    <Input
+                        placeholder="Cari nama pelanggan"
+                        className="pl-9 pr-9 w-full rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm text-sm"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                    {search && (
+                        <button
+                            onClick={() => setSearch("")}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X size={14} />
+                        </button>
+                    )}
+                </div>
+
+                {isAdmin && (
+                    <>
+                        <div className="w-full md:w-64">
+                            <SearchableSelect
+                                options={[
+                                    { id: "", name: "Semua Unit" },
+                                    ...units
+                                ]}
+                                value={unitId}
+                                onValueChange={setUnitId}
+                                placeholder="Pilih Unit"
+                                searchPlaceholder="Cari Unit..."
+                            />
+                        </div>
+                        <div className="w-full md:w-64">
+                            <SearchableSelect
+                                options={[
+                                    { id: "", name: "Semua Sales/Upline" },
+                                    ...uplines.map(u => ({ id: u.id, name: u.name }))
+                                ]}
+                                value={uplineId}
+                                onValueChange={setUplineId}
+                                placeholder="Pilih Sales/Upline"
+                                searchPlaceholder="Cari Sales..."
+                            />
+                        </div>
+                    </>
                 )}
+
+                <div className="flex-shrink-0">
+                    <Button
+                        variant="outline"
+                        className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl px-4 py-2 h-[42px] font-semibold transition-all shadow-sm flex items-center gap-2 w-full md:w-auto"
+                        onClick={handleExport}
+                        disabled={isExporting}
+                    >
+                        <Download size={18} className={isExporting ? "animate-pulse" : ""} />
+                        {isExporting ? "Mengekspor..." : "Ekspor Excel"}
+                    </Button>
+                </div>
             </div>
 
             <div className="space-y-3">

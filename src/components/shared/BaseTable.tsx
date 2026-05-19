@@ -10,12 +10,26 @@ import {
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BasePagination } from "./BasePagination";
+import { Settings2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useState, useEffect, useMemo } from "react";
 
 export interface Column<T> {
+  id?: string;
   header: React.ReactNode;
+  headerString?: string;
   accessorKey: keyof T | string;
   cell?: (item: T, meta?: any) => React.ReactNode;
   className?: string;
+  hideable?: boolean;
 }
 
 interface BaseTableProps<T> {
@@ -34,10 +48,16 @@ interface BaseTableProps<T> {
   onLimitChange?: (limit: number) => void;
   meta?: any;
   footer?: React.ReactNode;
+  // Column Visibility props
+  tableId?: string;
+  showColumnToggle?: boolean;
 }
 
 /**
- * Premium BaseTable with horizontal scrolling support, refined aesthetics, and pagination.
+ * Premium BaseTable dengan dukungan scroll horizontal, estetika halus, visibilitas kolom, dan paginasi.
+ * 
+ * @param tableId - ID unik untuk menyimpan visibilitas kolom di localStorage
+ * @param showColumnToggle - Menampilkan tombol kustomisasi kolom (default: true)
  */
 export function BaseTable<T>({
   data,
@@ -54,7 +74,99 @@ export function BaseTable<T>({
   onLimitChange,
   meta,
   footer,
+  tableId,
+  showColumnToggle = true,
 }: BaseTableProps<T>) {
+  // State untuk visibilitas kolom
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(() => {
+    // 1. Dapatkan semua kunci kolom dan yang wajib tampil (hideable: false)
+    const allKeys = columns.map((col) => (col.id || col.accessorKey) as string);
+    const mandatoryKeys = columns
+      .filter((col) => col.hideable === false)
+      .map((col) => (col.id || col.accessorKey) as string);
+
+    // 2. Jika ada tableId, coba ambil dari localStorage (kita simpan kolom yang DISEMBUNYIKAN)
+    if (tableId) {
+      const saved = localStorage.getItem(`table_hidden_cols_${tableId}`);
+      if (saved) {
+        try {
+          const hiddenKeys = JSON.parse(saved);
+          if (Array.isArray(hiddenKeys)) {
+            // Tampilkan semua kolom KECUALI yang disembunyikan (mandatory selalu tampil)
+            const visible = allKeys.filter(
+              (key) => !hiddenKeys.includes(key) || mandatoryKeys.includes(key)
+            );
+            return visible;
+          }
+        } catch (e) {
+          console.error("Gagal memuat visibilitas kolom:", e);
+        }
+      }
+    }
+    
+    // Default: Tampilkan semua kolom
+    return allKeys;
+  });
+
+  // Simpan ke localStorage setiap kali visibleColumnKeys berubah
+  useEffect(() => {
+    if (tableId) {
+      const allKeys = columns.map((col) => (col.id || col.accessorKey) as string);
+      const hiddenKeys = allKeys.filter((key) => !visibleColumnKeys.includes(key));
+      localStorage.setItem(`table_hidden_cols_${tableId}`, JSON.stringify(hiddenKeys));
+    }
+  }, [visibleColumnKeys, tableId, columns]);
+
+  // Sinkronisasi jika definisi 'columns' berubah dari luar (misal tambah kolom baru)
+  useEffect(() => {
+    setVisibleColumnKeys((prev) => {
+      const allKeys = columns.map((col) => (col.id || col.accessorKey) as string);
+      const mandatoryKeys = columns
+        .filter((col) => col.hideable === false)
+        .map((col) => (col.id || col.accessorKey) as string);
+
+      let hiddenKeys: string[] = [];
+      if (tableId) {
+        try {
+          const saved = localStorage.getItem(`table_hidden_cols_${tableId}`);
+          if (saved) hiddenKeys = JSON.parse(saved) || [];
+        } catch (e) {}
+      } else {
+        // Jika tidak ada tableId, hitung hidden keys dari state sebelumnya
+        // (kolom lama yang tidak ada di 'prev' berarti disembunyikan)
+        // Note: Untuk kolom yang benar-benar baru, ia TIDAK ada di prev, 
+        // tapi kita ingin ia default tampil.
+        hiddenKeys = prev.length > 0 ? prev : []; // Fallback kasar
+      }
+
+      const nextVisible = allKeys.filter(
+        (key) => (!hiddenKeys.includes(key) || mandatoryKeys.includes(key))
+      );
+
+      // Cek apakah ada perbedaan untuk menghindari re-render jika sama persis
+      if (nextVisible.length !== prev.length || !nextVisible.every((k) => prev.includes(k))) {
+        return nextVisible;
+      }
+      return prev;
+    });
+  }, [columns, tableId]);
+
+  // Kolom yang difilter untuk dirender
+  const filteredColumns = useMemo(() => {
+    return columns.filter((col) => {
+      const key = (col.id || col.accessorKey) as string;
+      return visibleColumnKeys.includes(key);
+    });
+  }, [columns, visibleColumnKeys]);
+
+  const toggleColumn = (key: string) => {
+    setVisibleColumnKeys((prev) =>
+      prev.includes(key)
+        ? prev.filter((k) => k !== key)
+        : [...prev, key]
+    );
+  };
+
   const showPagination =
     page !== undefined &&
     totalPages !== undefined &&
@@ -63,12 +175,53 @@ export function BaseTable<T>({
 
   return (
     <div className={cn("space-y-4", className)}>
+      {/* Table Header / Actions */}
+      {showColumnToggle && (
+        <div className="flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-2 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-[#101D42]">
+                <Settings2 className="size-4" />
+                <span className="font-semibold text-xs">Atur Kolom</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-slate-100">
+              <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1.5">
+                Tampilkan Kolom
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-slate-50" />
+              <div className="max-h-64 overflow-y-auto">
+                {columns.map((column) => {
+                  const key = (column.id || column.accessorKey) as string;
+                  const isVisible = visibleColumnKeys.includes(key);
+                  const isHideable = column.hideable !== false;
+                  
+                  if (!isHideable && !isVisible) return null; // Safety check
+
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={key}
+                      checked={isVisible}
+                      onCheckedChange={() => toggleColumn(key)}
+                      disabled={!isHideable}
+                      className="rounded-lg text-sm text-slate-600 focus:bg-slate-50 focus:text-[#101D42] data-[state=checked]:font-semibold"
+                    >
+                      {column.headerString || (typeof column.header === 'string' ? column.header : key)}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
       <div className="rounded-3xl border border-slate-100 bg-white overflow-hidden shadow-sm">
         <ScrollArea className="w-full">
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow className="hover:bg-transparent border-slate-100">
-                {columns.map((column, idx) => (
+                {filteredColumns.map((column, idx) => (
                   <TableHead
                     key={idx}
                     className={cn(
@@ -85,7 +238,7 @@ export function BaseTable<T>({
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={filteredColumns.length}
                     className="h-32 text-center text-slate-400"
                   >
                     Memuat data...
@@ -94,7 +247,7 @@ export function BaseTable<T>({
               ) : data.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={filteredColumns.length}
                     className="h-32 text-center text-slate-400"
                   >
                     Data tidak ditemukan
@@ -110,7 +263,7 @@ export function BaseTable<T>({
                     )}
                     onClick={() => onRowClick?.(item)}
                   >
-                    {columns.map((column, idx) => (
+                    {filteredColumns.map((column, idx) => (
                       <TableCell
                         key={idx}
                         className={cn(

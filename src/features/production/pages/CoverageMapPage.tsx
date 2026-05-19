@@ -1,252 +1,260 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+/**
+ * CoverageMapPage
+ *
+ * Tujuan     : Halaman visualisasi coverage / ketersediaan jaringan Linknet.
+ *              Data diambil langsung dari Linknet Address API via backend proxy.
+ * Dipakai oleh: Router production feature
+ * Dependensi : useCoverageMap (hook), CoverageMarkerLayer, MapClickHandler,
+ *              LinkNetService (suggestAddress / nearestAddress), react-leaflet
+ * Fungsi utama:
+ *   - Mode "address"    : cari lokasi berdasarkan text alamat (debounced suggest API)
+ *   - Mode "coordinate" : klik peta → cari lokasi terdekat (nearest API)
+ *   - List view         : tabel hasil pencarian dengan kolom Linknet schema
+ *   - Map view          : marker berwarna (hijau=AVAILABLE, merah=lainnya) + popup detail
+ * Side effect:
+ *   - HTTP GET ke /linknet/addresses/suggest dan /addresses/nearest (via backend)
+ */
+
+import { useMemo } from "react";
 import {
     MapContainer,
     TileLayer,
-    Popup,
-    useMap,
     LayersControl,
-    CircleMarker,
-    useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapFullscreenControl } from "@/components/shared/MapFullscreenControl";
-import L from "leaflet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-    Upload,
-    Trash2,
     Info,
     Map as MapIcon,
     List,
-    Filter,
     Loader2,
+    MapPin,
+    Search,
+    Navigation,
+    Upload,
+    Database,
+    Globe
 } from "lucide-react";
-import { CoverageService, type Coverage } from "@/services/coverage.service";
+import { LocalCoverageService } from "@/services/coverage.service";
 import { useToast } from "@/hooks/useToast";
-import { useNavigate } from "react-router-dom";
-import { AuthService } from "@/services/auth.service";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { cn } from "@/lib/utils";
-import { MasterService, type Area } from "@/services/master.service";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { SearchInput } from "@/components/shared/SearchInput";
+import { useCoverageMap } from "../hooks/useCoverageMap";
+import { CoverageMarkerLayer } from "../components/CoverageMarkerLayer";
+import { MapClickHandler } from "../components/MapClickHandler";
+import type { LinknetAddress } from "@/services/linknet.service";
+import { useState } from "react";
 
 export default function CoverageMapPage() {
-    const [points, setPoints] = useState<Coverage[]>([]);
-    const [areas, setAreas] = useState<Area[]>([]);
-    const [selectedAreaId, setSelectedAreaId] = useState<string>("");
-    const [filterAreaId, setFilterAreaId] = useState<string>("all");
-    const [bounds, setBounds] = useState<L.LatLngBounds | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
     const [viewMode, setViewMode] = useState<"map" | "list">("map");
-    const [searchQuery, setSearchQuery] = useState("");
     const { toast } = useToast();
-    const navigate = useNavigate();
-    const user = AuthService.getUser();
-    const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
-    const fetchAreas = async () => {
+    const {
+        results,
+        loading,
+        searchMode,
+        searchQuery,
+        searchSource,
+        clickedCoord,
+        focusedItem,
+        suggestByAddress,
+        suggestByCoordinate,
+        focusItem,
+        reset,
+        setSearchSource,
+    } = useCoverageMap();
+
+    const handleMapClick = async (lat: number, lng: number) => {
         try {
-            const res = await MasterService.getAreas({ limit: 100 });
-            setAreas(res.data.items || []);
-        } catch (error) {
-            console.error("Failed to fetch areas", error);
+            await suggestByCoordinate(lat, lng);
+        } catch {
+            toast({
+                variant: "destructive",
+                title: "Gagal",
+                description: "Gagal mengambil data lokasi terdekat.",
+            });
         }
     };
 
-    const fetchPoints = async () => {
+    const handleKmzUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
         try {
-            setLoading(true);
-            const params: any = { paginate: false };
-            if (filterAreaId !== "all") {
-                params.where = `areaId:${filterAreaId}`;
-            }
-
-            // Add spatial filtering if in map mode and bounds are available
-            if (viewMode === "map" && bounds && !searchQuery) {
-                params.minLat = bounds.getSouth();
-                params.maxLat = bounds.getNorth();
-                params.minLng = bounds.getWest();
-                params.maxLng = bounds.getEast();
-            }
-
-            if (searchQuery) {
-                params.externalId = searchQuery;
-            }
-
-            const response = await CoverageService.findAll(params);
-            setPoints(response.data.items || []);
-        } catch (error) {
-            console.error("Failed to fetch coverage points", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchAreas();
-    }, []);
-
-    useEffect(() => {
-        // Debounce fetching to avoid multiple rapid requests
-        const timeout = setTimeout(() => {
-            fetchPoints();
-        }, 300);
-        return () => clearTimeout(timeout);
-    }, [filterAreaId, bounds, viewMode, searchQuery]);
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length === 0) return;
-
-        // Validate file size (max 10MB per file for KMZ)
-        const MAX_KMZ_SIZE = 10 * 1024 * 1024;
-        const oversizedFile = files.find((f) => f.size > MAX_KMZ_SIZE);
-
-        if (oversizedFile) {
             toast({
-                variant: "destructive",
-                title: "File Terlalu Besar",
-                description: `File "${oversizedFile.name}" melebihi batas 10MB. Ukuran file: ${(oversizedFile.size / (1024 * 1024)).toFixed(2)}MB`,
+                title: "Mengunggah KMZ",
+                description: "File sedang diproses dan diimport...",
             });
-            e.target.value = "";
-            return;
-        }
-
-        if (!selectedAreaId) {
-            toast({
-                variant: "destructive",
-                title: "Peringatan",
-                description: "Silakan pilih Area terlebih dahulu.",
-            });
-            return;
-        }
-
-        setUploading(true);
-        try {
-            const res = await CoverageService.importKMZ(files, selectedAreaId);
+            const res = await LocalCoverageService.importKMZ(file);
             toast({
                 title: "Berhasil",
-                description: `${res.data.total} titik coverage berhasil diimport!`,
+                description: `Berhasil mengimport ${res.data?.total ?? 0} titik coverage baru.`,
             });
-            fetchPoints();
-            // Clear input
-            e.target.value = "";
-        } catch (error) {
-            console.error("Upload failed", error);
+            e.target.value = '';
+            
+            if (searchMode === "coordinate" && clickedCoord) {
+                setSearchSource("local");
+                suggestByCoordinate(clickedCoord.lat, clickedCoord.lng);
+            } else if (searchMode === "idle") {
+                setSearchSource("local");
+            }
+        } catch (err: any) {
             toast({
                 variant: "destructive",
-                title: "Gagal",
-                description:
-                    "Gagal mengimport file KMZ. Pastikan file tidak rusak atau terlalu besar.",
+                title: "Gagal Import KMZ",
+                description: err?.response?.data?.message || err?.message || "Terjadi kesalahan.",
             });
-        } finally {
-            setUploading(false);
         }
     };
 
-    const handleClear = async () => {
-        if (!confirm("Hapus semua data coverage?")) return;
-        try {
-            await CoverageService.deleteAll();
-            setPoints([]);
-            toast({
-                title: "Dihapus",
-                description: "Semua data coverage telah dihapus.",
-            });
-        } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "Gagal",
-                description: "Gagal menghapus data.",
-            });
-        }
+    /** Klik baris list: switch ke map lalu fly-to koordinat item */
+    const handleRowClick = (item: LinknetAddress) => {
+        focusItem(item);
+        setViewMode("map");
     };
+
+    /** Unique key untuk trigger fly-to hanya saat search berubah */
+    const searchKey = useMemo(() => {
+        if (searchMode === "address") return `addr:${searchQuery}`;
+        if (searchMode === "coordinate" && clickedCoord)
+            return `coord:${clickedCoord.lat.toFixed(6)},${clickedCoord.lng.toFixed(6)}`;
+        return "idle";
+    }, [searchMode, searchQuery, clickedCoord]);
 
     const columns = useMemo(
         () => [
             {
-                header: "ID Homepass",
-                accessorKey: "externalId",
+                header: "Site ID",
+                accessorKey: "site_id",
                 className: "font-bold text-[#101D42]",
             },
             {
-                header: "Alamat / Jalan",
-                accessorKey: "name",
+                header: "Alamat",
+                accessorKey: "address",
                 className: "font-semibold text-slate-700",
             },
             {
-                header: "Cluster",
-                accessorKey: "id",
-                cell: (row: Coverage) => row.metadata?.CLUSTER_NAME || "-",
+                header: "Network Type",
+                accessorKey: "network_type",
             },
             {
-                header: "RT/RW",
-                id: "rtrw",
-                accessorKey: "id",
-                cell: (row: Coverage) =>
-                    `${row.metadata?.RT || "00"}/${row.metadata?.RW || "00"}`,
+                header: "FAT Code",
+                accessorKey: "fat_code",
+            },
+            {
+                header: "Tipe Bangunan",
+                accessorKey: "dwell_type",
             },
             {
                 header: "Status",
                 accessorKey: "status",
-                cell: (row: Coverage) => (
-                    <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase">
-                        {row.status}
+                cell: (row: LinknetAddress) => {
+                    const ok = row.status?.toUpperCase() === "AVAILABLE";
+                    return (
+                        <span
+                            className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${ok
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                        >
+                            {row.status}
+                        </span>
+                    );
+                },
+            },
+            {
+                header: "",
+                accessorKey: "site_id",
+                id: "action",
+                cell: () => (
+                    <span className="flex items-center gap-1 text-[10px] text-blue-500 font-semibold whitespace-nowrap">
+                        <Navigation size={11} /> Lihat di Peta
                     </span>
                 ),
             },
         ],
-        [navigate],
+        [],
     );
 
     return (
         <div className="space-y-6 pb-10">
+            {/* ─── Header ─── */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#101D42]">Data Coverage</h1>
+                    <h1 className="text-2xl font-bold text-[#101D42]">Coverage Map</h1>
                     <p className="text-sm text-slate-500 font-medium">
-                        Manajemen titik homepass dan visualisasi area
+                        Cek ketersediaan jaringan Linknet berdasarkan alamat atau lokasi
                     </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                    {/* Search Input */}
-                    <SearchInput
-                        placeholder="Cari ID Homepass..."
-                        onSearch={setSearchQuery}
-                        className="w-full lg:w-64"
-                    />
-
-                    {/* Area Filter */}
-                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
-                        <Filter size={14} className="text-slate-400" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Filter Area:
-                        </span>
-                        <Select value={filterAreaId} onValueChange={setFilterAreaId}>
-                            <SelectTrigger className="h-8 w-[140px] border-none shadow-none focus:ring-0 text-xs font-semibold p-0">
-                                <SelectValue placeholder="Pilih Area" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-slate-100">
-                                <SelectItem value="all">Semua Area</SelectItem>
-                                {areas.map((a) => (
-                                    <SelectItem key={a.id} value={a.id}>
-                                        {a.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    {/* Search Source Toggle */}
+                    <div className="bg-slate-100 p-1 rounded-xl flex items-center">
+                        <Button
+                            variant={searchSource === "linknet" ? "default" : "ghost"}
+                            size="sm"
+                            className={cn(
+                                "rounded-lg h-9 gap-2",
+                                searchSource === "linknet" && "bg-blue-600 text-white hover:bg-blue-700 hover:text-white",
+                            )}
+                            onClick={() => setSearchSource("linknet")}
+                        >
+                            <Globe size={16} /> API Linknet
+                        </Button>
+                        <Button
+                            variant={searchSource === "local" ? "default" : "ghost"}
+                            size="sm"
+                            className={cn(
+                                "rounded-lg h-9 gap-2",
+                                searchSource === "local" && "bg-blue-600 text-white hover:bg-blue-700 hover:text-white",
+                            )}
+                            onClick={() => setSearchSource("local")}
+                        >
+                            <Database size={16} /> Database Lokal
+                        </Button>
                     </div>
 
+                    {/* Upload KMZ */}
+                    <div className="relative">
+                        <input
+                            type="file"
+                            accept=".kmz,.kml"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onChange={handleKmzUpload}
+                        />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-slate-200 h-10 gap-1.5 text-slate-500"
+                        >
+                            <Upload size={16} />
+                            Upload KMZ
+                        </Button>
+                    </div>
+
+                    {/* Search by address */}
+                    <SearchInput
+                        placeholder="Cari alamat... (min. 3 karakter)"
+                        onSearch={suggestByAddress}
+                        className="w-full lg:w-72"
+                    />
+
+                    {/* Reset */}
+                    {searchMode !== "idle" && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-slate-200 h-10 gap-1.5 text-slate-500"
+                            onClick={reset}
+                        >
+                            Reset
+                        </Button>
+                    )}
+
+                    {/* View toggle */}
                     <div className="bg-slate-100 p-1 rounded-xl flex items-center">
                         <Button
                             variant={viewMode === "map" ? "default" : "ghost"}
@@ -271,61 +279,47 @@ export default function CoverageMapPage() {
                             <List size={16} /> List
                         </Button>
                     </div>
-
-                    {isSuperAdmin && (
-                        <div className="flex items-center gap-2">
-                            <Select value={selectedAreaId} onValueChange={setSelectedAreaId}>
-                                <SelectTrigger className="h-11 w-[160px] rounded-xl border-slate-200 text-xs font-semibold">
-                                    <SelectValue placeholder="Pilih Area Import" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-slate-100">
-                                    {areas.map((a) => (
-                                        <SelectItem key={a.id} value={a.id}>
-                                            {a.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            <Button
-                                variant="outline"
-                                className="rounded-xl h-11 gap-2 border-slate-200"
-                                onClick={handleClear}
-                            >
-                                <Trash2 size={16} />
-                            </Button>
-
-                            <div className="relative">
-                                <input
-                                    type="file"
-                                    id="kmz-upload"
-                                    className="hidden"
-                                    accept=".kmz,.kml"
-                                    multiple
-                                    onChange={handleFileUpload}
-                                    disabled={uploading || !selectedAreaId}
-                                />
-                                <Button
-                                    onClick={() => document.getElementById("kmz-upload")?.click()}
-                                    className="bg-blue-600 hover:bg-blue-700 h-11 rounded-xl gap-2 px-6"
-                                    disabled={uploading || !selectedAreaId}
-                                >
-                                    <Upload size={16} />{" "}
-                                    {uploading ? "Mengimport..." : "Import KMZ"}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
 
+            {/* ─── Hint banner ─── */}
+            {searchMode === "idle" && (
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
+                    <Search className="text-blue-400 mt-0.5 shrink-0" size={18} />
+                    <div>
+                        <p className="text-sm text-blue-800 font-semibold">
+                            Dua cara mencari lokasi coverage
+                        </p>
+                        <p className="text-xs text-blue-600 mt-0.5">
+                            1. Ketik nama jalan / kelurahan di kotak pencarian di atas.
+                            <br />
+                            2. Klik langsung di titik mana pun pada peta di bawah.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── Coordinate indicator ─── */}
+            {searchMode === "coordinate" && clickedCoord && (
+                <div className="bg-violet-50 border border-violet-100 rounded-2xl p-3 flex items-center gap-3">
+                    <MapPin className="text-violet-500 shrink-0" size={16} />
+                    <p className="text-xs text-violet-700 font-semibold">
+                        Mencari lokasi terdekat dari{" "}
+                        <span className="font-mono">
+                            {clickedCoord.lat.toFixed(6)}, {clickedCoord.lng.toFixed(6)}
+                        </span>
+                    </p>
+                </div>
+            )}
+
+            {/* ─── Map / List View ─── */}
             {viewMode === "map" ? (
                 <Card className="border-slate-100 shadow-xl shadow-slate-200/40 rounded-[2rem] overflow-hidden">
                     <CardContent className="p-0">
-                        <div className="h-[75vh] w-full relative isolate z-0">
+                        <div className="h-[72vh] w-full relative isolate z-0">
                             <MapContainer
                                 center={[-7.166, 109.05]}
-                                zoom={17}
+                                zoom={12}
                                 maxZoom={22}
                                 preferCanvas={true}
                                 style={{ height: "100%", width: "100%" }}
@@ -347,77 +341,25 @@ export default function CoverageMapPage() {
                                         />
                                     </LayersControl.BaseLayer>
                                 </LayersControl>
-                                <MapBoundsListener setBounds={setBounds} />
+
                                 <MapFullscreenControl />
-                                {points.map((p) => (
-                                    <CircleMarker
-                                        key={p.id}
-                                        center={[p.lat, p.lng]}
-                                        radius={6}
-                                        pathOptions={{
-                                            fillColor: "#2563eb", // blue-600
-                                            color: "#ffffff",
-                                            weight: 1,
-                                            fillOpacity: 0.8,
-                                        }}
-                                    >
-                                        <Popup>
-                                            <div className="p-1 space-y-2 min-w-[200px]">
-                                                <h3 className="font-bold text-blue-800 border-b pb-1">
-                                                    {p.externalId || "No ID"}
-                                                </h3>
-                                                <div className="text-[10px] space-y-1.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                                    <p className="flex justify-between border-b border-slate-50 pb-1">
-                                                        <strong className="text-slate-400">ALAMAT:</strong>
-                                                        <span className="text-slate-700 font-semibold text-right">
-                                                            {p.name || "-"}
-                                                        </span>
-                                                    </p>
-                                                    {p.metadata &&
-                                                        Object.entries(p.metadata).map(([key, value]) => {
-                                                            if (
-                                                                [
-                                                                    "BUILDING_LATITUDE",
-                                                                    "BUILDING_LONGITUDE",
-                                                                    "HOMEPASS_ID",
-                                                                ].includes(key)
-                                                            )
-                                                                return null;
-                                                            return (
-                                                                <p
-                                                                    key={key}
-                                                                    className="flex justify-between border-b border-slate-50 pb-1 gap-4 text-xs font-semibold"
-                                                                >
-                                                                    <strong className="text-slate-400 uppercase">
-                                                                        {key.replace(/_/g, " ")}:
-                                                                    </strong>
-                                                                    <span className="text-slate-700 text-right">
-                                                                        {String(value || "-")}
-                                                                    </span>
-                                                                </p>
-                                                            );
-                                                        })}
-                                                    <p className="flex justify-between pt-1 text-xs font-semibold">
-                                                        <strong className="text-slate-400">STATUS:</strong>
-                                                        <span className="text-green-600 font-bold uppercase">
-                                                            {p.status}
-                                                        </span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </Popup>
-                                    </CircleMarker>
-                                ))}
-                                <MapUpdater
-                                    points={points}
-                                    filterAreaId={filterAreaId}
-                                    searchQuery={searchQuery}
+                                <MapClickHandler onMapClick={handleMapClick} />
+                                <CoverageMarkerLayer
+                                    results={results}
+                                    searchMode={searchMode}
+                                    searchKey={searchKey}
+                                    focusTarget={focusedItem}
                                 />
                             </MapContainer>
+
+                            {/* Loading overlay */}
                             {loading && (
                                 <div className="absolute inset-0 bg-white/20 backdrop-blur-[2px] z-[1000] flex items-center justify-center">
                                     <div className="bg-white/90 p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-100 animate-in zoom-in-95 duration-200">
-                                        <Loader2 className="animate-spin text-blue-600" size={24} />
+                                        <Loader2
+                                            className="animate-spin text-blue-600"
+                                            size={22}
+                                        />
                                         <span className="text-sm font-bold text-slate-700">
                                             Memuat data...
                                         </span>
@@ -430,92 +372,42 @@ export default function CoverageMapPage() {
             ) : (
                 <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
                     <BaseTable
+                        tableId="production-coverage-list"
                         columns={columns}
-                        data={points}
-                        loading={uploading}
-                        rowKey={(item) => item.id}
+                        data={results}
+                        loading={loading}
+                        rowKey={(item: LinknetAddress) => item.site_id}
+                        onRowClick={handleRowClick}
                     />
                 </div>
             )}
 
-            {points.length > 0 && (
-                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
-                    <Info className="text-blue-500 mt-0.5" size={18} />
+            {/* ─── Result summary ─── */}
+            {results.length > 0 && !loading && (
+                <div className="bg-green-50 p-4 rounded-2xl border border-green-100 flex items-start gap-3">
+                    <Info className="text-green-500 mt-0.5 shrink-0" size={18} />
                     <div>
-                        <p className="text-sm text-blue-800 font-semibold">
-                            Total {points.length} titik ditemukan
+                        <p className="text-sm text-green-800 font-semibold">
+                            {results.length} lokasi ditemukan
+                            {searchMode === "address" && searchQuery && (
+                                <> untuk "{searchQuery}"</>
+                            )}
                         </p>
-                        <p className="text-xs text-blue-600">
-                            Gunakan marker di peta atau tabel list untuk melihat detail setiap
-                            titik homepass.
+                        <p className="text-xs text-green-700 mt-0.5">
+                            Klik marker di peta atau baris di tabel untuk melihat detail lokasi.
                         </p>
                     </div>
                 </div>
             )}
+
+            {searchMode !== "idle" && results.length === 0 && !loading && (
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-start gap-3">
+                    <Info className="text-slate-400 mt-0.5 shrink-0" size={18} />
+                    <p className="text-sm text-slate-500 font-medium">
+                        Tidak ada lokasi coverage ditemukan.
+                    </p>
+                </div>
+            )}
         </div>
     );
-}
-
-function MapBoundsListener({
-    setBounds,
-}: {
-    setBounds: (bounds: L.LatLngBounds) => void;
-}) {
-    const map = useMapEvents({
-        moveend: () => {
-            setBounds(map.getBounds());
-        },
-        zoomend: () => {
-            setBounds(map.getBounds());
-        },
-    });
-
-    useEffect(() => {
-        // Set initial bounds
-        setBounds(map.getBounds());
-    }, []);
-
-    return null;
-}
-
-function MapUpdater({
-    points,
-    filterAreaId,
-    searchQuery,
-}: {
-    points: Coverage[];
-    filterAreaId: string;
-    searchQuery: string;
-}) {
-    const map = useMap();
-    const lastAreaId = useRef(filterAreaId);
-    const lastSearchQuery = useRef(searchQuery);
-
-    useEffect(() => {
-        // Handle Area Filter flight
-        if (points.length > 0 && lastAreaId.current !== filterAreaId) {
-            const first = points[0];
-            map.flyTo([first.lat, first.lng], 15);
-            lastAreaId.current = filterAreaId;
-            return; // Priority to area change
-        }
-
-        // Handle Search flight (only if searchQuery changed and has results)
-        if (
-            points.length > 0 &&
-            searchQuery &&
-            lastSearchQuery.current !== searchQuery
-        ) {
-            const first = points[0];
-            map.flyTo([first.lat, first.lng], 18);
-            lastSearchQuery.current = searchQuery;
-        }
-
-        // Sync searchQuery ref even if points are empty or not flying
-        if (lastSearchQuery.current !== searchQuery) {
-            lastSearchQuery.current = searchQuery;
-        }
-    }, [points, map, filterAreaId, searchQuery]);
-
-    return null;
 }

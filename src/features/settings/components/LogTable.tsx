@@ -137,6 +137,7 @@ export const LogTable: React.FC<LogTableProps> = ({
         {
             header: "AKSI",
             accessorKey: "actions",
+            hideable: false,
             className: "w-16 text-center",
             cell: (log: WhatsAppLogItem) => (
                 <DropdownMenu>
@@ -209,6 +210,7 @@ export const LogTable: React.FC<LogTableProps> = ({
 
             {/* Table */}
             <BaseTable
+                tableId="settings-whatsapp-logs"
                 data={logs}
                 columns={columns}
                 rowKey={(log) => log.id}

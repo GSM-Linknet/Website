@@ -248,6 +248,7 @@ export default function DailyJournalPage() {
             {/* Table Content */}
             <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
+                    tableId="finance-daily-journal"
                     data={journals || []}
                     columns={columns}
                     rowKey={(row) => row.id}

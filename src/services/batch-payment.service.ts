@@ -62,16 +62,30 @@ export interface BatchSummary {
     customerName: string;
     customerCode?: string | null;
     amount: number;
-    dueDate: string;
+    dueDate: string | null;
+    salesCommission: number;
+    spvCommission: number;
+    commissionMethod: 'AUTOMATIC' | 'MANUAL'; // per-invoice
   }>;
   totalInvoice: number;
   totalCustomers: number;
   totalInvoices: number;
+  salesCommission: number;
+  spvCommission: number;
+  coordinatorCommission: number;
+  holdingCommission: number;
+  unitCommission: number;
+  totalCommission: number;
+  totalManualCommission: number;
+  netAmount: number;
+  totalSetor: number;        // system-calculated: per-invoice accurate
+  commissionMethod: 'AUTOMATIC' | 'MANUAL' | 'MIXED'; // batch-level
+  isStrict: boolean;         // true = any automatic unit exists
 }
 
 export interface CreateBatchPaymentDto {
   customerIds: string[];
-  totalSetor: number;
+  totalSetor?: number; // Ignored by backend — system calculates this
   notes?: string;
 }
 
@@ -127,6 +141,13 @@ class BatchPaymentService {
   async cancel(id: string): Promise<BatchPayment> {
     const response: any = await apiClient.put(`${this.baseUrl}/cancel/${id}`);
     return response.data;
+  }
+
+  /**
+   * Delete a batch payment
+   */
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`${this.baseUrl}/delete/${id}`);
   }
 }
 

@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Button } from "@/components/ui/button";
-import { useBalanceLedger } from "../hooks/useBalanceLedger";
-import { ChevronDown, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
+import { ChevronDown, ArrowUpCircle, ArrowDownCircle, Wallet, RefreshCcw, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
     DropdownMenu,
@@ -14,87 +12,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, cn } from "@/lib/utils";
 import moment from "moment";
 import type { BalanceLedger } from "@/services/unit-finance.service";
-import { UnitFinanceService } from "@/services/unit-finance.service";
-import { MasterService, type Unit } from "@/services/master.service";
+import { CreatePayoutModal } from "../components/CreatePayoutModal";
+import { AuthService } from "@/services/auth.service";
+
+import { useUnitBalancePage } from "../hooks/useUnitBalancePage";
 
 export default function UnitBalancePage() {
     const {
-        data: ledgers,
-        loading: isLoading,
+        ledgers,
+        isLoading,
         setPage,
         totalItems,
         page,
         totalPages,
-        setQuery,
-    } = useBalanceLedger();
-
-    // Filters state
-    const [filters, setFilters] = useState({
-        unit: "all",
-        type: "all",
-    });
-
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [selectedUnitBalance, setSelectedUnitBalance] = useState<{
-        currentBalance: number;
-        totalIncome: number;
-        totalExpense: number;
-    } | null>(null);
-
-    // Fetch units on mount
-    useEffect(() => {
-        MasterService.getUnits({ paginate: false })
-            .then((res) => {
-                const items = res.data?.items || [];
-                setUnits(items);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch units:", err);
-                setUnits([]);
-            });
-    }, []);
-
-    // Fetch balance summary when unit filter changes
-    useEffect(() => {
-        if (filters.unit !== "all") {
-            UnitFinanceService.getBalanceSummary(filters.unit)
-                .then((res) => {
-                    setSelectedUnitBalance(res);
-                })
-                .catch((err) => {
-                    console.error("Failed to fetch balance summary:", err);
-                    setSelectedUnitBalance(null);
-                });
-        } else {
-            setSelectedUnitBalance(null);
-        }
-    }, [filters.unit]);
-
-    // Update query when filters change
-    useEffect(() => {
-        const whereParts: string[] = [];
-
-        if (filters.unit !== "all") whereParts.push(`unitId:${filters.unit}`);
-        if (filters.type !== "all") whereParts.push(`type:${filters.type}`);
-
-        const queryParams: any = {};
-        if (whereParts.length > 0) queryParams.where = whereParts.join("+");
-
-        setQuery(Object.keys(queryParams).length > 0 ? queryParams : { where: undefined });
-    }, [filters, setQuery]);
-
-    const handleFilterChange = (key: string, value: string) => {
-        setFilters({ ...filters, [key]: value });
-    };
-
-    const getTypeBadge = (type: string) => {
-        const isIncome = type === "INCOME";
-        return (
-            <Badge className={isIncome ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}>
-                {isIncome ? "Pemasukan" : "Pengeluaran"}
-            </Badge>
-        );
-    };
+        isPayoutOpen,
+        setIsPayoutOpen,
+        filters,
+        units,
+        selectedUnitBalance,
+        handleFilterChange,
+        handleExport,
+        refreshData
+    } = useUnitBalancePage();
 
     const columns: any[] = [
         {
@@ -106,30 +45,49 @@ export default function UnitBalancePage() {
             accessorKey: "unit.name",
             header: "Unit",
             cell: (ledger: BalanceLedger) => (
-                <span className="font-medium">{ledger.unit?.name || "-"}</span>
+                <span className="font-medium text-slate-700">
+                    {ledger.unit?.name || "-"}
+                </span>
             ),
         },
         {
             accessorKey: "type",
             header: "Tipe",
-            cell: (ledger: BalanceLedger) => getTypeBadge(ledger.type),
+            cell: (ledger: BalanceLedger) => (
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                    {ledger.type === "INCOME" ? (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100/50">
+                            Pemasukan
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100/50">
+                            Pengeluaran
+                        </div>
+                    )}
+                </div>
+            ),
         },
         {
             accessorKey: "description",
             header: "Keterangan",
             cell: (ledger: BalanceLedger) => (
-                <span className="truncate max-w-[250px] block">{ledger.description}</span>
+                <span className="text-sm font-medium text-slate-600">
+                    {ledger.description}
+                </span>
             ),
         },
         {
             accessorKey: "amount",
             header: "Jumlah",
             cell: (ledger: BalanceLedger) => (
-                <span className={cn(
-                    "font-semibold",
-                    ledger.type === "INCOME" ? "text-emerald-600" : "text-red-600"
-                )}>
-                    {ledger.type === "INCOME" ? "+" : "-"} {formatCurrency(ledger.amount)}
+                <span
+                    className={cn(
+                        "font-bold",
+                        ledger.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
+                    )}
+                >
+                    {ledger.type === "INCOME" ? "+" : "-"}{" "}
+                    {formatCurrency(ledger.amount)}
                 </span>
             ),
         },
@@ -162,69 +120,113 @@ export default function UnitBalancePage() {
                         Saldo Unit
                     </h1>
                     <p className="text-sm font-medium text-slate-500 max-w-2xl leading-relaxed">
-                        Buku besar saldo unit dengan riwayat transaksi
+                        Buku besar saldo unit untuk pengelolaan komisi unit dan operasional cabang
                     </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Button 
+                        onClick={refreshData}
+                        variant="ghost" 
+                        className="rounded-xl border-slate-200 hover:bg-slate-50 gap-2 text-slate-500 font-bold uppercase text-[10px] tracking-widest"
+                    >
+                        <RefreshCcw size={14} /> Refresh
+                    </Button>
+                    <Button 
+                        onClick={handleExport}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xl shadow-emerald-600/20 px-6 font-bold gap-2 h-11"
+                    >
+                        <Download size={18} /> Export Data
+                    </Button>
                 </div>
             </div>
 
-            {/* Summary Cards (shows when unit is selected) */}
-            {selectedUnitBalance && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="bg-gradient-to-br from-[#101D42] to-[#1a2b5e] text-white border-none">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-white/80 flex items-center gap-2">
-                                <Wallet className="h-4 w-4" />
-                                Saldo Saat Ini
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-3xl font-bold">
-                                {formatCurrency(selectedUnitBalance.currentBalance)}
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-gradient-to-br from-emerald-50 to-white border-emerald-100">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-emerald-600 flex items-center gap-2">
+            <CreatePayoutModal 
+                isOpen={isPayoutOpen}
+                onClose={() => setIsPayoutOpen(false)}
+                onSuccess={refreshData}
+                defaultCategory="COMMISSION"
+            />
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-gradient-to-br from-[#101D42] to-[#1a2b5e] text-white border-none shadow-lg shadow-blue-900/20 overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                        <Wallet size={80} />
+                    </div>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-white/70 flex items-center gap-2">
+                            <Wallet className="h-4 w-4" />
+                            Saldo Saat Ini
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-3xl sm:text-4xl font-black tracking-tight mt-1">
+                            {selectedUnitBalance ? formatCurrency(selectedUnitBalance.currentBalance) : "Rp 0"}
+                        </p>
+                        <div className="mt-4 flex items-center text-xs text-white/50 bg-white/10 w-fit px-2 py-1 rounded-full uppercase tracking-tighter font-bold">
+                            Unit General Ledger
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-6 opacity-5 text-emerald-600 group-hover:scale-110 transition-transform">
+                        <ArrowUpCircle size={60} />
+                    </div>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                            <div className="p-1.5 bg-emerald-100 rounded-lg text-emerald-600">
                                 <ArrowUpCircle className="h-4 w-4" />
-                                Total Pemasukan
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold text-emerald-600">
-                                {formatCurrency(selectedUnitBalance.totalIncome)}
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-gradient-to-br from-red-50 to-white border-red-100">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
+                            </div>
+                            Total Pemasukan
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-2xl font-black text-emerald-600">
+                            {selectedUnitBalance ? formatCurrency(selectedUnitBalance.totalIncome) : "Rp 0"}
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-6 opacity-5 text-red-600 group-hover:scale-110 transition-transform">
+                        <ArrowDownCircle size={60} />
+                    </div>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                            <div className="p-1.5 bg-red-100 rounded-lg text-red-600">
                                 <ArrowDownCircle className="h-4 w-4" />
-                                Total Pengeluaran
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-2xl font-bold text-red-600">
-                                {formatCurrency(selectedUnitBalance.totalExpense)}
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+                            </div>
+                            Total Pengeluaran
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-2xl font-black text-red-600">
+                            {selectedUnitBalance ? formatCurrency(selectedUnitBalance.totalExpense) : "Rp 0"}
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Filters Section */}
             <div className="flex flex-wrap items-center gap-3">
-                <FilterDropdown
-                    label="Pilih Unit"
-                    activeValue={filters.unit}
-                    options={[
-                        { label: "Semua Unit", value: "all" },
-                        ...(Array.isArray(units)
-                            ? units.map((u) => ({ label: u.name, value: u.id }))
-                            : []),
-                    ]}
-                    onSelect={(val) => handleFilterChange("unit", val)}
-                />
+                {(() => {
+                    const isRestricted = AuthService.getUser()?.role === "ADMIN_UNIT" || AuthService.getUser()?.role === "SUPERVISOR";
+                    const options = Array.isArray(units) ? units.map((u) => ({ label: u.name, value: u.id })) : [];
+                    if (!isRestricted) {
+                        options.unshift({ label: "Semua Unit", value: "all" });
+                    }
+                    
+                    return (
+                        <FilterDropdown
+                            label="Pilih Unit"
+                            activeValue={filters.unit}
+                            disabled={isRestricted}
+                            options={options}
+                            onSelect={(val) => handleFilterChange("unit", val)}
+                        />
+                    );
+                })()}
                 <FilterDropdown
                     label="Semua Tipe"
                     activeValue={filters.type}
@@ -240,6 +242,7 @@ export default function UnitBalancePage() {
             {/* Table Content */}
             <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
                 <BaseTable
+                    tableId="finance-unit-balance"
                     data={ledgers || []}
                     columns={columns}
                     rowKey={(row) => row.id}

@@ -102,6 +102,7 @@ export function DeletedCustomerTable({
         {
             header: "Aksi",
             accessorKey: "id",
+            hideable: false,
             className: "text-right w-[130px]",
             cell: (item) => (
                 <Button
@@ -122,6 +123,7 @@ export function DeletedCustomerTable({
 
     return (
         <BaseTable<any>
+            tableId="customers-recycle-bin"
             data={data}
             columns={columns}
             rowKey={(item) => item.id}

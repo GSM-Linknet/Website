@@ -12,7 +12,8 @@ import { Loader2, ExternalLink, Building2, Wallet, Hash } from "lucide-react";
 import moment from "moment";
 import type { BatchPayment } from "@/services/batch-payment.service";
 import batchPaymentService from "@/services/batch-payment.service";
-import { useState } from "react";
+import { AuthService } from "@/services/auth.service";
+import { useState, useMemo } from "react";
 
 interface BatchPaymentDetailModalProps {
   isOpen: boolean;
@@ -28,6 +29,10 @@ export function BatchPaymentDetailModal({
   onSuccess,
 }: BatchPaymentDetailModalProps) {
   const [loading, setLoading] = useState(false);
+  const user = useMemo(() => AuthService.getUser(), []);
+  const canDelete = useMemo(() => {
+    return user && AuthService.hasPermission(user.role, "keuangan.batch-payment", "delete");
+  }, [user]);
 
   if (!batch) return null;
 
@@ -64,6 +69,29 @@ export function BatchPaymentDetailModal({
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || "Gagal membatalkan batch payment",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (
+      !confirm(
+        "Apakah Anda yakin ingin menghapus batch payment ini? Data akan dihapus secara permanen.",
+      )
+    )
+      return;
+
+    setLoading(true);
+    try {
+      await batchPaymentService.delete(batch.id);
+      toast.success("Batch payment berhasil dihapus");
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Gagal menghapus batch payment",
       );
     } finally {
       setLoading(false);
@@ -274,11 +302,22 @@ export function BatchPaymentDetailModal({
                       variant="ghost"
                       onClick={handleCancel}
                       disabled={loading}
-                      className="h-12 px-6 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-2xl font-bold transition-all"
+                      className="h-12 px-6 text-slate-500 hover:text-slate-600 hover:bg-slate-50 rounded-2xl font-bold transition-all"
                     >
                       Batalkan Batch
                     </Button>
                   </>
+                )}
+
+                {batch.status !== "PAID" && canDelete && (
+                  <Button
+                    variant="ghost"
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="h-12 px-6 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-2xl font-bold transition-all"
+                  >
+                    Hapus Batch
+                  </Button>
                 )}
 
                 {batch.status === "PROCESSING" && batch.paymentUrl && (

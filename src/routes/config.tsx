@@ -45,6 +45,7 @@ const UnitActivityPage = lazy(
 );
 const SaldoPage = lazy(() => import("@/features/finance/pages/SaldoPage"));
 const InvoicePage = lazy(() => import("@/features/finance/pages/InvoicePage"));
+const DeleteRequestsPage = lazy(() => import("@/features/finance/pages/DeleteRequestsPage"));
 const PaymentHistoryPage = lazy(
   () => import("@/features/finance/pages/PaymentHistoryPage"),
 );
@@ -53,6 +54,8 @@ const AgingReportsPage = lazy(
 );
 const PayoutPage = lazy(() => import("@/features/finance/pages/PayoutPage"));
 const CommissionPage = lazy(() => import("@/features/finance/pages/CommissionPage"));
+const CommissionManagementPage = lazy(() => import("@/features/finance/pages/CommissionManagementPage"));
+const LinknetBillingPage = lazy(() => import("@/features/finance/pages/LinknetBillingPage"));
 const WilayahPage = lazy(() => import("@/features/master/pages/WilayahPage"));
 const AreaPage = lazy(() => import("@/features/master/pages/AreaPage"));
 const CabangPage = lazy(() => import("@/features/master/pages/CabangPage"));
@@ -62,6 +65,7 @@ const PackagePricingPage = lazy(
   () => import("@/features/master/pages/PackagePricingPage"),
 );
 const DiscountPage = lazy(() => import("@/features/master/pages/DiscountPage"));
+const UnitCommissionConfigPage = lazy(() => import("@/features/master/pages/UnitCommissionConfigPage"));
 const UserPage = lazy(() => import("@/features/master/pages/UserPage"));
 const InstallSchedulePage = lazy(
   () => import("@/features/production/pages/InstallSchedulePage"),
@@ -84,9 +88,7 @@ const WhatsAppSettingsPage = lazy(
 const WhatsAppMonitorPage = lazy(
   () => import("@/features/settings/pages/WhatsAppMonitorPage"),
 );
-const CommissionSettingsPage = lazy(
-  () => import("@/features/settings/pages/CommissionSettingsPage"),
-);
+
 const TemplateManagementPage = lazy(
   () => import("@/features/settings/pages/TemplateManagementPage"),
 );
@@ -119,8 +121,10 @@ const UnitExpensePage = lazy(() => import("@/features/finance/pages/UnitExpenseP
 const DailyJournalPage = lazy(() => import("@/features/finance/pages/DailyJournalPage"));
 const UnitRevenuePage = lazy(() => import("@/features/finance/pages/UnitRevenuePage"));
 const UnitBalancePage = lazy(() => import("@/features/finance/pages/UnitBalancePage"));
+const CentralBalancePage = lazy(() => import("@/features/finance/pages/CentralBalancePage"));
 const CustomersWithoutInvoicePage = lazy(() => import("@/features/finance/pages/CustomersWithoutInvoicePage"));
 const RABPage = lazy(() => import("@/features/finance/pages/RABPage"));
+const ReviewUnitPaymentPage = lazy(() => import("@/features/finance/pages/ReviewUnitPaymentPage"));
 
 
 /**
@@ -205,6 +209,27 @@ export const routes: RouteObject[] = [
             <DashboardPage />
           </Suspense>
         ),
+      },
+      {
+        path: "keuangan",
+        children: [
+          {
+            path: "unit-balance",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <UnitBalancePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "central-balance",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CentralBalancePage />
+              </Suspense>
+            ),
+          },
+        ],
       },
       {
         path: "pelanggan",
@@ -393,6 +418,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "unit/:unitId/commission",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <UnitCommissionConfigPage />
+              </Suspense>
+            ),
+          },
+          {
             path: "sub-unit",
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -512,6 +545,22 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "delete-requests",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <DeleteRequestsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "review-unit",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ReviewUnitPaymentPage />
+              </Suspense>
+            ),
+          },
+          {
             path: "customers-without-invoice",
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -560,6 +609,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "commission-management",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CommissionManagementPage />
+              </Suspense>
+            ),
+          },
+          {
             path: "batch-payment",
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -584,6 +641,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "linknet-billing",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <LinknetBillingPage />
+              </Suspense>
+            ),
+          },
+          {
             path: "revenue-share",
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -596,6 +661,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <UnitBalancePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "central-balance",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <CentralBalancePage />
               </Suspense>
             ),
           },
@@ -640,14 +713,7 @@ export const routes: RouteObject[] = [
               </Suspense>
             )
           },
-          {
-            path: "commission",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <CommissionSettingsPage />
-              </Suspense>
-            )
-          },
+
           {
             path: "templates",
             element: (

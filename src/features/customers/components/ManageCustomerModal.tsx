@@ -75,9 +75,12 @@ export function ManageCustomerModal({
     customer,
     onSuccess,
 }: ManageCustomerModalProps) {
+    if (!customer) return null;
+
     const { toast } = useToast();
-    const { data: packages } = usePackage({ paginate: false });
-    const { data: users } = useUser({ paginate: false });
+    const queryOptions = useMemo(() => ({ paginate: false }), []);
+    const { data: packages } = usePackage(queryOptions);
+    const { data: users } = useUser(queryOptions);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<any>({});
     const [activeTab, setActiveTab] = useState("personal");
@@ -86,6 +89,7 @@ export function ManageCustomerModal({
     const [subUnits, setSubUnits] = useState<SubUnit[]>([]);
 
     const currentUser = useMemo(() => AuthService.getUser(), []);
+    const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
     const isSalesOrSpv = currentUser?.role === "SALES" || currentUser?.role === "SUPERVISOR";
     const canEditLegacy = useMemo(() =>
         AuthService.hasPermission(currentUser?.role || "", "pelanggan.legacy", "edit"),
@@ -131,6 +135,7 @@ export function ManageCustomerModal({
                 statusCust: customer.statusCust,
                 statusNet: customer.statusNet,
                 isFreeAccount: customer.isFreeAccount,
+                isFreeRegistration: customer.isFreeRegistration,
                 billingDate: customer.billingDate || 1,
                 lnId: customer.lnId || '',
                 siteId: customer.siteId || '',
@@ -147,7 +152,6 @@ export function ManageCustomerModal({
         }
     }, [customer]);
 
-    if (!customer) return null;
 
     const handleSubmit = async () => {
         try {
@@ -316,14 +320,17 @@ export function ManageCustomerModal({
                                     <div className="space-y-2">
                                         <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                             <Hash className="w-3.5 h-3.5" />
-                                            ID LinkNet
+                                            Service Order ID (Linknet)
                                         </Label>
-                                        <Input
-                                            value={formData.lnId || ""}
-                                            onChange={(e) => setFormData({ ...formData, lnId: e.target.value })}
-                                            className="h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors font-mono"
-                                            placeholder="Masukkan ID LN"
-                                        />
+                                        <div className="relative">
+                                            <Input
+                                                value={formData.lnId || ""}
+                                                onChange={(e) => setFormData({ ...formData, lnId: e.target.value })}
+                                                className="h-10 bg-white border-slate-200 font-mono text-slate-700 focus:ring-blue-500"
+                                                placeholder="Service Order ID (Linknet)"
+                                            />
+                                        </div>
+                                        <p className="text-[11px] text-slate-400">ID Service Order dari sistem Linknet. Dapat disesuaikan secara manual jika diperlukan.</p>
                                     </div>
                                 </div>
                             </div>
@@ -490,8 +497,12 @@ export function ManageCustomerModal({
                                         <SelectItem value="FREE_6_MONTHS">Gratis 6 Bulan</SelectItem>
                                         <SelectItem value="FREE_12_MONTHS">Gratis 12 Bulan</SelectItem>
                                         <SelectItem value="ON_LEAVE_1_MONTH">Libur 1 Bulan</SelectItem>
-                                        <SelectItem value="DISMANTLE">Dismantle</SelectItem>
-                                        <SelectItem value="TERMINATED">Keluar</SelectItem>
+                                        {isSuperAdmin && (
+                                            <>
+                                                <SelectItem value="DISMANTLE">Dismantle</SelectItem>
+                                                <SelectItem value="TERMINATED">Keluar</SelectItem>
+                                            </>
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -575,6 +586,17 @@ export function ManageCustomerModal({
                                     <CustomToggle
                                         checked={formData.isFreeAccount || false}
                                         onChange={(val) => setFormData({ ...formData, isFreeAccount: val })}
+                                    />
+                                </div>
+                                <div className="h-px bg-slate-200 w-full" />
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <Label className="text-sm font-semibold text-slate-900">Gratis Registrasi</Label>
+                                        <p className="text-xs text-slate-500">Pelanggan tidak ditagihkan invoice registrasi</p>
+                                    </div>
+                                    <CustomToggle
+                                        checked={formData.isFreeRegistration || false}
+                                        onChange={(val) => setFormData({ ...formData, isFreeRegistration: val })}
                                     />
                                 </div>
                             </div>

@@ -10,6 +10,7 @@ interface Column<T> {
     sortable?: boolean;
     render?: (value: any, row: T) => React.ReactNode;
     width?: string;
+    hideable?: boolean;
 }
 
 interface ReportDataTableProps<T> {
@@ -19,6 +20,7 @@ interface ReportDataTableProps<T> {
     searchPlaceholder?: string;
     emptyMessage?: string;
     loading?: boolean;
+    tableId?: string;
     // Server-side pagination props
     serverSide?: boolean;
     totalItems?: number;
@@ -34,6 +36,7 @@ export function ReportDataTable<T extends Record<string, any>>({
     searchable = true,
     searchPlaceholder = 'Cari...',
     loading = false,
+    tableId,
     serverSide = false,
     totalItems: externalTotalItems,
     page: externalPage,
@@ -120,6 +123,7 @@ export function ReportDataTable<T extends Record<string, any>>({
     const baseColumns: BaseColumn<T>[] = columns.map(col => ({
         header: col.header,
         accessorKey: col.key,
+        hideable: col.hideable,
         className: col.width ? `w-[${col.width}]` : undefined,
         cell: (item: T) => col.render ? col.render(item[col.key], item) : item[col.key]
     }));
@@ -145,6 +149,7 @@ export function ReportDataTable<T extends Record<string, any>>({
 
             {/* Base Table Implementation */}
             <BaseTable
+                tableId={tableId}
                 data={displayData}
                 columns={baseColumns}
                 rowKey={(item: T) => item.id || Math.random().toString()}

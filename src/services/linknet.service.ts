@@ -5,6 +5,21 @@ const ENDPOINT = "/linknet";
 
 // ─── Types ───
 
+export interface LinknetAddress {
+  providers: string;
+  address: string;
+  status: string;
+  latitude: number;
+  longitude: number;
+  site_id: string;
+  network_type: string;
+  site_latitude: number;
+  site_longitude: number;
+  dwell_type: string;
+  network_id: string;
+  fat_code: string;
+}
+
 export interface TimeSlot {
   id: string;
   validFor: {
@@ -218,5 +233,98 @@ export const LinkNetService = {
     return apiClient.get<ResponseData<GetLogsResponse>>(`${ENDPOINT}/logs`, {
       params,
     });
+  },
+
+  // ─── Address Search ───
+
+  /**
+   * Search addresses by keyword (suggest / autocomplete)
+   * Calls backend GET /linknet/addresses/suggest
+   */
+  suggestAddress: async (
+    search: string,
+    page: number = 1,
+    limit: number = 10,
+  ) => {
+    return apiClient.get<
+      ResponseData<{
+        addresses: LinknetAddress[];
+        curl: string;
+        request_id: string;
+        timestamp: string;
+      }>
+    >(`${ENDPOINT}/addresses/suggest`, { params: { search, page, limit } });
+  },
+
+  /**
+   * Find nearest addresses by coordinate
+   * Calls backend GET /linknet/addresses/nearest
+   */
+  nearestAddress: async (latitude: number, longitude: number) => {
+    return apiClient.get<
+      ResponseData<{
+        addresses: LinknetAddress[];
+        curl: string;
+        request_id: string;
+        timestamp: string;
+      }>
+    >(`${ENDPOINT}/addresses/nearest`, { params: { latitude, longitude } });
+  },
+
+  /**
+   * Search locality from Linknet TMF API
+   * Calls backend GET /linknet/search-locality
+   */
+  searchLocality: async (query: string) => {
+    return apiClient.get<
+      ResponseData<{
+        localities: any[];
+        curl: string;
+      }>
+    >(`${ENDPOINT}/search-locality`, { params: { query } });
+  },
+
+  /**
+   * Create survey account in Linknet
+   * Calls backend POST /linknet/create-account
+   */
+  createSurveyAccount: async (formData: FormData) => {
+    return apiClient.post<ResponseData<any>>(
+      `${ENDPOINT}/create-account`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+  },
+
+  /**
+   * Change device (ADD_DEVICE or REM_DEVICE)
+   * Calls backend POST /linknet/change-device
+   */
+  changeDevice: async (
+    customerId: string,
+    action: "ADD_DEVICE" | "REM_DEVICE",
+    characteristics: ServiceCharacteristic[],
+    state?: string,
+  ) => {
+    return apiClient.post<ResponseData<any>>(`${ENDPOINT}/change-device`, {
+      customerId,
+      action,
+      characteristics,
+      state,
+    });
+  },
+  /**
+   * Get Work Order status from Linknet
+   * Calls backend GET /linknet/work-order-status/:soId
+   */
+  getWorkOrderStatus: async (customerId: string, soId: string) => {
+    return apiClient.get<ResponseData<any>>(
+      `${ENDPOINT}/work-order-status/${soId}`,
+      { params: { customerId } },
+    );
   },
 };

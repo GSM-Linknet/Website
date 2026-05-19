@@ -1,6 +1,5 @@
 
-import { useState, useEffect } from "react";
-import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck, Download, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,230 +17,77 @@ import { CustomerDetailModal } from "../components/CustomerDetailModal";
 import { CustomerVerifyModal } from "../components/CustomerVerifyModal";
 import { LinknetPipelineModal } from "../components/LinknetPipelineModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
-import { AuthService } from "@/services/auth.service";
-import { CustomerService } from "@/services/customer.service";
-import { useCustomers } from "../hooks/useCustomers";
-import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import type { Customer } from "@/services/customer.service";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useCustomerRegistration } from "../hooks/useCustomerRegistration";
 
-// ==================== Page Component ====================
+/**
+ * Customer Registration Page Component.
+ * Displays a list of customers in the pending registration pipeline.
+ * Separates logic into useCustomerRegistration hook.
+ * 
+ * Caller: App Router / Navigation
+ * Dependencies: useCustomerRegistration, UI Components (Button, Input, Table, Modals)
+ */
 
 export default function CustomerRegistrationPage() {
-  const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
-
-  const userProfile = AuthService.getUser();
-  const userRole = userProfile?.role || "USER";
-  const resource = "pelanggan.pendaftaran";
-
-  const canCreate = AuthService.hasPermission(userRole, resource, "create");
-  const canEdit = AuthService.hasPermission(userRole, resource, "edit");
-  const canDelete = AuthService.hasPermission(userRole, resource, "delete");
-  const canVerify = AuthService.hasPermission(userRole, resource, "verify");
-  const canLinknet = AuthService.hasPermission(userRole, resource, "linknet");
-
   const {
+    // State & Data
+    searchQuery,
+    setSearchQuery,
+    filters,
+    units,
+    uplines,
+    isEditModalOpen,
+    setIsEditModalOpen,
+    isDeleteModalOpen,
+    setIsDeleteModalOpen,
+    selectedCustomer,
+    setSelectedCustomer,
+    customerToView,
+    customerToVerify,
+    setCustomerToVerify,
+    linknetCustomer,
+    setLinknetCustomer,
+    verifyingId,
+    isDetailModalOpen,
+    setIsDetailModalOpen,
+    isExporting,
+    defaultRegStatus,
     data: customers,
     loading,
     totalItems,
     page,
     totalPages,
     setPage,
-    setQuery,
     creating,
-    update,
     updating,
-    remove,
     deleting,
-    refetch: refresh
-  } = useCustomers({ linknetPipeline: 'pending' });
+    refetch: refresh,
 
-  // Modal states
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [customerToView, setCustomerToView] = useState<Customer | null>(null);
-  const [customerToVerify, setCustomerToVerify] = useState<Customer | null>(null);
-  const [linknetCustomer, setLinknetCustomer] = useState<Customer | null>(null);
-  const [verifyingId, setVerifyingId] = useState<string | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    // Permissions
+    canCreate,
+    canEdit,
+    canDelete,
+    canVerify,
+    canLinknet,
 
-  // Initial state for filters
-  const [filters, setFilters] = useState({
-    status: "all",
-    internet: "all",
-    wilayah: "all",
-    linknetStatus: "all",
-  });
-
-
-  // Update query when debounced search or filters change
-  useEffect(() => {
-    const searchParts: string[] = [];
-    // We send search directly to the search query, not as part of the where
-    let searchString: string | undefined = undefined;
-    if (debouncedSearchQuery) searchString = debouncedSearchQuery;
-    if (filters.status !== "all") searchParts.push(`statusCust:${filters.status === "verified"}`);
-    if (filters.internet !== "all") searchParts.push(`statusNet:${filters.internet === "online"}`);
-    if (filters.wilayah !== "all") searchParts.push(`idWilayah:${filters.wilayah}`);
-    if (filters.linknetStatus !== "all") searchParts.push(`linknetStatus:${filters.linknetStatus}`);
-
-    const whereParam = searchParts.join("+");
-    const payload = {
-      where: whereParam || undefined,
-      search: searchString || undefined,
-      linknetPipeline: 'pending' as const,
-    };
-    setQuery(payload);
-  }, [debouncedSearchQuery, filters, setQuery]);
-
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters({ ...filters, [key]: value });
-  };
-
-  // Get current user for role-based status
-  const currentUser = AuthService.getUser();
-  const isSubUnit = currentUser?.role === "SALES";
-  const defaultRegStatus = isSubUnit ? "Menunggu" : "Diproses";
-
-  // Handle create customer from dialog - throws on error for dialog to catch
-  const handleCreateCustomer = async (customerData: Partial<Customer> | FormData) => {
-    // Call service directly to allow error propagation to the dialog
-    await CustomerService.createCustomer(customerData);
-    // Only reaches here on success
-    toast({
-      title: "Berhasil",
-      description: "Pelanggan baru berhasil didaftarkan",
-    });
-    refresh();
-  };
-
-  // Handle edit
-  const handleEdit = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setIsEditModalOpen(true);
-  };
-
-  const handleEditSubmit = async (data: Partial<Customer>) => {
-    if (!selectedCustomer) return false;
-    const result = await update(selectedCustomer.id, data);
-    if (result) {
-      toast({
-        title: "Berhasil",
-        description: "Data pelanggan berhasil diperbarui",
-      });
-      setIsEditModalOpen(false);
-      setSelectedCustomer(null);
-      return true;
-    }
-    return false;
-  };
-
-  // Handle delete
-  const handleDeleteClick = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!selectedCustomer) return;
-    const success = await remove(selectedCustomer.id);
-    if (success) {
-      toast({
-        title: "Berhasil",
-        description: "Pelanggan berhasil dihapus",
-      });
-      setIsDeleteModalOpen(false);
-      setSelectedCustomer(null);
-    }
-  };
-
-  // Handle verify
-  const handleViewDetail = (row: Customer) => {
-    setCustomerToView(row);
-    setIsDetailModalOpen(true);
-  };
-
-  const handleVerifyAction = async (id: string, isVerify: boolean, siteId?: string) => {
-    await handleVerify(id, isVerify, siteId);
-    setIsDetailModalOpen(false);
-  };
-
-  const handleVerify = async (idOrCustomer: string | Customer, isVerify: boolean = true, siteId?: string) => {
-    const id = typeof idOrCustomer === 'string' ? idOrCustomer : idOrCustomer.id;
-
-    setVerifyingId(id);
-    try {
-      if (isVerify) {
-        await CustomerService.verifyCustomer(id, siteId);
-        toast({
-          title: "Verifikasi Berhasil",
-          description: "Pelanggan telah diverifikasi.",
-        });
-      } else {
-        await CustomerService.rejectCustomer(id);
-        toast({
-          title: "Pelanggan Ditolak",
-          description: "Status pelanggan ditolak.",
-          variant: "destructive",
-        });
-      }
-      refresh();
-    } catch (error) {
-      toast({
-        title: "Gagal Memproses",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
-        variant: "destructive",
-      });
-    } finally {
-      setVerifyingId(null);
-      setCustomerToVerify(null);
-    }
-  };
-
-  // Handle Linknet Pipeline
-  const handleLinknetPipeline = (row: Customer) => {
-    setLinknetCustomer(row);
-  };
-
-  const handleRegenerateId = async (row: Customer) => {
-    if (!canEdit) return;
-    try {
-      await CustomerService.regenerateCustomerId(row.id);
-      toast({
-        title: "Berhasil",
-        description: `ID Pelanggan ${row.name} berhasil di-generate ulang`,
-      });
-      refresh();
-    } catch (error) {
-      toast({
-        title: "Gagal",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSetDocumentUploaded = async (row: Customer) => {
-    if (!canLinknet) return;
-    try {
-      await CustomerService.setDocumentUploaded(row.id);
-      toast({
-        title: "Berhasil",
-        description: `Status Linknet ${row.name} diubah ke DOCUMENT_UPLOADED`,
-      });
-      refresh();
-    } catch (error) {
-      toast({
-        title: "Gagal",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
-        variant: "destructive",
-      });
-    }
-  };
+    // Handlers
+    handleFilterChange,
+    handleExportData,
+    handleCreateCustomer,
+    handleEdit,
+    handleEditSubmit,
+    handleDeleteClick,
+    handleConfirmDelete,
+    handleViewDetail,
+    handleVerifyAction,
+    handleVerify,
+    handleLinknetPipeline,
+    handleRegenerateId,
+    handleSetDocumentUploaded,
+    handleCheckWOStatus,
+  } = useCustomerRegistration();
 
   const columns = [
     {
@@ -346,6 +192,7 @@ export default function CustomerRegistrationPage() {
     {
       header: "AKSI",
       accessorKey: "actions",
+      hideable: false,
       className: "w-10 text-center",
       cell: (row: Customer) => {
         const isPending = !row.statusCust;
@@ -415,6 +262,15 @@ export default function CustomerRegistrationPage() {
                   Set Active
                 </DropdownMenuItem>
               )}
+              {canLinknet && row.statusCust && row.lnId && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 flex items-center gap-2"
+                  onClick={() => handleCheckWOStatus(row)}
+                >
+                  <ClipboardList size={14} />
+                  Cek Status WO Linknet
+                </DropdownMenuItem>
+              )}
               {canDelete && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
@@ -457,6 +313,17 @@ export default function CustomerRegistrationPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 rounded-xl border-slate-200 text-slate-600 hover:text-slate-900 border"
+            onClick={handleExportData}
+            disabled={isExporting}
+          >
+            <Download size={16} />
+            {isExporting ? "Mengunduh..." : "Export Excel"}
+          </Button>
+
           {canCreate && (
             <AddCustomerDialog
               initialStatus={defaultRegStatus}
@@ -496,11 +363,26 @@ export default function CustomerRegistrationPage() {
           onSelect={(val) => handleFilterChange("linknetStatus", val)}
         />
 
+        <FilterDropdown
+          label="Semua Unit"
+          activeValue={filters.unit}
+          options={units}
+          onSelect={(val) => handleFilterChange("unit", val)}
+        />
+
+        <FilterDropdown
+          label="Semua Upline"
+          activeValue={filters.upline}
+          options={uplines}
+          onSelect={(val) => handleFilterChange("upline", val)}
+        />
+
       </div>
 
       {/* Table Content */}
       <div className="bg-white rounded-2xl sm:rounded-[2.5rem] p-1 border border-slate-100 shadow-xl shadow-slate-200/40">
         <BaseTable
+          tableId="customers-registration"
           data={customers}
           columns={columns}
           rowKey={(row) => row.id}
@@ -578,7 +460,6 @@ interface FilterDropdownProps {
   activeValue: string;
   onSelect: (value: string) => void;
 }
-
 const FilterDropdown = ({ label, options, activeValue, onSelect }: FilterDropdownProps) => {
   const activeLabel = options.find(opt => opt.value === activeValue)?.label || label;
 

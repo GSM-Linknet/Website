@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, ChevronDown, Search, X } from "lucide-react";
+import { Check, ChevronDown, Search, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ interface SearchableSelectProps {
     options: Option[];
     value?: string | null;
     onValueChange: (value: string) => void;
+    onSearch?: (search: string) => void;
+    isLoading?: boolean;
     placeholder?: string;
     searchPlaceholder?: string;
     emptyMessage?: string;
@@ -26,6 +28,8 @@ export function SearchableSelect({
     options,
     value,
     onValueChange,
+    onSearch,
+    isLoading = false,
     placeholder = "Pilih item...",
     searchPlaceholder = "Cari...",
     emptyMessage = "Tidak ada hasil ditemukan.",
@@ -38,9 +42,30 @@ export function SearchableSelect({
 
     const selectedOption = options.find((opt) => opt.id === value);
 
-    const filteredOptions = options.filter((opt) =>
-        opt.name.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredOptions = React.useMemo(() => {
+        if (onSearch) return options; // If remote searching, don't filter locally
+        return options.filter((opt) =>
+            opt.name.toLowerCase().includes(search.toLowerCase())
+        );
+    }, [options, search, onSearch]);
+
+    // Debounced search for remote fetching
+    const isFirstRender = React.useRef(true);
+    React.useEffect(() => {
+        if (!onSearch) return;
+
+        // Skip initial call on mount if search is empty (parent usually handles initial fetch)
+        if (isFirstRender.current && search === "") {
+            isFirstRender.current = false;
+            return;
+        }
+
+        const handler = setTimeout(() => {
+            onSearch(search);
+        }, 500);
+
+        return () => clearTimeout(handler);
+    }, [search, onSearch]);
 
     // Close when clicking outside
     React.useEffect(() => {
@@ -84,12 +109,14 @@ export function SearchableSelect({
                             className="h-9 w-full border-none bg-transparent p-0 text-sm focus-visible:ring-0 shadow-none placeholder:text-slate-400"
                             autoFocus
                         />
-                        {search && (
+                        {isLoading ? (
+                            <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin text-slate-400" />
+                        ) : search ? (
                             <X
                                 className="ml-2 h-4 w-4 shrink-0 cursor-pointer text-slate-400 hover:text-slate-600"
                                 onClick={() => setSearch("")}
                             />
-                        )}
+                        ) : null}
                     </div>
 
                     <ScrollArea className="max-h-60 overflow-y-auto">

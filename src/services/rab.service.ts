@@ -15,6 +15,7 @@ export interface RABItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  type: "TETAP" | "TIDAK_TETAP";
   notes?: string;
   createdAt: string;
 }
@@ -28,6 +29,7 @@ export interface RAB {
   totalAmount: number;
   approvedAmount?: number;
   rolloverAmount: number;
+  usedBudget?: number;
   status: RABStatus;
   notes?: string;
   reviewNotes?: string;
@@ -39,6 +41,7 @@ export interface RAB {
   updatedAt: string;
   unit?: { id: string; name: string; code: string };
   subUnit?: { id: string; name: string; code: string };
+  isHolding: boolean;
   creator?: { id: string; name: string; role: string };
   reviewer?: { id: string; name: string; role: string };
   items: RABItem[];
@@ -57,6 +60,7 @@ export interface AddRABItemPayload {
   category: string;
   quantity: number;
   unitPrice: number;
+  type?: "TETAP" | "TIDAK_TETAP";
   notes?: string;
 }
 
@@ -113,4 +117,16 @@ export const RABService = {
 
   reject: (id: string, data: { reviewNotes: string }) =>
     apiClient.patch<ResponseData<RAB>>(`${BASE}/reject/${id}`, data),
+
+  revoke: (id: string) =>
+    apiClient.patch<ResponseData<RAB>>(`${BASE}/${id}/revoke`, {}),
+
+  setApprovedAmount: (id: string, data: { approvedAmount: number }) =>
+    apiClient.patch<ResponseData<RAB>>(`${BASE}/${id}/approved-amount`, data),
+
+  getReferenceCommission: (params: { unitId?: string; month: number; year: number; isHolding?: boolean }) =>
+    apiClient.get<ResponseData<{ amount: number; month: number; year: number }>>(
+      `${BASE}/reference-commission`,
+      { params }
+    ),
 };

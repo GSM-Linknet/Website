@@ -6,6 +6,8 @@ export interface PayoutRequest {
   accountHolderName: string;
   accountNumber: string;
   description: string;
+  category?: string;
+  sourceBucket?: 'REVENUE' | 'ALLOCATION';
 }
 
 export const XenditService = {
@@ -30,5 +32,14 @@ export const XenditService = {
             params,
             responseType: "blob"
         });
+    },
+    
+    syncStatus: async (id: string) => {
+        return await apiClient.post<any>(`/xendit/payout/${id}/sync-status`);
+    },
+
+    getBalance: async () => {
+        const response = await apiClient.get<any>("/xendit/balance");
+        return response.data || response; // Account for different client wrap behaviors
     }
 };
