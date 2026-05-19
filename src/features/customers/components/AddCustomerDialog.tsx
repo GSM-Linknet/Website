@@ -81,6 +81,8 @@ export function AddCustomerDialog({
     idUpline: "",
     customerLocation: null as { lat: number; lng: number } | null,
     odpLocation: null as { lat: number; lng: number } | null,
+    isFreeAccount: false,
+    isFreeRegistration: false,
   });
 
   // Automatically set idUpline for SALES and SUPERVISOR
@@ -195,6 +197,8 @@ export function AddCustomerDialog({
       idUpline: isSalesOrSpv && currentUser?.id ? currentUser.id : "",
       customerLocation: null,
       odpLocation: null,
+      isFreeAccount: false,
+      isFreeRegistration: false,
     });
     setKtpFile({ file: null, preview: null });
     setFrontHome({ file: null, preview: null });
@@ -245,6 +249,8 @@ export function AddCustomerDialog({
 
     formDataPayload.append("statusCust", "false");
     formDataPayload.append("statusNet", "false");
+    formDataPayload.append("isFreeAccount", String(formData.isFreeAccount));
+    formDataPayload.append("isFreeRegistration", String(formData.isFreeRegistration));
 
     // Append files if they exist
     if (ktpFile.file) formDataPayload.append("ktpFile", ktpFile.file);
@@ -766,6 +772,38 @@ export function AddCustomerDialog({
                     </div>
                   </div>
                 </div>
+                
+                {!isSalesOrSpv && (
+                  <div className="flex flex-col gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 mt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <Label className="text-sm font-semibold text-slate-900">Akun Gratis</Label>
+                        <p className="text-xs text-slate-500">Tandai sebagai akun gratis (tanpa tagihan bulanan)</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, isFreeAccount: !prev.isFreeAccount }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#101D42] focus:ring-offset-2 ${formData.isFreeAccount ? 'bg-[#101D42]' : 'bg-slate-200'}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isFreeAccount ? 'translate-x-5' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                    <div className="h-px bg-slate-200 w-full" />
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <Label className="text-sm font-semibold text-slate-900">Gratis Registrasi</Label>
+                        <p className="text-xs text-slate-500">Pelanggan tidak ditagihkan invoice registrasi</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, isFreeRegistration: !prev.isFreeRegistration }))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#101D42] focus:ring-offset-2 ${formData.isFreeRegistration ? 'bg-[#101D42]' : 'bg-slate-200'}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isFreeRegistration ? 'translate-x-5' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
           </div>

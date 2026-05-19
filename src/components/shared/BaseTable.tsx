@@ -79,36 +79,77 @@ export function BaseTable<T>({
 }: BaseTableProps<T>) {
   // State untuk visibilitas kolom
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(() => {
-    // Inisialisasi dengan semua kunci kolom
-    return columns.map((col) => (col.id || col.accessorKey) as string);
-  });
+    // 1. Dapatkan semua kunci kolom dan yang wajib tampil (hideable: false)
+    const allKeys = columns.map((col) => (col.id || col.accessorKey) as string);
+    const mandatoryKeys = columns
+      .filter((col) => col.hideable === false)
+      .map((col) => (col.id || col.accessorKey) as string);
 
-  // Load dari localStorage saat mount jika tableId tersedia
-  useEffect(() => {
+    // 2. Jika ada tableId, coba ambil dari localStorage (kita simpan kolom yang DISEMBUNYIKAN)
     if (tableId) {
-      const saved = localStorage.getItem(`table_cols_${tableId}`);
+      const saved = localStorage.getItem(`table_hidden_cols_${tableId}`);
       if (saved) {
         try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            // Pastikan hanya memuat kolom yang memang ada di definisi saat ini
-            const validKeys = columns.map((col) => (col.id || col.accessorKey) as string);
-            const filtered = parsed.filter(key => validKeys.includes(key));
-            setVisibleColumnKeys(filtered);
+          const hiddenKeys = JSON.parse(saved);
+          if (Array.isArray(hiddenKeys)) {
+            // Tampilkan semua kolom KECUALI yang disembunyikan (mandatory selalu tampil)
+            const visible = allKeys.filter(
+              (key) => !hiddenKeys.includes(key) || mandatoryKeys.includes(key)
+            );
+            return visible;
           }
         } catch (e) {
           console.error("Gagal memuat visibilitas kolom:", e);
         }
       }
     }
-  }, [tableId, columns]);
+    
+    // Default: Tampilkan semua kolom
+    return allKeys;
+  });
 
-  // Simpan ke localStorage saat berubah
+  // Simpan ke localStorage setiap kali visibleColumnKeys berubah
   useEffect(() => {
     if (tableId) {
-      localStorage.setItem(`table_cols_${tableId}`, JSON.stringify(visibleColumnKeys));
+      const allKeys = columns.map((col) => (col.id || col.accessorKey) as string);
+      const hiddenKeys = allKeys.filter((key) => !visibleColumnKeys.includes(key));
+      localStorage.setItem(`table_hidden_cols_${tableId}`, JSON.stringify(hiddenKeys));
     }
-  }, [visibleColumnKeys, tableId]);
+  }, [visibleColumnKeys, tableId, columns]);
+
+  // Sinkronisasi jika definisi 'columns' berubah dari luar (misal tambah kolom baru)
+  useEffect(() => {
+    setVisibleColumnKeys((prev) => {
+      const allKeys = columns.map((col) => (col.id || col.accessorKey) as string);
+      const mandatoryKeys = columns
+        .filter((col) => col.hideable === false)
+        .map((col) => (col.id || col.accessorKey) as string);
+
+      let hiddenKeys: string[] = [];
+      if (tableId) {
+        try {
+          const saved = localStorage.getItem(`table_hidden_cols_${tableId}`);
+          if (saved) hiddenKeys = JSON.parse(saved) || [];
+        } catch (e) {}
+      } else {
+        // Jika tidak ada tableId, hitung hidden keys dari state sebelumnya
+        // (kolom lama yang tidak ada di 'prev' berarti disembunyikan)
+        // Note: Untuk kolom yang benar-benar baru, ia TIDAK ada di prev, 
+        // tapi kita ingin ia default tampil.
+        hiddenKeys = prev.length > 0 ? prev : []; // Fallback kasar
+      }
+
+      const nextVisible = allKeys.filter(
+        (key) => (!hiddenKeys.includes(key) || mandatoryKeys.includes(key))
+      );
+
+      // Cek apakah ada perbedaan untuk menghindari re-render jika sama persis
+      if (nextVisible.length !== prev.length || !nextVisible.every((k) => prev.includes(k))) {
+        return nextVisible;
+      }
+      return prev;
+    });
+  }, [columns, tableId]);
 
   // Kolom yang difilter untuk dirender
   const filteredColumns = useMemo(() => {

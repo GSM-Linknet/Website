@@ -47,6 +47,7 @@ export interface Customer {
   statusNet: boolean;
   siteId?: string;
   isFreeAccount: boolean;
+  isFreeRegistration?: boolean;
   billingDate: number;
 
   // New: Linknet Pipeline Status

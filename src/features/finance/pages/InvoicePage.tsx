@@ -35,6 +35,7 @@ import {
 import { CreateInvoiceModal } from "../components/CreateInvoiceModal";
 import { BulkGenerateModal } from "../components/BulkGenerateModal";
 import { CreatePaymentModal } from "../components/CreatePaymentModal";
+import { DeleteInvoiceModal } from "../components/DeleteInvoiceModal";
 import { formatCurrency, cn } from "@/lib/utils";
 import moment from "moment";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ export default function InvoicePage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -325,7 +327,7 @@ export default function InvoicePage() {
     },
     {
       header: "Aksi",
-      hideable: false,
+      hideable: true,
       cell: (invoice: any) => (
         <div className="flex items-center gap-2">
           {AuthService.hasPermission(
@@ -458,25 +460,14 @@ export default function InvoicePage() {
                     Laporkan Sudah Bayar
                   </DropdownMenuItem>
                 )}
-              {invoice.status !== "paid" && user?.role === "SUPER_ADMIN" && (
+              {invoice.status !== "paid" && AuthService.hasPermission(
+                user?.role || "USER",
+                "keuangan.invoice",
+                "delete") && (
                 <DropdownMenuItem
                   onClick={() => {
-                    setAlertConfig({
-                      title: "Hapus Invoice",
-                      description: `Apakah Anda yakin ingin menghapus invoice ${invoice.invoiceNumber}? Tindakan ini tidak dapat dibatalkan.`,
-                      variant: "destructive",
-                      onConfirm: async () => {
-                        try {
-                          await FinanceService.deleteInvoice(invoice.id);
-                          await refetch();
-                          toast.success("Invoice berhasil dihapus");
-                        } catch (error) {
-                          console.error(error);
-                          toast.error("Gagal menghapus invoice");
-                        }
-                      },
-                    });
-                    setAlertOpen(true);
+                    setSelectedInvoice(invoice);
+                    setIsDeleteModalOpen(true);
                   }}
                   className="cursor-pointer text-red-600 focus:text-red-600"
                 >
@@ -729,6 +720,16 @@ export default function InvoicePage() {
         isOpen={isPaymentOpen}
         onClose={() => {
           setIsPaymentOpen(false);
+          setSelectedInvoice(null);
+        }}
+        invoice={selectedInvoice}
+        onSuccess={refetch}
+      />
+
+      <DeleteInvoiceModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
           setSelectedInvoice(null);
         }}
         invoice={selectedInvoice}

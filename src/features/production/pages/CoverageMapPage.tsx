@@ -33,7 +33,11 @@ import {
     MapPin,
     Search,
     Navigation,
+    Upload,
+    Database,
+    Globe
 } from "lucide-react";
+import { LocalCoverageService } from "@/services/coverage.service";
 import { useToast } from "@/hooks/useToast";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { cn } from "@/lib/utils";
@@ -53,12 +57,14 @@ export default function CoverageMapPage() {
         loading,
         searchMode,
         searchQuery,
+        searchSource,
         clickedCoord,
         focusedItem,
         suggestByAddress,
         suggestByCoordinate,
         focusItem,
         reset,
+        setSearchSource,
     } = useCoverageMap();
 
     const handleMapClick = async (lat: number, lng: number) => {
@@ -69,6 +75,37 @@ export default function CoverageMapPage() {
                 variant: "destructive",
                 title: "Gagal",
                 description: "Gagal mengambil data lokasi terdekat.",
+            });
+        }
+    };
+
+    const handleKmzUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            toast({
+                title: "Mengunggah KMZ",
+                description: "File sedang diproses dan diimport...",
+            });
+            const res = await LocalCoverageService.importKMZ(file);
+            toast({
+                title: "Berhasil",
+                description: `Berhasil mengimport ${res.data?.total ?? 0} titik coverage baru.`,
+            });
+            e.target.value = '';
+            
+            if (searchMode === "coordinate" && clickedCoord) {
+                setSearchSource("local");
+                suggestByCoordinate(clickedCoord.lat, clickedCoord.lng);
+            } else if (searchMode === "idle") {
+                setSearchSource("local");
+            }
+        } catch (err: any) {
+            toast({
+                variant: "destructive",
+                title: "Gagal Import KMZ",
+                description: err?.response?.data?.message || err?.message || "Terjadi kesalahan.",
             });
         }
     };
@@ -118,11 +155,10 @@ export default function CoverageMapPage() {
                     const ok = row.status?.toUpperCase() === "AVAILABLE";
                     return (
                         <span
-                            className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                ok
+                            className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${ok
                                     ? "bg-green-100 text-green-700"
                                     : "bg-red-100 text-red-700"
-                            }`}
+                                }`}
                         >
                             {row.status}
                         </span>
@@ -155,6 +191,50 @@ export default function CoverageMapPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                    {/* Search Source Toggle */}
+                    <div className="bg-slate-100 p-1 rounded-xl flex items-center">
+                        <Button
+                            variant={searchSource === "linknet" ? "default" : "ghost"}
+                            size="sm"
+                            className={cn(
+                                "rounded-lg h-9 gap-2",
+                                searchSource === "linknet" && "bg-blue-600 text-white hover:bg-blue-700 hover:text-white",
+                            )}
+                            onClick={() => setSearchSource("linknet")}
+                        >
+                            <Globe size={16} /> API Linknet
+                        </Button>
+                        <Button
+                            variant={searchSource === "local" ? "default" : "ghost"}
+                            size="sm"
+                            className={cn(
+                                "rounded-lg h-9 gap-2",
+                                searchSource === "local" && "bg-blue-600 text-white hover:bg-blue-700 hover:text-white",
+                            )}
+                            onClick={() => setSearchSource("local")}
+                        >
+                            <Database size={16} /> Database Lokal
+                        </Button>
+                    </div>
+
+                    {/* Upload KMZ */}
+                    <div className="relative">
+                        <input
+                            type="file"
+                            accept=".kmz,.kml"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onChange={handleKmzUpload}
+                        />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-slate-200 h-10 gap-1.5 text-slate-500"
+                        >
+                            <Upload size={16} />
+                            Upload KMZ
+                        </Button>
+                    </div>
+
                     {/* Search by address */}
                     <SearchInput
                         placeholder="Cari alamat... (min. 3 karakter)"

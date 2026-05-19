@@ -37,6 +37,8 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
         longUser: 0,
         latODP: 0,
         longODP: 0,
+        isFreeAccount: false,
+        isFreeRegistration: false,
     });
 
     // Populate form when editing
@@ -57,6 +59,8 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                 longUser: initialData.longUser || 0,
                 latODP: initialData.latODP || 0,
                 longODP: initialData.longODP || 0,
+                isFreeAccount: initialData.isFreeAccount || false,
+                isFreeRegistration: initialData.isFreeRegistration || false,
             });
         } else {
             setFormData({
@@ -74,6 +78,8 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                 longUser: 0,
                 latODP: 0,
                 longODP: 0,
+                isFreeAccount: false,
+                isFreeRegistration: false,
             });
         }
         setActiveTab("personal");
@@ -95,6 +101,8 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
             longUser: formData.longUser,
             latODP: formData.latODP,
             longODP: formData.longODP,
+            isFreeAccount: formData.isFreeAccount,
+            isFreeRegistration: formData.isFreeRegistration,
         };
 
         const success = await onSubmit(customerData);
@@ -286,6 +294,36 @@ export function CustomerModal({ isOpen, onClose, onSubmit, isLoading = false, in
                                         value={formData.longODP}
                                         onChange={e => setFormData({ ...formData, longODP: parseFloat(e.target.value) || 0 })}
                                     />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <Label className="text-sm font-semibold text-slate-900">Akun Gratis</Label>
+                                        <p className="text-xs text-slate-500">Tandai sebagai akun gratis (tanpa tagihan bulanan)</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, isFreeAccount: !formData.isFreeAccount })}
+                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#101D42] focus:ring-offset-2 ${formData.isFreeAccount ? 'bg-[#101D42]' : 'bg-slate-200'}`}
+                                    >
+                                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isFreeAccount ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
+                                <div className="h-px bg-slate-200 w-full" />
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <Label className="text-sm font-semibold text-slate-900">Gratis Registrasi</Label>
+                                        <p className="text-xs text-slate-500">Pelanggan tidak ditagihkan invoice registrasi</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, isFreeRegistration: !formData.isFreeRegistration })}
+                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#101D42] focus:ring-offset-2 ${formData.isFreeRegistration ? 'bg-[#101D42]' : 'bg-slate-200'}`}
+                                    >
+                                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isFreeRegistration ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    </button>
                                 </div>
                             </div>
                         </TabsContent>

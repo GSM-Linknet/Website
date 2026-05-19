@@ -21,6 +21,7 @@ export const useSuspendReviewPage = () => {
     approve,
     reject,
     bulkApprove,
+    fetchData,
   } = useSuspendQueue();
 
 //   sadsa
@@ -108,7 +109,27 @@ export const useSuspendReviewPage = () => {
         "AUTO_SUSPEND_DIRECT",
         checked ? "true" : "false",
       );
+      
       setIsAutoSuspend(checked);
+
+      if (checked) {
+        toast({
+          title: "Memproses Antrean...",
+          description: "Sistem akan memproses suspend di latar belakang.",
+        });
+        const res = await SuspendQueueService.approveAllPending();
+        setPage(1); // Reset page which triggers a refetch implicitly via effect
+        // Panggil manual agar segera terupdate meski page sudah 1
+        fetchData();
+        // Juga kosongkan pilihan (selectedIds) karena data sudah hilang
+        setSelectedIds([]);
+        
+        toast({
+          title: "Proses Berjalan",
+          description: (res as any)?.data?.message || "Sedang memproses suspend di latar belakang.",
+        });
+      }
+
       toast({
         title: "Pengaturan Diperbarui",
         description: `Auto Suspend Langsung kini ${checked ? "AKTIF" : "NONAKTIF"}.`,

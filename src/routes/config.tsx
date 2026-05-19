@@ -45,6 +45,7 @@ const UnitActivityPage = lazy(
 );
 const SaldoPage = lazy(() => import("@/features/finance/pages/SaldoPage"));
 const InvoicePage = lazy(() => import("@/features/finance/pages/InvoicePage"));
+const DeleteRequestsPage = lazy(() => import("@/features/finance/pages/DeleteRequestsPage"));
 const PaymentHistoryPage = lazy(
   () => import("@/features/finance/pages/PaymentHistoryPage"),
 );
@@ -540,6 +541,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <InvoicePage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "delete-requests",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <DeleteRequestsPage />
               </Suspense>
             ),
           },

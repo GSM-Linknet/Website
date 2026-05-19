@@ -11,6 +11,7 @@ import { MaintenanceService } from "@/services/maintenance.service";
 import { useLocation, useNavigate } from "react-router-dom";
 import { WhatsAppDisconnectionAlert } from "./WhatsAppDisconnectionAlert";
 import { SuspendQueueAlert } from "./SuspendQueueAlert";
+import { AppSocketListener } from "./AppSocketListener";
 
 /**
  * LayoutContent manages the dynamic arrangement of Sidebar, Navbar, and Page Content.
@@ -81,6 +82,7 @@ const LayoutContent = ({ children }: { children: React.ReactNode }) => {
             {/* Global Alerts */}
             <WhatsAppDisconnectionAlert />
             <SuspendQueueAlert />
+            <AppSocketListener />
         </div>
     );
 };

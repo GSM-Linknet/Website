@@ -102,8 +102,23 @@ export const FinanceService = {
   updateInvoice: async (id: string, data: Partial<Invoice>) => {
     return apiClient.patch<Invoice>(`${ENDPOINTS.INVOICE}/update/${id}`, data);
   },
-  deleteInvoice: async (id: string): Promise<void> => {
-    await apiClient.delete(`${ENDPOINTS.INVOICE}/delete/${id}`);
+  deleteInvoice: async (id: string, reason?: string): Promise<void> => {
+    await apiClient.delete(`${ENDPOINTS.INVOICE}/delete/${id}`, { data: { reason } });
+  },
+  requestDeleteInvoice: async (id: string, reason: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/request-delete/${id}`, { reason });
+  },
+  approveDeleteInvoice: async (id: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/approve-delete/${id}`);
+  },
+  rejectDeleteInvoice: async (id: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/reject-delete/${id}`);
+  },
+  getDeleteRequests: async (query: BaseQuery = {}) => {
+    return apiClient.get<ApiResponse<PaginatedResponse<Invoice>>>(
+      `${ENDPOINTS.INVOICE}/delete-requests`,
+      { params: query },
+    );
   },
 
   createRegistrationBill: async (customerId: string) => {

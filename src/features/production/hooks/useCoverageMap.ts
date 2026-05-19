@@ -17,14 +17,32 @@ import {
   LinkNetService,
   type LinknetAddress,
 } from "@/services/linknet.service";
+import { LocalCoverageService, type LocalCoverageData } from "@/services/coverage.service";
 
 export type SearchMode = "idle" | "address" | "coordinate";
+export type SearchSource = "linknet" | "local";
+
+const mapLocalToLinknet = (local: LocalCoverageData): LinknetAddress => ({
+  site_id: local.externalId || local.id,
+  address: local.name || local.metadata?.STREET_NAME || "Local Marker",
+  status: local.status || "AVAILABLE",
+  latitude: local.lat,
+  longitude: local.lng,
+  network_type: local.metadata?.NETWORK_TYPE || "LOCAL",
+  site_latitude: local.lat,
+  site_longitude: local.lng,
+  dwell_type: local.metadata?.DWELL_TYPE || "-",
+  network_id: local.metadata?.NETWORK_ID || "-",
+  fat_code: local.metadata?.FAT_CODE || "-",
+  providers: "LOCAL",
+});
 
 export interface CoverageMapState {
   results: LinknetAddress[];
   loading: boolean;
   searchMode: SearchMode;
   searchQuery: string;
+  searchSource: SearchSource;
   clickedCoord: { lat: number; lng: number } | null;
   focusedItem: LinknetAddress | null;
 }
@@ -36,6 +54,7 @@ export function useCoverageMap() {
   const [loading, setLoading] = useState(false);
   const [searchMode, setSearchMode] = useState<SearchMode>("idle");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchSource, setSearchSource] = useState<SearchSource>("linknet");
   const [clickedCoord, setClickedCoord] = useState<{
     lat: number;
     lng: number;
@@ -63,9 +82,36 @@ export function useCoverageMap() {
         setSearchMode("address");
         setClickedCoord(null);
         setFocusedItem(null);
-        const res = await LinkNetService.suggestAddress(query.trim());
-        const data = res.data as any;
-        setResults(data?.addresses ?? []);
+
+        const trimQuery = query.trim();
+        const coordMatch = trimQuery.match(/^([-+]?\d+(\.\d+)?)\s*,\s*([-+]?\d+(\.\d+)?)$/);
+
+        if (coordMatch) {
+          const lat = parseFloat(coordMatch[1]);
+          const lng = parseFloat(coordMatch[3]);
+          setSearchMode("coordinate");
+          setClickedCoord({ lat, lng });
+
+          if (searchSource === "linknet") {
+            const res = await LinkNetService.nearestAddress(lat, lng);
+            const data = res.data as any;
+            setResults(data?.addresses ?? []);
+          } else {
+            const res = await LocalCoverageService.findAll({ lat, lng, radius: 5, take: 50 });
+            const items = res.data?.items ?? [];
+            setResults(items.map(mapLocalToLinknet));
+          }
+        } else {
+          if (searchSource === "linknet") {
+            const res = await LinkNetService.suggestAddress(trimQuery);
+            const data = res.data as any;
+            setResults(data?.addresses ?? []);
+          } else {
+            const res = await LocalCoverageService.findAll({ name: trimQuery, take: 50 });
+            const items = res.data?.items ?? [];
+            setResults(items.map(mapLocalToLinknet));
+          }
+        }
       } catch (err) {
         console.error("[useCoverageMap] suggestByAddress failed", err);
         setResults([]);
@@ -75,7 +121,7 @@ export function useCoverageMap() {
     }, DEBOUNCE_MS);
   }, []);
 
-  /** Coordinate search — triggers Linknet nearest API */
+  /** Coordinate search — triggers Linknet nearest API or Local radius API */
   const suggestByCoordinate = useCallback(async (lat: number, lng: number) => {
     try {
       setLoading(true);
@@ -83,16 +129,23 @@ export function useCoverageMap() {
       setSearchQuery("");
       setClickedCoord({ lat, lng });
       setFocusedItem(null);
-      const res = await LinkNetService.nearestAddress(lat, lng);
-      const data = res.data as any;
-      setResults(data?.addresses ?? []);
+
+      if (searchSource === "linknet") {
+        const res = await LinkNetService.nearestAddress(lat, lng);
+        const data = res.data as any;
+        setResults(data?.addresses ?? []);
+      } else {
+        const res = await LocalCoverageService.findAll({ lat, lng, radius: 5, take: 50 });
+        const items = res.data?.items ?? [];
+        setResults(items.map(mapLocalToLinknet));
+      }
     } catch (err) {
       console.error("[useCoverageMap] suggestByCoordinate failed", err);
       setResults([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchSource]);
 
   /**
    * Fly-to lokasi spesifik dari klik baris list view.
@@ -118,11 +171,13 @@ export function useCoverageMap() {
     loading,
     searchMode,
     searchQuery,
+    searchSource,
     clickedCoord,
     focusedItem,
     suggestByAddress,
     suggestByCoordinate,
     focusItem,
     reset,
+    setSearchSource,
   };
 }

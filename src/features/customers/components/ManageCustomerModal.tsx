@@ -135,6 +135,7 @@ export function ManageCustomerModal({
                 statusCust: customer.statusCust,
                 statusNet: customer.statusNet,
                 isFreeAccount: customer.isFreeAccount,
+                isFreeRegistration: customer.isFreeRegistration,
                 billingDate: customer.billingDate || 1,
                 lnId: customer.lnId || '',
                 siteId: customer.siteId || '',
@@ -585,6 +586,17 @@ export function ManageCustomerModal({
                                     <CustomToggle
                                         checked={formData.isFreeAccount || false}
                                         onChange={(val) => setFormData({ ...formData, isFreeAccount: val })}
+                                    />
+                                </div>
+                                <div className="h-px bg-slate-200 w-full" />
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <Label className="text-sm font-semibold text-slate-900">Gratis Registrasi</Label>
+                                        <p className="text-xs text-slate-500">Pelanggan tidak ditagihkan invoice registrasi</p>
+                                    </div>
+                                    <CustomToggle
+                                        checked={formData.isFreeRegistration || false}
+                                        onChange={(val) => setFormData({ ...formData, isFreeRegistration: val })}
                                     />
                                 </div>
                             </div>

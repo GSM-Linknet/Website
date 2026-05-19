@@ -213,6 +213,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         resource: "keuangan.invoice",
       },
       {
+        title: "Persetujuan Hapus",
+        href: "/keuangan/delete-requests",
+        resource: "keuangan.history",
+      },
+      {
         title: "Review Report Invoice",
         href: "/keuangan/review-unit",
         resource: "keuangan.review",
