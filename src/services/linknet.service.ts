@@ -1,3 +1,12 @@
+/**
+ * services/linknet.service.ts
+ * Tujuan      : Client service frontend untuk operasional Linknet.
+ * Dipakai oleh: Halaman/modal operasional Linknet (LinkNetPage, TicketStatusModal, dll.)
+ * Dependensi  : api-client.ts
+ * Fungsi utama: Menyediakan method HTTP request (getTickets, createTroubleTicket, getTicketStatus, dll.)
+ * Side effects: HTTP call ke API Gateway backend.
+ */
+
 import { apiClient } from "./api-client";
 import type { ResponseData } from "./api-client";
 
@@ -195,6 +204,25 @@ export const LinkNetService = {
   getTicketStatus: async (ticketId: string) => {
     return apiClient.get<ResponseData<TicketResponse>>(
       `${ENDPOINT}/trouble-ticket/${ticketId}`,
+    );
+  },
+
+  getTickets: async (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
+    return apiClient.get<ResponseData<{
+      tickets: any[];
+      pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      };
+    }>>(
+      `${ENDPOINT}/trouble-ticket`,
+      { params }
     );
   },
 

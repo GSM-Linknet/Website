@@ -1,3 +1,12 @@
+/**
+ * routes/config.tsx
+ * Tujuan      : Konfigurasi routing aplikasi React menggunakan React Router.
+ * Dipakai oleh: src/index.tsx atau App.tsx
+ * Dependensi  : react-router-dom, lazy-loaded page components
+ * Fungsi utama: Menyusun hirarki route, autentikasi middleware, role check, dan layout wrap.
+ * Side effects: Navigasi URL klien, lazy loading bundle.
+ */
+
 import { lazy, Suspense } from "react";
 import type { RouteObject } from "react-router-dom";
 import { Navigate, Outlet } from "react-router-dom";
@@ -258,6 +267,7 @@ export const routes: RouteObject[] = [
               </Suspense>
             ),
           },
+
           {
             path: "review-suspend",
             element: (

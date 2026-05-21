@@ -12,7 +12,6 @@ import {
   Wrench, 
   FileText, 
   Settings2, 
-  AlertCircle, 
   Activity,
   UserPlus
 } from "lucide-react";
@@ -135,13 +134,14 @@ export const LinknetServiceTable = ({
               <Wifi size={14} className="text-blue-500" />
               Cek Status Perangkat
             </DropdownMenuItem>
+            
 
             <DropdownMenuItem 
               className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2 py-2"
               onClick={() => onAction("ticket_status", row)}
             >
               <Activity size={14} className="text-emerald-500" />
-              Cek Status Tiket
+              Tiket
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -152,7 +152,7 @@ export const LinknetServiceTable = ({
               onClick={() => onAction("change_service", row)}
             >
               <Settings2 size={14} className="text-indigo-500" />
-              Ganti Paket (Upgrade/DW)
+              Change Service (Upgrade/DW)
             </DropdownMenuItem>
 
             <DropdownMenuItem 
@@ -161,14 +161,6 @@ export const LinknetServiceTable = ({
             >
               <Wrench size={14} className="text-amber-500" />
               Ganti Perangkat (Add/Rem)
-            </DropdownMenuItem>
-
-            <DropdownMenuItem 
-              className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2 py-2"
-              onClick={() => onAction("create_ticket", row)}
-            >
-              <AlertCircle size={14} className="text-rose-500" />
-              Buat Tiket Gangguan
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />

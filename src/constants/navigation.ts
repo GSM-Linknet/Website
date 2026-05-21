@@ -1,3 +1,12 @@
+/**
+ * constants/navigation.ts
+ * Tujuan      : Definisikan struktur navigasi / menu sidebar utama aplikasi.
+ * Dipakai oleh: Komponen Sidebar / Layout
+ * Dependensi  : lucide-react icons, NavItem types
+ * Fungsi utama: Menyediakan daftar menu sidebar yang dikelompokkan dengan proteksi resource permission.
+ * Side effects: Tidak ada.
+ */
+
 import {
   LayoutDashboard,
   Users,

@@ -1,3 +1,20 @@
+/**
+ * @file Navbar.tsx
+ * @description Modern Navbar component displaying user profile info, sidebar controls, and real-time notification lists.
+ * @used_by Layout.tsx (global layout wrapper)
+ * @dependencies
+ * - AppNotificationService (API: /app-notification/find-all, /app-notification/read)
+ * - socketService (WS: listening for 'notification' events)
+ * - AuthService (Auth token & user profile retrieval)
+ * - useSidebar (Sidebar collapse/mobile toggle state)
+ * @public_functions
+ * - Navbar (React Functional Component)
+ * @side_effects
+ * - Fetches user notifications on mount or when the user ID changes (HTTP GET)
+ * - Listens to real-time notification socket events
+ * - Modifies notification read status (HTTP PATCH)
+ */
+
 import {
     Bell,
     Menu,
@@ -32,11 +49,12 @@ export const Navbar = () => {
     const navigate = useNavigate();
     const { isCollapsed, toggleCollapse, toggleMobile } = useSidebar();
     const user = AuthService.getUser();
+    const userId = user?.id;
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        if (!user) return;
+        if (!userId) return;
         
         const fetchNotifications = async () => {
             try {
@@ -51,7 +69,7 @@ export const Navbar = () => {
 
         fetchNotifications();
 
-        const handleNewNotification = (data: any) => {
+        const handleNewNotification = (data: AppNotification) => {
             setNotifications(prev => [data, ...prev].slice(0, 10));
             setUnreadCount(prev => prev + 1);
         };
@@ -60,7 +78,7 @@ export const Navbar = () => {
         return () => {
             socketService.off("notification", handleNewNotification);
         };
-    }, [user]);
+    }, [userId]);
 
     const handleLogout = async () => {
         await AuthService.logout();

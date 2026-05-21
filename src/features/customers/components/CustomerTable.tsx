@@ -1,5 +1,29 @@
+/**
+ * features/customers/components/CustomerTable.tsx
+ * Tujuan      : Menampilkan tabel daftar pelanggan beserta aksi detail, kelola, tagihan, dan operasional layanan Linknet.
+ * Dipakai oleh: features/customers/pages/CustomerListPage.tsx
+ * Dependensi  : lucide-react, @/components/shared/BaseTable, @/services/customer.service, @/services/linknet.service, ./LinknetActionModals
+ * Fungsi Utama: CustomerTable
+ * Side Effect : Panggilan API/modal untuk tagihan, perangkat, impersonate portal, toggle suspend, change service, ganti perangkat, dismantle, tiket.
+ */
+
 import { useState } from "react";
-import { MoreHorizontal, ShieldCheck, ShieldAlert, FileText, Wifi, Power, LogIn, GitFork } from "lucide-react";
+import { 
+  MoreHorizontal, 
+  ShieldCheck, 
+  ShieldAlert, 
+  FileText, 
+  Wifi, 
+  Power, 
+  LogIn, 
+  GitFork,
+  Eye,
+  Settings,
+  Activity,
+  Settings2,
+  Wrench,
+  Trash2
+} from "lucide-react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +32,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +55,12 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { ParentChildManageDialog } from "./ParentChildManageDialog";
+import { 
+  ChangeServiceModal, 
+  DisconnectModal, 
+  TicketStatusModal, 
+  ChangeDeviceModal 
+} from "./LinknetActionModals";
 
 interface CustomerTableProps {
   customers: Customer[];
@@ -79,6 +111,10 @@ export const CustomerTable = ({
   // Parent-child dialog
   const [hierarchyDialogOpen, setHierarchyDialogOpen] = useState(false);
   const [hierarchyCustomer, setHierarchyCustomer] = useState<Customer | null>(null);
+
+  // Linknet action modal states
+  const [activeLinknetModal, setActiveLinknetModal] = useState<string | null>(null);
+  const [linknetActionCustomer, setLinknetActionCustomer] = useState<Customer | null>(null);
 
   const canManageHierarchy = AuthService.hasPermission(userRole, "pelanggan.pendaftaran", "edit");
 
@@ -222,11 +258,11 @@ export const CustomerTable = ({
     {
       header: "UPLINE",
       accessorKey: "upline",
-      className: " max-w-[150px] truncate",
+      className: " max-w-37.5 truncate",
       cell: (row: Customer) => (
         <span
           title={row.upline?.name}
-          className="text-xs text-slate-600 truncate block max-w-[150px]"
+          className="text-xs text-slate-600 truncate block max-w-37.5"
         >
           {row.upline?.name || "-"}
         </span>
@@ -235,11 +271,11 @@ export const CustomerTable = ({
     {
       header: "UNIT",
       accessorKey: "unit",
-      className: " max-w-[150px] truncate",
+      className: " max-w-37.5 truncate",
       cell: (row: Customer) => (
         <span
           title={row.unit?.name}
-          className="text-xs text-slate-600 truncate block max-w-[150px]"
+          className="text-xs text-slate-600 truncate block max-w-37.5"
         >
           {row.unit?.name || "-"}
         </span>
@@ -248,11 +284,11 @@ export const CustomerTable = ({
     {
       header: "ALAMAT",
       accessorKey: "address",
-      className: "max-w-[150px] truncate",
+      className: "max-w-37.5 truncate",
       cell: (row: Customer) => (
         <span
           title={row.address}
-          className="text-xs text-slate-600 truncate block max-w-[150px]"
+          className="text-xs text-slate-600 truncate block max-w-37.5"
         >
           {row.address || "-"}
         </span>
@@ -292,6 +328,7 @@ export const CustomerTable = ({
           SURVEY_IN_PROGRESS: { label: "Survei Berjalan", color: "bg-amber-100 text-amber-700 border-amber-200" },
           SURVEY_SUCCESS: { label: "Survei Sukses", color: "bg-teal-100 text-teal-700 border-teal-200" },
           SURVEY_REJECTED: { label: "Survei Ditolak", color: "bg-rose-100 text-rose-700 border-rose-200" },
+          CA_PENDING: { label: "Menunggu CA", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
           APPOINTMENT_PENDING: { label: "Booking Jadwal", color: "bg-orange-100 text-orange-700 border-orange-200" },
           OM_SUBMITTED: { label: "Menunggu IKR", color: "bg-violet-100 text-violet-700 border-violet-200" },
           ACTIVE: { label: "Aktif ✓", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
@@ -381,7 +418,7 @@ export const CustomerTable = ({
       hideable: false,
       className: "w-10 text-center",
       cell: (row: Customer) => {
-        const hasActions = canEdit || canDelete;
+        const hasActions = canEdit || canDelete || canSuspend || canLinknet || canImp || !!row.customerId;
 
         if (!hasActions) return <span className="text-slate-400">-</span>;
 
@@ -391,98 +428,183 @@ export const CustomerTable = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-lg hover:bg-slate-100 text-slate-400"
+                className="h-8 w-8 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors"
               >
                 <MoreHorizontal size={18} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="rounded-xl border-slate-100 bg-white shadow-xl"
+              className="w-60 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95 duration-100"
             >
+              <DropdownMenuLabel className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2.5 py-1.5">
+                Kelola Pelanggan
+              </DropdownMenuLabel>
+              
               <DropdownMenuItem
-                className="cursor-pointer rounded-lg text-xs font-semibold"
+                className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-50 focus:bg-slate-50 text-slate-700 transition-colors"
                 onClick={() => onDetail?.(row)}
               >
-                Detail
+                <Eye size={14} className="text-slate-400" />
+                Detail Pelanggan
               </DropdownMenuItem>
+
               {canEdit && (
                 <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold"
+                  className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-50 focus:bg-slate-50 text-slate-700 transition-colors"
                   onClick={() => onEdit?.(row)}
                 >
-
-                  Kelola
+                  <Settings size={14} className="text-slate-400" />
+                  Kelola Data
                 </DropdownMenuItem>
               )}
+
               <DropdownMenuItem
-                className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 flex items-center gap-2"
+                className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-blue-600 hover:bg-blue-50/50 focus:bg-blue-50/50 transition-colors"
                 onClick={() => handleViewInvoices(row)}
               >
-                <FileText size={14} />
+                <FileText size={14} className="text-blue-500" />
                 Lihat Tagihan
               </DropdownMenuItem>
-              {row.customerId && canSuspend && (
-                <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-purple-600 flex items-center gap-2"
-                  onClick={() => handleViewDevices(row)}
-                  disabled={suspendingId === row.id}
-                >
-                  <Wifi size={14} />
-                  Lihat Perangkat
-                </DropdownMenuItem>
-              )}
+
               {row.customerId && canImp && (
                 <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-cyan-600 flex items-center gap-2"
+                  className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-cyan-600 hover:bg-cyan-50/50 focus:bg-cyan-50/50 transition-colors"
                   onClick={() => handleImpersonate(row.id, row.customerId || row.name)}
                   disabled={impersonatingMap[row.id]}
                 >
-                  <LogIn size={14} />
+                  <LogIn size={14} className="text-cyan-500" />
                   {impersonatingMap[row.id] ? "Memproses..." : "Login Sebagai Pelanggan"}
                 </DropdownMenuItem>
               )}
-              {row.customerId && canSuspend && (
-                <DropdownMenuItem
-                  className={cn(
-                    "cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2",
-                    // Disable jika customer adalah anakan
-                    row.parentCustomerId
-                      ? "text-slate-400 opacity-50 cursor-not-allowed"
-                      : row.statusNet ? "text-orange-600" : "text-emerald-600"
-                  )}
-                  onClick={() => !row.parentCustomerId && openSuspendConfirm(row)}
-                  disabled={suspendingId === row.id || !!row.parentCustomerId}
-                >
-                  <Power size={14} />
-                  {row.statusNet ? "Suspend" : "Unsuspend"}
-                  {row.parentCustomerId && (
-                    <span className="text-[9px] font-medium ml-1">(ikut parent)</span>
-                  )}
-                </DropdownMenuItem>
-              )}
+
               {canManageHierarchy && (
                 <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-violet-600 flex items-center gap-2"
+                  className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-violet-600 hover:bg-violet-50/50 focus:bg-violet-50/50 transition-colors"
                   onClick={() => {
                     setHierarchyCustomer(row);
                     setHierarchyDialogOpen(true);
                   }}
                 >
-                  <GitFork size={14} />
-                  {row.isParent ? `Hierarki (${row.children?.length ?? 0} anakan)` : row.parentCustomerId ? 'Info Hierarki' : 'Set Hierarki'}
+                  <GitFork size={14} className="text-violet-500" />
+                  {row.isParent 
+                    ? `Hierarki (${row.children?.length ?? 0} Anakan)` 
+                    : row.parentCustomerId 
+                      ? 'Info Hierarki' 
+                      : 'Set Hierarki'
+                  }
                 </DropdownMenuItem>
               )}
 
+              {/* SECTION: LAYANAN LINKNET */}
+              {(row.customerId || (!row.lnId && canLinknet)) && (
+                <>
+                  <DropdownMenuSeparator className="bg-slate-100 my-1" />
+                  <DropdownMenuLabel className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2.5 py-1.5">
+                    Layanan Linknet
+                  </DropdownMenuLabel>
+
+                  {row.customerId && canSuspend && (
+                    <DropdownMenuItem
+                      className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-blue-600 hover:bg-blue-50/50 focus:bg-blue-50/50 transition-colors"
+                      onClick={() => handleViewDevices(row)}
+                      disabled={suspendingId === row.id}
+                    >
+                      <Wifi size={14} className="text-blue-500" />
+                      Cek Status Perangkat
+                    </DropdownMenuItem>
+                  )}
+
+                  {row.customerId && (
+                    <>
+                      <DropdownMenuItem
+                        className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-emerald-600 hover:bg-emerald-50/50 focus:bg-emerald-50/50 transition-colors"
+                        onClick={() => {
+                          setLinknetActionCustomer(row);
+                          setActiveLinknetModal("ticket_status");
+                        }}
+                      >
+                        <Activity size={14} className="text-emerald-500" />
+                        Tiket Gangguan
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        disabled
+                        className="rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-indigo-600/50 cursor-not-allowed opacity-50 transition-colors"
+                        onClick={() => {
+                          setLinknetActionCustomer(row);
+                          setActiveLinknetModal("change_service");
+                        }}
+                      >
+                        <Settings2 size={14} className="text-indigo-400" />
+                        Change Service (Upgrade/DW)
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        disabled
+                        className="rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-amber-600/50 cursor-not-allowed opacity-50 transition-colors"
+                        onClick={() => {
+                          setLinknetActionCustomer(row);
+                          setActiveLinknetModal("change_device");
+                        }}
+                      >
+                        <Wrench size={14} className="text-amber-400" />
+                        Ganti Perangkat (Add/Rem)
+                      </DropdownMenuItem>
+
+                      {canSuspend && (
+                        <DropdownMenuItem
+                          className={cn(
+                            "cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 transition-colors",
+                            row.parentCustomerId
+                              ? "text-slate-400 opacity-50 cursor-not-allowed"
+                              : row.statusNet 
+                                ? "text-orange-600 hover:bg-orange-50/50 focus:bg-orange-50/50" 
+                                : "text-emerald-600 hover:bg-emerald-50/50 focus:bg-emerald-50/50"
+                          )}
+                          onClick={() => !row.parentCustomerId && openSuspendConfirm(row)}
+                          disabled={suspendingId === row.id || !!row.parentCustomerId}
+                        >
+                          <Power size={14} className={row.statusNet ? "text-orange-500" : "text-emerald-500"} />
+                          {row.statusNet ? "Suspend Layanan" : "Unsuspend Layanan"}
+                          {row.parentCustomerId && (
+                            <span className="text-[9px] font-medium ml-0.5">(ikut parent)</span>
+                          )}
+                        </DropdownMenuItem>
+                      )}
+                    </>
+                  )}
+
+                 
+                </>
+              )}
+
+              {/* SECTION: DANGER ZONE */}
               {canDelete && (
-                <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"
-                  onClick={() => onDelete?.(row.id)}
-                >
-                  Hapus
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuSeparator className="bg-slate-100 my-1" />
+                  <DropdownMenuLabel className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2.5 py-1.5">
+                    Tindakan
+                  </DropdownMenuLabel>
+                   <DropdownMenuItem
+                        className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-red-600 hover:bg-red-50/50 focus:bg-red-50/50 transition-colors"
+                        onClick={() => {
+                          setLinknetActionCustomer(row);
+                          setActiveLinknetModal("disconnect");
+                        }}
+                      >
+                        <FileText size={14} className="text-red-500" />
+                        Dismantle / Berhenti
+                      </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-rose-600 hover:bg-rose-50 focus:bg-rose-50 transition-colors"
+                    onClick={() => onDelete?.(row.id)}
+                  >
+                    <Trash2 size={14} className="text-rose-500" />
+                    Hapus Pelanggan
+                  </DropdownMenuItem>
+                </>
               )}
-
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -573,6 +695,32 @@ export const CustomerTable = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {linknetActionCustomer && (
+        <>
+          <ChangeServiceModal 
+            customer={linknetActionCustomer} 
+            isOpen={activeLinknetModal === "change_service"} 
+            onClose={() => { setActiveLinknetModal(null); setLinknetActionCustomer(null); onRefresh?.(); }} 
+          />
+          <DisconnectModal 
+            customer={linknetActionCustomer} 
+            isOpen={activeLinknetModal === "disconnect"} 
+            onClose={() => { setActiveLinknetModal(null); setLinknetActionCustomer(null); onRefresh?.(); }} 
+          />
+          <ChangeDeviceModal 
+            customer={linknetActionCustomer} 
+            isOpen={activeLinknetModal === "change_device"} 
+            onClose={() => { setActiveLinknetModal(null); setLinknetActionCustomer(null); onRefresh?.(); }} 
+          />
+          <TicketStatusModal 
+            customer={linknetActionCustomer} 
+            isOpen={activeLinknetModal === "ticket_status" || activeLinknetModal === "create_ticket"} 
+            defaultTab={activeLinknetModal === "create_ticket" ? "create" : "check"}
+            onClose={() => { setActiveLinknetModal(null); setLinknetActionCustomer(null); onRefresh?.(); }} 
+          />
+        </>
+      )}
     </>
   );
 };

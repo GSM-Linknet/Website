@@ -1,5 +1,14 @@
+/**
+ * features/customers/pages/CustomerListPage.tsx
+ * Tujuan      : Menampilkan halaman utama daftar pelanggan beserta filter, pencarian, ekspor data, dan tabel data.
+ * Dipakai oleh: Router aplikasi / Menu Pelanggan (Website)
+ * Dependensi  : lucide-react, CustomerTable, useCustomers, AuthService, CustomerService, MasterService, AddLegacyCustomerDialog, DeleteParentDialog
+ * Fungsi Utama: CustomerListPage
+ * Side Effect : Fetch data pelanggan, unit, sub-unit, label, dan ekspor excel via API.
+ */
+
 import { useState, useEffect } from "react";
-import { Search, ChevronDown, Plus, Download, Filter, X, CalendarRange } from "lucide-react";
+import { Search, ChevronDown,Download, Filter, X, CalendarRange, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CustomerTable } from "../components/CustomerTable";
 import { useCustomers } from "../hooks/useCustomers";
-import { AuthService } from "@/services/auth.service";
+// import { AuthService } from "@/services/auth.service";
 import { CustomerDetailModal } from "../components/CustomerDetailModal";
 import { ManageCustomerModal } from "../components/ManageCustomerModal";
 import { CustomerService, type Customer } from "@/services/customer.service";
@@ -26,10 +35,10 @@ import { DeleteParentDialog } from "../components/DeleteParentDialog";
 
 export default function CustomerListPage() {
   const { toast } = useToast();
-  const userProfile = AuthService.getUser();
-  const userRole = userProfile?.role || "USER";
+  // const userProfile = AuthService.getUser();
+  // const userRole = userProfile?.role || "USER";
 
-  const canCreateLegacy = AuthService.hasPermission(userRole, "pelanggan.legacy", "create");
+  // const canCreateLegacy = AuthService.hasPermission(userRole, "pelanggan.legacy", "create");
 
   const {
     data: customers,
@@ -71,9 +80,10 @@ export default function CustomerListPage() {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   // Legacy filter state
-  const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
+  const [legacyFilter, _setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
   const [isAddLegacyOpen, setIsAddLegacyOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // Compute active filter count (for badge)
   const activeFilterCount = [
@@ -207,7 +217,7 @@ export default function CustomerListPage() {
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-extrabold text-[#101D42] tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-extrabold text-brand-blue tracking-tight sm:text-3xl">
             Kelola Pelanggan
           </h1>
           <p className="text-sm font-medium text-slate-500 leading-relaxed">
@@ -242,7 +252,7 @@ export default function CustomerListPage() {
           </Button>
 
           {/* Tambah Legacy */}
-          {canCreateLegacy && (
+          {/* {canCreateLegacy && (
             <Button
               onClick={() => setIsAddLegacyOpen(true)}
               className="bg-[#101D42] hover:bg-[#1a2d60] text-white rounded-xl font-bold px-4 h-10 shadow-lg shadow-slate-900/20 transition-all hover:scale-[1.02] text-sm"
@@ -250,12 +260,12 @@ export default function CustomerListPage() {
               <Plus size={16} className="mr-1.5" />
               Tambah Legacy
             </Button>
-          )}
+          )} */}
         </div>
       </div>
 
       {/* ── Legacy Tabs ── */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+      {/* <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
         {[
           { label: 'Semua', value: 'all' as const },
           { label: 'Customer Baru', value: 'new' as const },
@@ -274,148 +284,199 @@ export default function CustomerListPage() {
             {tab.label}
           </button>
         ))}
-      </div>
+      </div> */}
 
       {/* ── Filter Bar ── */}
       <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 space-y-4">
-        {/* Row 1: Dropdown filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 text-slate-400 mr-1">
-            <Filter size={14} />
-            <span className="text-xs font-semibold uppercase tracking-wider">Filter</span>
-          </div>
-
-          <FilterDropdown
-            label="Status"
-            activeValue={filters.status}
-            options={[
-              { label: "Semua Status", value: "all" },
-              { label: "Reguler", value: "ACTIVE" },
-              { label: "Gratis 3 Bulan", value: "FREE_3_MONTHS" },
-              { label: "Gratis 6 Bulan", value: "FREE_6_MONTHS" },
-              { label: "Gratis 12 Bulan", value: "FREE_12_MONTHS" },
-              { label: "Libur 1 Bulan", value: "ON_LEAVE_1_MONTH" },
-              { label: "Dismantle", value: "DISMANTLE" },
-              { label: "Keluar", value: "TERMINATED" },
-            ]}
-            onSelect={(val) => handleFilterChange("status", val)}
-          />
-
-          <FilterDropdown
-            label="Internet"
-            activeValue={filters.internet}
-            options={[
-              { label: "Semua Internet", value: "all" },
-              { label: "Online", value: "online" },
-              { label: "Suspend", value: "offline" },
-            ]}
-            onSelect={(val) => handleFilterChange("internet", val)}
-          />
-
-          <FilterDropdown
-            label="Unit"
-            activeValue={filters.unit}
-            options={[
-              { label: "Semua Unit", value: "all" },
-              ...(Array.isArray(units) ? units.map((u) => ({ label: u.name, value: u.id })) : []),
-            ]}
-            onSelect={(val) => handleFilterChange("unit", val)}
-          />
-
-          <FilterDropdown
-            label="Sub-Unit"
-            activeValue={filters.subUnit}
-            options={[
-              { label: "Semua Sub-Unit", value: "all" },
-              ...(Array.isArray(subUnits) ? subUnits.map((s) => ({ label: s.name, value: s.id })) : []),
-            ]}
-            onSelect={(val) => handleFilterChange("subUnit", val)}
-            disabled={filters.unit === "all"}
-          />
-
-          <LabelFilterDropdown
-            labels={labels}
-            selectedIds={selectedLabels}
-            onSelect={(id) =>
-              setSelectedLabels(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
-            }
-            onClear={() => setSelectedLabels([])}
-          />
-
-          {/* Reset button */}
-          {activeFilterCount > 0 && (
-            <button
-              onClick={resetAllFilters}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer"
-            >
-              <X size={12} />
-              Reset ({activeFilterCount})
-            </button>
-          )}
+        {/* Header / Toggle untuk Mobile */}
+        <div className="flex items-center justify-between md:hidden pb-1 border-b border-slate-50">
+          <button
+            onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+            className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
+          >
+            <SlidersHorizontal size={16} className="text-blue-500" />
+            <span className="text-sm font-bold text-brand-blue">Filter Pencarian</span>
+            {activeFilterCount > 0 && (
+              <span className="bg-blue-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-5 h-5 shadow-sm">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          
+          <button
+            onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+          >
+            {isMobileFilterOpen ? "Sembunyikan" : "Tampilkan"}
+          </button>
         </div>
 
-        {/* Row 2: Date range filter */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 text-slate-400">
-            <CalendarRange size={14} />
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Tgl Daftar</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className={cn(
-                  "h-9 w-40 rounded-xl border-slate-200 bg-white text-sm shadow-sm transition-all cursor-pointer",
-                  dateFrom && "border-blue-500 text-blue-600 bg-blue-50/50"
-                )}
-              />
-              {dateFrom && (
-                <button
-                  onClick={() => setDateFrom("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X size={12} />
-                </button>
-              )}
+        {/* Filter Content Wrapper */}
+        <div className={cn(
+          "space-y-4 md:space-y-4 transition-all duration-300",
+          !isMobileFilterOpen && "hidden md:block"
+        )}>
+          {/* Row 1: Dropdown filters */}
+          <div className="flex flex-col md:flex-row md:items-center gap-3">
+            <div className="hidden md:flex items-center gap-1.5 text-slate-400 mr-1 shrink-0">
+              <Filter size={14} />
+              <span className="text-xs font-semibold uppercase tracking-wider">Filter</span>
             </div>
 
-            <span className="text-slate-400 text-sm font-medium">—</span>
+            {/* Structured stack on mobile, horizontal flex on desktop */}
+            <div className="flex flex-col md:flex-row md:flex-wrap items-center gap-2.5 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-2.5 w-full">
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status Pelanggan</span>
+                  <FilterDropdown
+                    label="Status"
+                    activeValue={filters.status}
+                    options={[
+                      { label: "Semua Status", value: "all" },
+                      { label: "Reguler", value: "ACTIVE" },
+                      { label: "Gratis 3 Bulan", value: "FREE_3_MONTHS" },
+                      { label: "Gratis 6 Bulan", value: "FREE_6_MONTHS" },
+                      { label: "Gratis 12 Bulan", value: "FREE_12_MONTHS" },
+                      { label: "Libur 1 Bulan", value: "ON_LEAVE_1_MONTH" },
+                      { label: "Dismantle", value: "DISMANTLE" },
+                      { label: "Keluar", value: "TERMINATED" },
+                    ]}
+                    onSelect={(val) => handleFilterChange("status", val)}
+                  />
+                </div>
 
-            <div className="relative">
-              <Input
-                type="date"
-                value={dateTo}
-                min={dateFrom || undefined}
-                onChange={(e) => setDateTo(e.target.value)}
-                className={cn(
-                  "h-9 w-40 rounded-xl border-slate-200 bg-white text-sm shadow-sm transition-all cursor-pointer",
-                  dateTo && "border-blue-500 text-blue-600 bg-blue-50/50"
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status Internet</span>
+                  <FilterDropdown
+                    label="Internet"
+                    activeValue={filters.internet}
+                    options={[
+                      { label: "Semua Internet", value: "all" },
+                      { label: "Online", value: "online" },
+                      { label: "Suspend", value: "offline" },
+                    ]}
+                    onSelect={(val) => handleFilterChange("internet", val)}
+                  />
+                </div>
+
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Unit</span>
+                  <FilterDropdown
+                    label="Unit"
+                    activeValue={filters.unit}
+                    options={[
+                      { label: "Semua Unit", value: "all" },
+                      ...(Array.isArray(units) ? units.map((u) => ({ label: u.name, value: u.id })) : []),
+                    ]}
+                    onSelect={(val) => handleFilterChange("unit", val)}
+                  />
+                </div>
+
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Sub-Unit</span>
+                  <FilterDropdown
+                    label="Sub-Unit"
+                    activeValue={filters.subUnit}
+                    options={[
+                      { label: "Semua Sub-Unit", value: "all" },
+                      ...(Array.isArray(subUnits) ? subUnits.map((s) => ({ label: s.name, value: s.id })) : []),
+                    ]}
+                    onSelect={(val) => handleFilterChange("subUnit", val)}
+                    disabled={filters.unit === "all"}
+                  />
+                </div>
+
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Label / Tag</span>
+                  <LabelFilterDropdown
+                    labels={labels}
+                    selectedIds={selectedLabels}
+                    onSelect={(id) =>
+                      setSelectedLabels(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
+                    }
+                    onClear={() => setSelectedLabels([])}
+                  />
+                </div>
+
+                {/* Reset button */}
+                {activeFilterCount > 0 && (
+                  <div className="w-full md:w-auto flex items-end pt-1 md:pt-0">
+                    <button
+                      onClick={resetAllFilters}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer h-9 w-full md:w-auto"
+                    >
+                      <X size={12} />
+                      Reset ({activeFilterCount})
+                    </button>
+                  </div>
                 )}
-              />
-              {dateTo && (
-                <button
-                  onClick={() => setDateTo("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X size={12} />
-                </button>
-              )}
+              </div>
             </div>
           </div>
 
-          {(dateFrom || dateTo) && (
-            <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
-              {dateFrom && dateTo
-                ? `${new Date(dateFrom).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} – ${new Date(dateTo).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`
-                : dateFrom
-                  ? `Dari ${new Date(dateFrom).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`
-                  : `Sampai ${new Date(dateTo).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`
-              }
-            </span>
-          )}
+          {/* Row 2: Date range filter */}
+          <div className="flex flex-col md:flex-row md:items-center gap-3 pt-3 border-t border-slate-100 md:border-none md:pt-0">
+            <div className="flex items-center gap-1.5 text-slate-400 shrink-0">
+              <CalendarRange size={14} />
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Tgl Daftar</span>
+            </div>
+
+            <div className="grid grid-cols-2 md:flex md:items-center gap-2.5 w-full md:w-auto">
+              <div className="relative w-full">
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className={cn(
+                    "h-9 w-full md:w-40 rounded-xl border-slate-200 bg-white text-sm shadow-sm transition-all cursor-pointer",
+                    dateFrom && "border-blue-500 text-blue-600 bg-blue-50/50"
+                  )}
+                />
+                {dateFrom && (
+                  <button
+                    onClick={() => setDateFrom("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              <span className="text-slate-400 text-sm font-medium shrink-0 hidden md:block">—</span>
+
+              <div className="relative w-full">
+                <Input
+                  type="date"
+                  value={dateTo}
+                  min={dateFrom || undefined}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className={cn(
+                    "h-9 w-full md:w-40 rounded-xl border-slate-200 bg-white text-sm shadow-sm transition-all cursor-pointer",
+                    dateTo && "border-blue-500 text-blue-600 bg-blue-50/50"
+                  )}
+                />
+                {dateTo && (
+                  <button
+                    onClick={() => setDateTo("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {(dateFrom || dateTo) && (
+              <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200 w-fit">
+                {dateFrom && dateTo
+                  ? `${new Date(dateFrom).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} – ${new Date(dateTo).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                  : dateFrom
+                    ? `Dari ${new Date(dateFrom).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                    : `Sampai ${new Date(dateTo).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                }
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -507,16 +568,16 @@ const FilterDropdown = ({ label, options, activeValue, onSelect, disabled = fals
           variant="outline"
           disabled={disabled}
           className={cn(
-            "h-9 rounded-xl border-slate-200 bg-white text-slate-600 font-medium px-3 text-sm hover:bg-slate-50 hover:text-slate-800 transition-all justify-between gap-2 shadow-sm",
+            "h-9 rounded-xl border-slate-200 bg-white text-slate-600 font-medium px-3 text-sm hover:bg-slate-50 hover:text-slate-800 transition-all justify-between gap-2 shadow-sm w-full md:w-auto",
             isActive && "border-blue-400 text-blue-600 bg-blue-50/60 hover:bg-blue-50",
             disabled && "opacity-40 cursor-not-allowed"
           )}
         >
-          <span className="max-w-[120px] truncate">{isActive ? activeLabel : label}</span>
+          <span className="max-w-30 truncate">{isActive ? activeLabel : label}</span>
           <ChevronDown size={12} className={cn("shrink-0 text-slate-400", isActive && "text-blue-400")} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[200px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+      <DropdownMenuContent className="w-50 rounded-xl border-slate-100 p-1 shadow-xl bg-white">
         {options.map((option) => (
           <DropdownMenuItem
             key={option.value}
@@ -550,7 +611,7 @@ const LabelFilterDropdown = ({ labels, selectedIds, onSelect, onClear }: LabelFi
         <Button
           variant="outline"
           className={cn(
-            "h-9 rounded-xl border-slate-200 bg-white text-slate-600 font-medium px-3 text-sm hover:bg-slate-50 transition-all justify-between gap-2 shadow-sm",
+            "h-9 rounded-xl border-slate-200 bg-white text-slate-600 font-medium px-3 text-sm hover:bg-slate-50 transition-all justify-between gap-2 shadow-sm w-full md:w-auto",
             isActive && "border-blue-400 text-blue-600 bg-blue-50/60"
           )}
         >
@@ -564,8 +625,8 @@ const LabelFilterDropdown = ({ labels, selectedIds, onSelect, onClear }: LabelFi
           <ChevronDown size={12} className={cn("shrink-0 text-slate-400", isActive && "text-blue-400")} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[200px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
-        <div className="max-h-[260px] overflow-y-auto space-y-0.5">
+      <DropdownMenuContent className="w-50 rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+        <div className="max-h-65 overflow-y-auto space-y-0.5">
           {labels.length === 0 ? (
             <p className="text-xs text-slate-400 text-center py-4">Tidak ada label</p>
           ) : labels.map((label) => (

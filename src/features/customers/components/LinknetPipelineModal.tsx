@@ -38,7 +38,7 @@ interface LinknetPipelineModalProps {
 
 const STEPS = [
     { id: "CREATE_ACCOUNT", label: "Registrasi Antrian", icon: ClipboardList },
-    { id: "SURVEY_IN_PROGRESS", label: "Survei Lapangan", icon: Search },
+    { id: "SURVEY_IN_PROGRESS", label: "Check Homepass", icon: Search },
     { id: "APPOINTMENT_PENDING", label: "Booking Waktu Pemasangan", icon: Calendar },
     { id: "OM_SUBMITTED", label: "Menunggu IKR", icon: Truck },
 ];
@@ -49,6 +49,7 @@ const getStepIndex = (status?: string) => {
             return 0;
         case "SURVEY_IN_PROGRESS":
         case "SURVEY_REJECTED":
+        case "CA_PENDING":
             return 1;
         case "SURVEY_SUCCESS":
         case "APPOINTMENT_PENDING":
@@ -168,21 +169,30 @@ export function LinknetPipelineModal({
 
         setLoading(true);
         try {
-            await CustomerService.updateSurveyResult(
+            const res: any = await CustomerService.updateSurveyResult(
                 customer.id,
                 surveyResult,
                 surveyResult === "SUCCESS" ? { siteId } : undefined,
                 surveyNotes
             );
-            toast.success(
+            
+            const successMsg = res?.data?.message || res?.message || (
                 surveyResult === "SUCCESS"
                     ? "Hasil survei SUKSES berhasil disimpan"
                     : "Hasil survei GAGAL berhasil disimpan"
             );
+            toast.success(successMsg);
+
             // Advance step internally based on survey result
             setLocalStatus(
-                surveyResult === "SUCCESS" ? "SURVEY_SUCCESS" : "SURVEY_REJECTED"
+                surveyResult === "SUCCESS" ? "SURVEY_SUCCESS" : "CA_PENDING"
             );
+
+            // Auto close modal if registered with Linknet (result === REJECTED)
+            if (surveyResult === "REJECTED") {
+                onOpenChange(false);
+            }
+
             onSuccess(); // refresh tabel di background
         } catch (err: any) {
             toast.error(err?.message || "Gagal menyimpan hasil survei");
@@ -345,9 +355,9 @@ export function LinknetPipelineModal({
                 <div className="p-6">
                     {/* Stepper Progress Bar */}
                     <div className="flex items-center justify-between mb-8 relative">
-                        <div className="absolute top-1/2 left-0 w-full h-[2px] bg-slate-100 -z-10 -translate-y-1/2"></div>
+                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -z-10 -translate-y-1/2"></div>
                         <div
-                            className="absolute top-1/2 left-0 h-[2px] bg-indigo-500 -z-10 -translate-y-1/2 transition-all duration-500"
+                            className="absolute top-1/2 left-0 h-0.5 bg-indigo-500 -z-10 -translate-y-1/2 transition-all duration-500"
                             style={{
                                 width: `${(Math.min(currentStep, 3) / 3) * 100}%`,
                             }}
@@ -398,9 +408,9 @@ export function LinknetPipelineModal({
 
                                 <div className="mt-8 flex flex-col gap-4">
                                     <div className="flex items-center gap-2 text-slate-400">
-                                        <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                        <div className="h-px flex-1 bg-slate-100"></div>
                                         <span className="text-[10px] font-bold uppercase tracking-widest">Aksi Lanjutan</span>
-                                        <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                        <div className="h-px flex-1 bg-slate-100"></div>
                                     </div>
 
                                     {!showChangeForm ? (
@@ -486,120 +496,147 @@ export function LinknetPipelineModal({
                                     </div>
                                 )}
 
-                                {/* --- Content: STEP 2 (SURVEY_IN_PROGRESS / REJECTED) --- */}
-                                {currentStep === 1 && (
-                                    <div className="space-y-6">
-                                        {customer.linknetStatus === "SURVEY_REJECTED" ? (
-                                            <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-800 space-y-3">
-                                                <div className="flex gap-3">
-                                                    <XCircle className="mt-0.5 shrink-0" size={20} />
-                                                    <div>
-                                                        <span className="font-bold block text-sm">Survei Sebelumnya Ditolak</span>
-                                                        <span className="text-xs block mt-1">Silakan ajukan ulang atau beri note tambahan jika ingin dicoba kembali.</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-slate-600">
-                                                Pilih hasil survei dari lapangan untuk menentukan pelolosan pelanggan ini ke tahap booking.
-                                            </p>
-                                        )}
+                                 {/* --- Content: STEP 2 (SURVEY_IN_PROGRESS / REJECTED / CA_PENDING) --- */}
+                                 {currentStep === 1 && (
+                                     <div className="space-y-6">
+                                         {localStatus === "CA_PENDING" ? (
+                                             <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-800 space-y-3">
+                                                 <div className="flex gap-3">
+                                                     <Loader2 className="mt-0.5 shrink-0 animate-spin text-indigo-600" size={20} />
+                                                     <div>
+                                                         <span className="font-bold block text-sm">Menunggu CA / Survei Linknet</span>
+                                                         <span className="text-xs block mt-1 leading-relaxed">
+                                                             Akun berhasil didaftarkan di Linknet. Menunggu proses survei lapangan dan penerbitan Site ID oleh pihak Linknet.
+                                                         </span>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         ) : localStatus === "SURVEY_REJECTED" ? (
+                                             <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-800 space-y-3">
+                                                 <div className="flex gap-3">
+                                                     <XCircle className="mt-0.5 shrink-0" size={20} />
+                                                     <div>
+                                                         <span className="font-bold block text-sm">Survei Sebelumnya Ditolak</span>
+                                                         <span className="text-xs block mt-1">Silakan ajukan ulang atau beri note tambahan jika ingin dicoba kembali.</span>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         ) : (
+                                             <p className="text-sm text-slate-600">
+                                                 Pilih hasil survei dari lapangan untuk menentukan pelolosan pelanggan ini ke tahap booking.
+                                             </p>
+                                         )}
 
-                                        <div className="space-y-3">
-                                            <Label className="text-slate-800 font-semibold mb-2 block">Hasil Kunjungan Tim</Label>
-                                            <div className="flex flex-col gap-3">
-                                                <div
-                                                    className={cn(
-                                                        "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
-                                                        surveyResult === "SUCCESS"
-                                                            ? "bg-emerald-50 border-emerald-500"
-                                                            : "border-slate-200 hover:bg-slate-50"
-                                                    )}
-                                                    onClick={() => setSurveyResult("SUCCESS")}
-                                                >
-                                                    <div className={cn(
-                                                        "w-4 h-4 rounded-full border flex items-center justify-center",
-                                                        surveyResult === "SUCCESS" ? "border-emerald-500 bg-emerald-500" : "border-slate-300"
-                                                    )}>
-                                                        {surveyResult === "SUCCESS" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                                    </div>
-                                                    <span className="flex-1 cursor-pointer font-semibold text-emerald-800">
-                                                        Sukses / FAT Tersedia
-                                                    </span>
-                                                </div>
-                                                <div
-                                                    className={cn(
-                                                        "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
-                                                        surveyResult === "REJECTED"
-                                                            ? "bg-rose-50 border-rose-500"
-                                                            : "border-slate-200 hover:bg-slate-50"
-                                                    )}
-                                                    onClick={() => setSurveyResult("REJECTED")}
-                                                >
-                                                    <div className={cn(
-                                                        "w-4 h-4 rounded-full border flex items-center justify-center",
-                                                        surveyResult === "REJECTED" ? "border-rose-500 bg-rose-500" : "border-slate-300"
-                                                    )}>
-                                                        {surveyResult === "REJECTED" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                                    </div>
-                                                    <span className="flex-1 cursor-pointer font-semibold text-rose-800">
-                                                        Gagal / FAT Penuh / Tidak Terjangkau
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                         {localStatus === "CA_PENDING" ? (
+                                             <div className="flex gap-3">
+                                                 <Button
+                                                     variant="outline"
+                                                     className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 h-11"
+                                                     onClick={() => onOpenChange(false)}
+                                                 >
+                                                     Tutup
+                                                 </Button>
+                                                
+                                             </div>
+                                         ) : (
+                                             <>
+                                                 <div className="space-y-3">
+                                                     <Label className="text-slate-800 font-semibold mb-2 block">Hasil Checking</Label>
+                                                     <div className="flex flex-col gap-3">
+                                                         <div
+                                                             className={cn(
+                                                                 "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
+                                                                 surveyResult === "SUCCESS"
+                                                                     ? "bg-emerald-50 border-emerald-500"
+                                                                     : "border-slate-200 hover:bg-slate-50"
+                                                             )}
+                                                             onClick={() => setSurveyResult("SUCCESS")}
+                                                         >
+                                                             <div className={cn(
+                                                                 "w-4 h-4 rounded-full border flex items-center justify-center",
+                                                                 surveyResult === "SUCCESS" ? "border-emerald-500 bg-emerald-500" : "border-slate-300"
+                                                             )}>
+                                                                 {surveyResult === "SUCCESS" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                             </div>
+                                                             <span className="flex-1 cursor-pointer font-semibold text-emerald-800">
+                                                                 Site Id / Home Pass Tersedia
+                                                             </span>
+                                                         </div>
+                                                         <div
+                                                             className={cn(
+                                                                 "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
+                                                                 surveyResult === "REJECTED"
+                                                                     ? "bg-rose-50 border-rose-500"
+                                                                     : "border-slate-200 hover:bg-slate-50"
+                                                             )}
+                                                             onClick={() => setSurveyResult("REJECTED")}
+                                                         >
+                                                             <div className={cn(
+                                                                 "w-4 h-4 rounded-full border flex items-center justify-center",
+                                                                 surveyResult === "REJECTED" ? "border-rose-500 bg-rose-500" : "border-slate-300"
+                                                             )}>
+                                                                 {surveyResult === "REJECTED" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                             </div>
+                                                             <span className="flex-1 cursor-pointer font-semibold text-rose-800">
+                                                                 Create Account / Site Id Tidak Tersedia
+                                                             </span>
+                                                         </div>
+                                                     </div>
+                                                 </div>
 
-                                        {surveyResult === "SUCCESS" && (
-                                            <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
-                                                <Label className="text-sm font-semibold text-slate-700">
-                                                    Masukkan Site ID <span className="text-rose-500">*</span>
-                                                </Label>
-                                                <Input
-                                                    placeholder="Nomor Site ID hasil survei ODP Linknet"
-                                                    value={siteId}
-                                                    onChange={(e) => setSiteId(e.target.value)}
-                                                    className="h-11 bg-slate-50 focus:bg-white"
-                                                />
-                                            </div>
-                                        )}
+                                                 {surveyResult === "SUCCESS" && (
+                                                     <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                                                         <Label className="text-sm font-semibold text-slate-700">
+                                                             Masukkan Site ID <span className="text-rose-500">*</span>
+                                                         </Label>
+                                                         <Input
+                                                             placeholder="Nomor Site ID hasil survei ODP Linknet"
+                                                             value={siteId}
+                                                             onChange={(e) => setSiteId(e.target.value)}
+                                                             className="h-11 bg-slate-50 focus:bg-white"
+                                                         />
+                                                     </div>
+                                                 )}
 
-                                        <div className="space-y-2">
-                                            <Label className="text-sm font-semibold text-slate-700">
-                                                {surveyResult === "SUCCESS" ? "Catatan Tambahan (Opsional)" : "Alasan Penolakan / Note (Wajib)"}
-                                            </Label>
-                                            <Textarea
-                                                placeholder={surveyResult === "SUCCESS" ? "Opsional..." : "Kenapa survei tidak sukses?"}
-                                                value={surveyNotes}
-                                                onChange={(e) => setSurveyNotes(e.target.value)}
-                                                className="bg-slate-50 focus:bg-white min-h-[80px]"
-                                            />
-                                        </div>
+                                                 <div className="space-y-2">
+                                                     <Label className="text-sm font-semibold text-slate-700">
+                                                         {surveyResult === "SUCCESS" ? "Catatan Tambahan (Opsional)" : "Note Create Account (Wajib)"}
+                                                     </Label>
+                                                     <Textarea
+                                                         placeholder={surveyResult === "SUCCESS" ? "Opsional..." : "Site Id tidak tersedia?"}
+                                                         value={surveyNotes}
+                                                         onChange={(e) => setSurveyNotes(e.target.value)}
+                                                         className="bg-slate-50 focus:bg-white min-h-20"
+                                                     />
+                                                 </div>
 
-                                        <div className="flex gap-3">
-                                            <Button
-                                                className={cn(
-                                                    "w-full text-white shadow-sm h-11",
-                                                    surveyResult === "SUCCESS" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
-                                                )}
-                                                onClick={handleUpdateSurvey}
-                                                disabled={loading}
-                                            >
-                                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                Simpan Hasil Survei
-                                            </Button>
-                                            {customer.linknetStatus === "SURVEY_REJECTED" && (
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 h-11"
-                                                    onClick={handleRetrySurvey}
-                                                    disabled={loading}
-                                                >
-                                                    Ajukan Survei Ulang
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
+                                                 <div className="flex gap-3">
+                                                     <Button
+                                                         className={cn(
+                                                             "w-full text-white shadow-sm h-11",
+                                                             surveyResult === "SUCCESS" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
+                                                         )}
+                                                         onClick={handleUpdateSurvey}
+                                                         disabled={loading}
+                                                     >
+                                                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                         Simpan
+                                                     </Button>
+                                                     {localStatus === "SURVEY_REJECTED" && (
+                                                         <Button
+                                                             variant="outline"
+                                                             className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 h-11"
+                                                             onClick={handleRetrySurvey}
+                                                             disabled={loading}
+                                                         >
+                                                             Ajukan Survei Ulang
+                                                         </Button>
+                                                     )}
+                                                 </div>
+                                             </>
+                                         )}
+                                     </div>
+                                 )}
 
                                 {/* --- Content: STEP 3 (APPOINTMENT_PENDING) --- */}
                                 {currentStep === 2 && (
@@ -608,7 +645,7 @@ export function LinknetPipelineModal({
                                             <Calendar className="text-amber-500 mt-1 shrink-0" size={18} />
                                             <div>
                                                 <p className="text-amber-900 font-semibold text-sm">Cari Slot Waktu Pemasangan</p>
-                                                <p className="text-amber-700 text-[11px] mt-1">Gunakan form di bawah ini untuk mencari kalender operasional Linknet terdekat berdasarkan Site ID pelanggan (<span className="block font-bold truncate max-w-[200px] mt-1 px-1.5 py-0.5 bg-amber-200/50 rounded inline-block">{customer.siteId}</span>).</p>
+                                                <p className="text-amber-700 text-[11px] mt-1">Gunakan form di bawah ini untuk mencari kalender operasional Linknet terdekat berdasarkan Site ID pelanggan (<span className="font-bold truncate max-w-50 mt-1 px-1.5 py-0.5 bg-amber-200/50 rounded inline-block">{customer.siteId}</span>).</p>
                                             </div>
                                         </div>
 
@@ -667,7 +704,7 @@ export function LinknetPipelineModal({
                                                 <Label className="text-sm font-bold text-slate-800 mb-3 block">
                                                     Pilih Slot Waktu Terbaik ({slots.length})
                                                 </Label>
-                                                <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                                <div className="max-h-75 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                                                     {slots.map((slot) => {
                                                         const isFull = slot.relatedParty?.id === "0";
                                                         const quota = isFull ? 0 : Number(slot.relatedParty?.id || 0);
@@ -741,9 +778,9 @@ export function LinknetPipelineModal({
 
                                         <div className="mt-8 flex flex-col gap-4">
                                             <div className="flex items-center gap-2 text-slate-400">
-                                                <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                                <div className="h-px flex-1 bg-slate-100"></div>
                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Aksi Bahaya</span>
-                                                <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                                <div className="h-px flex-1 bg-slate-100"></div>
                                             </div>
 
                                             {!showCancelForm ? (

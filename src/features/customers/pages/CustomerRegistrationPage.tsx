@@ -1,5 +1,5 @@
 
-import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck, Download, ClipboardList } from "lucide-react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck, Download, ClipboardList, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -112,9 +112,9 @@ export default function CustomerRegistrationPage() {
     {
       header: "ALAMAT",
       accessorKey: "address",
-      className: "text-center max-w-[150px] truncate",
+      className: "text-center max-w-37.5 truncate",
       cell: (row: Customer) => (
-        <span title={row.address} className="text-xs text-slate-600 truncate block max-w-[150px]">{row.address || "-"}</span>
+        <span title={row.address} className="text-xs text-slate-600 truncate block max-w-37.5">{row.address || "-"}</span>
       ),
     },
     {
@@ -160,6 +160,7 @@ export default function CustomerRegistrationPage() {
           SURVEY_IN_PROGRESS: { label: "Survei Berjalan", color: "bg-amber-100 text-amber-700 border-amber-200" },
           SURVEY_SUCCESS: { label: "Survei Sukses", color: "bg-teal-100 text-teal-700 border-teal-200" },
           SURVEY_REJECTED: { label: "Survei Ditolak", color: "bg-rose-100 text-rose-700 border-rose-200" },
+          CA_PENDING: { label: "Menunggu CA", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
           APPOINTMENT_PENDING: { label: "Booking Jadwal", color: "bg-orange-100 text-orange-700 border-orange-200" },
           OM_SUBMITTED: { label: "Menunggu IKR", color: "bg-violet-100 text-violet-700 border-violet-200" },
           ACTIVE: { label: "Aktif ✓", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
@@ -292,7 +293,7 @@ export default function CustomerRegistrationPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1.5">
-          <h1 className="text-2xl font-extrabold text-[#101D42] tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-extrabold text-brand-blue tracking-tight sm:text-3xl">
             Pendaftaran Pelanggan
           </h1>
           <p className="text-sm font-medium text-slate-500 max-w-2xl leading-relaxed">
@@ -335,48 +336,67 @@ export default function CustomerRegistrationPage() {
       </div>
 
       {/* Filters Section */}
-      <div className="flex flex-wrap items-center gap-3">
-        <FilterDropdown
-          label="Semua Status"
-          activeValue={filters.status}
-          options={[
-            { label: "Semua Status", value: "all" },
-            { label: "Terverifikasi", value: "verified" },
-            { label: "Pending", value: "pending" },
-          ]}
-          onSelect={(val) => handleFilterChange("status", val)}
-        />
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 space-y-4 mb-4">
+        <div className="flex items-center gap-1.5 text-slate-400 pb-1 border-b border-slate-50 md:border-none md:pb-0">
+          <Filter size={14} className="text-blue-500" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Filter Pencarian</span>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-2.5 w-full">
+          <div className="space-y-1 w-full md:w-auto">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status</span>
+            <FilterDropdown
+              label="Semua Status"
+              activeValue={filters.status}
+              options={[
+                { label: "Semua Status", value: "all" },
+                { label: "Terverifikasi", value: "verified" },
+                { label: "Pending", value: "pending" },
+              ]}
+              onSelect={(val) => handleFilterChange("status", val)}
+            />
+          </div>
 
-        <FilterDropdown
-          label="Semua Status Linknet"
-          activeValue={filters.linknetStatus}
-          options={[
-            { label: "Semua Status Linknet", value: "all" },
-            { label: "Menunggu Verif", value: "PENDING_VERIFICATION" },
-            { label: "Antrean Survei", value: "CREATE_ACCOUNT" },
-            { label: "Survei Berjalan", value: "SURVEY_IN_PROGRESS" },
-            { label: "Survei Sukses", value: "SURVEY_SUCCESS" },
-            { label: "Survei Ditolak", value: "SURVEY_REJECTED" },
-            { label: "Booking Jadwal", value: "APPOINTMENT_PENDING" },
-            { label: "Menunggu IKR", value: "OM_SUBMITTED" },
-          ]}
-          onSelect={(val) => handleFilterChange("linknetStatus", val)}
-        />
+          <div className="space-y-1 w-full md:w-auto">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status Linknet</span>
+            <FilterDropdown
+              label="Semua Status Linknet"
+              activeValue={filters.linknetStatus}
+              options={[
+                { label: "Semua Status Linknet", value: "all" },
+                { label: "Menunggu Verif", value: "PENDING_VERIFICATION" },
+                { label: "Antrean Survei", value: "CREATE_ACCOUNT" },
+                { label: "Survei Berjalan", value: "SURVEY_IN_PROGRESS" },
+                { label: "Survei Sukses", value: "SURVEY_SUCCESS" },
+                { label: "Survei Ditolak", value: "SURVEY_REJECTED" },
+                { label: "Menunggu CA", value: "CA_PENDING" },
+                { label: "Booking Jadwal", value: "APPOINTMENT_PENDING" },
+                { label: "Menunggu IKR", value: "OM_SUBMITTED" },
+              ]}
+              onSelect={(val) => handleFilterChange("linknetStatus", val)}
+            />
+          </div>
 
-        <FilterDropdown
-          label="Semua Unit"
-          activeValue={filters.unit}
-          options={units}
-          onSelect={(val) => handleFilterChange("unit", val)}
-        />
+          <div className="space-y-1 w-full md:w-auto">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Unit</span>
+            <FilterDropdown
+              label="Semua Unit"
+              activeValue={filters.unit}
+              options={units}
+              onSelect={(val) => handleFilterChange("unit", val)}
+            />
+          </div>
 
-        <FilterDropdown
-          label="Semua Upline"
-          activeValue={filters.upline}
-          options={uplines}
-          onSelect={(val) => handleFilterChange("upline", val)}
-        />
-
+          <div className="space-y-1 w-full md:w-auto">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Upline</span>
+            <FilterDropdown
+              label="Semua Upline"
+              activeValue={filters.upline}
+              options={uplines}
+              onSelect={(val) => handleFilterChange("upline", val)}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Table Content */}
@@ -469,7 +489,7 @@ const FilterDropdown = ({ label, options, activeValue, onSelect }: FilterDropdow
         <Button
           variant="outline"
           className={cn(
-            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
+            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-45 sm:w-auto border shadow-sm",
             activeValue !== "all" && "border-blue-500 text-blue-600 bg-blue-50/50"
           )}
         >
@@ -477,7 +497,7 @@ const FilterDropdown = ({ label, options, activeValue, onSelect }: FilterDropdow
           <ChevronDown size={14} className={cn("text-slate-400", activeValue !== "all" && "text-blue-500")} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[180px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+      <DropdownMenuContent className="w-45 rounded-xl border-slate-100 p-1 shadow-xl bg-white">
         {options.map((option) => (
           <DropdownMenuItem
             key={option.value}

@@ -1,8 +1,10 @@
 /**
  * features/customers/pages/LinkNetPage.tsx
- * Tujuan      : Halaman manajemen layanan Linknet berbasis pelanggan
- * Alur        : Cari Pelanggan -> Aksi Dropdown -> Modal Aksi
+ * Tujuan      : Halaman manajemen layanan Linknet berbasis pelanggan.
+ * Dipakai oleh: Router `/pelanggan/layanan`
  * Dependensi  : LinknetServiceTable, LinknetActionModals, useCustomers
+ * Fungsi Utama: Menampilkan daftar pelanggan Linknet dan memfasilitasi aksi operasional (ganti paket, ganti perangkat, dismantle, buat tiket, dan status tiket).
+ * Side Effect : Membaca data pelanggan (HTTP GET `/customers`), memicu aksi layanan via modal (HTTP POST/PATCH).
  */
 
 import { useState } from "react";
@@ -14,7 +16,6 @@ import { LinknetServiceTable } from "@/features/customers/components/LinknetServ
 import { useDebounce } from "@/hooks/useDebounce";
 import { 
   ChangeServiceModal, 
-  CreateTicketModal, 
   DisconnectModal, 
   TicketStatusModal, 
   ChangeDeviceModal 
@@ -61,7 +62,7 @@ export default function LinkNetPage() {
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-extrabold text-[#101D42] tracking-tight sm:text-3xl flex items-center gap-2">
+          <h1 className="text-2xl font-extrabold text-brand-blue tracking-tight sm:text-3xl flex items-center gap-2">
             <Activity className="text-blue-500" />
             Layanan Link Net
           </h1>
@@ -91,7 +92,7 @@ export default function LinkNetPage() {
       </div>
 
       {/* ── Main Table ── */}
-      <Card className="rounded-[2rem] border-slate-100 shadow-xl shadow-slate-200/40 p-2 overflow-hidden bg-white">
+      <Card className="rounded-4xl border-slate-100 shadow-xl shadow-slate-200/40 p-2 overflow-hidden bg-white">
         <LinknetServiceTable
           customers={customers}
           loading={loading}
@@ -111,12 +112,7 @@ export default function LinkNetPage() {
             isOpen={activeModal === "change_service"} 
             onClose={closeModals} 
           />
-          <CreateTicketModal 
-            customer={selectedCustomer} 
-            isOpen={activeModal === "create_ticket"} 
-            onClose={closeModals} 
-          />
-          <DisconnectModal 
+           <DisconnectModal 
             customer={selectedCustomer} 
             isOpen={activeModal === "disconnect"} 
             onClose={closeModals} 
@@ -126,10 +122,10 @@ export default function LinkNetPage() {
             isOpen={activeModal === "change_device"} 
             onClose={closeModals} 
           />
-          {/* Ticket status usually needs a ticketId, here we might need to fetch last ticket or let user input */}
           <TicketStatusModal 
-            ticketId={""} // User will input or system will find
-            isOpen={activeModal === "ticket_status"} 
+            customer={selectedCustomer} 
+            isOpen={activeModal === "ticket_status" || activeModal === "create_ticket"} 
+            defaultTab={activeModal === "create_ticket" ? "create" : "check"}
             onClose={closeModals} 
           />
         </>
