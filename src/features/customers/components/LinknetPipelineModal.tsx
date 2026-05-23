@@ -1,3 +1,12 @@
+/**
+ * @file LinknetPipelineModal.tsx
+ * @description Modal interaktif untuk memandu dan memproses pipeline Linknet pelanggan secara progresif (Registrasi Antrian, Cek Homepass/Survey, Booking Waktu Pemasangan, dan IKR). Membatasi pemilihan berkas maksimal 5 file untuk Create Account/Survey Rejected dengan batas ukuran 4 MB, mendukung pop-up preview gambar fullscreen, serta memungkinkan penandaan sukses/gagal di step CA_PENDING dengan input Site ID untuk melaju langsung ke booking jadwal.
+ * @caller Halaman Layanan Linknet (LinkNetPage.tsx), Tabel Pelanggan (CustomerTable.tsx)
+ * @dependency CustomerService, LinkNetService, lucide-react, UI components, toast (sonner)
+ * @public LinknetPipelineModal
+ * @sideeffects HTTP Calls ke backend untuk membuat antrian, menyimpan hasil survey (bisa multipart/form-data upload file), mencari slot, booking slot, cancel WO. Preview file lokal menggunakan object URL.
+ */
+
 import { useState, useEffect } from "react";
 import {
     CheckCircle2,
@@ -12,6 +21,8 @@ import {
     ArrowRight,
     RotateCcw,
     X,
+    Upload,
+    Eye,
 } from "lucide-react";
 import {
     Dialog,
@@ -24,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CustomerService, type Customer } from "@/services/customer.service";
 import { LinkNetService, type TimeSlot } from "@/services/linknet.service";
 import { toast } from "sonner";
@@ -41,6 +53,15 @@ const STEPS = [
     { id: "SURVEY_IN_PROGRESS", label: "Check Homepass", icon: Search },
     { id: "APPOINTMENT_PENDING", label: "Booking Waktu Pemasangan", icon: Calendar },
     { id: "OM_SUBMITTED", label: "Menunggu IKR", icon: Truck },
+];
+
+const FILE_FIELDS = [
+    { key: "ktpFile", label: "Foto KTP" },
+    { key: "frontHome", label: "Foto Depan Rumah" },
+    { key: "sideHome", label: "Foto Samping Rumah" },
+    { key: "ODPImage", label: "Foto ODP" },
+    { key: "CaImage", label: "Foto CA / G-Map" },
+    { key: "attachment", label: "Lampiran Tambahan" },
 ];
 
 const getStepIndex = (status?: string) => {
@@ -95,6 +116,12 @@ export function LinknetPipelineModal({
     const [surveyResult, setSurveyResult] = useState<"SUCCESS" | "REJECTED">("SUCCESS");
     const [siteId, setSiteId] = useState("");
     const [surveyNotes, setSurveyNotes] = useState("");
+    const [selectedFileFields, setSelectedFileFields] = useState<string[]>([]);
+    const [newFiles, setNewFiles] = useState<Record<string, File>>({});
+    const [previewImage, setPreviewImage] = useState<{
+        src: string;
+        label: string;
+    } | null>(null);
 
     // Step 3: Booking Appointment
     const [startDate, setStartDate] = useState("");
@@ -118,13 +145,48 @@ export function LinknetPipelineModal({
 
     const currentStep = getStepIndex(localStatus);
 
+    // Helper function to check if file/URL is an image
+    const isImageFile = (urlOrFile: string | File) => {
+        if (typeof urlOrFile === "string") {
+            const cleanUrl = urlOrFile.split("?")[0].split("#")[0];
+            const extension = cleanUrl.split(".").pop()?.toLowerCase();
+            return ["jpg", "jpeg", "png", "webp", "gif"].includes(extension || "");
+        }
+        if (urlOrFile instanceof File) {
+            return urlOrFile.type.startsWith("image/");
+        }
+        return false;
+    };
+
+    // Helper to handle preview of file
+    const handlePreviewFile = (fieldKey: string, fieldLabel: string) => {
+        const newFile = newFiles[fieldKey];
+        const existingUrl = (customer as any)[fieldKey];
+
+        if (newFile) {
+            if (isImageFile(newFile)) {
+                const objectUrl = URL.createObjectURL(newFile);
+                setPreviewImage({ src: objectUrl, label: `Baru: ${fieldLabel}` });
+            } else {
+                const objectUrl = URL.createObjectURL(newFile);
+                window.open(objectUrl, "_blank");
+            }
+        } else if (existingUrl) {
+            if (isImageFile(existingUrl)) {
+                setPreviewImage({ src: existingUrl, label: fieldLabel });
+            } else {
+                window.open(existingUrl, "_blank");
+            }
+        }
+    };
+
     // Reset local state when opened with a new customer
     useEffect(() => {
         if (open) {
             setLocalStatus(customer?.linknetStatus);
             setCreateNotes("");
             setSurveyResult("SUCCESS");
-            setSiteId("");
+            setSiteId(customer?.siteId || "");
             setSurveyNotes("");
             setStartDate("");
             setEndDate("");
@@ -138,6 +200,23 @@ export function LinknetPipelineModal({
             setShowChangeForm(false);
             setChangePlan("");
             setChangeNotes("");
+
+            // Initialize selectedFileFields with existing files (max 5 files)
+            const existingFiles: string[] = [];
+            if (customer) {
+                const fileKeys = ["ktpFile", "frontHome", "sideHome", "ODPImage", "CaImage", "attachment"];
+                fileKeys.forEach((key) => {
+                    if ((customer as any)[key]) {
+                        existingFiles.push(key);
+                    }
+                });
+            }
+            if (existingFiles.length > 5) {
+                toast.warning("Terdapat lebih dari 5 berkas yang tersedia. Hanya 5 berkas pertama yang tercentang secara default.");
+            }
+            setSelectedFileFields(existingFiles.slice(0, 5));
+            setNewFiles({});
+            setPreviewImage(null);
         }
     }, [open, customer]);
 
@@ -173,7 +252,9 @@ export function LinknetPipelineModal({
                 customer.id,
                 surveyResult,
                 surveyResult === "SUCCESS" ? { siteId } : undefined,
-                surveyNotes
+                surveyNotes,
+                surveyResult === "REJECTED" ? selectedFileFields : undefined,
+                surveyResult === "REJECTED" ? newFiles : undefined
             );
             
             const successMsg = res?.data?.message || res?.message || (
@@ -215,7 +296,7 @@ export function LinknetPipelineModal({
     };
 
     const handleSearchSlots = async () => {
-        const searchId = customer.siteId;
+        const searchId = siteId;
         if (!searchId || !startDate || !endDate) {
             toast.error("Format Data & Tanggal belum lengkap");
             return;
@@ -299,7 +380,7 @@ export function LinknetPipelineModal({
         setChanging(true);
         try {
             const characteristics = [
-                { name: "homepass_id", value: customer.siteId || "" },
+                { name: "homepass_id", value: siteId || "" },
                 { name: "product_plan", value: changePlan },
                 { name: "notes", value: changeNotes },
                 { name: "must_do", value: "no" },
@@ -336,7 +417,8 @@ export function LinknetPipelineModal({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="w-[95vw] md:max-w-2xl max-h-[95vh] overflow-y-auto bg-white p-0 rounded-2xl border-none shadow-2xl custom-scrollbar">
                 <div className="bg-slate-50 px-6 py-5 border-b border-slate-100">
                     <DialogHeader>
@@ -525,64 +607,50 @@ export function LinknetPipelineModal({
                                              <p className="text-sm text-slate-600">
                                                  Pilih hasil survei dari lapangan untuk menentukan pelolosan pelanggan ini ke tahap booking.
                                              </p>
-                                         )}
-
-                                         {localStatus === "CA_PENDING" ? (
-                                             <div className="flex gap-3">
-                                                 <Button
-                                                     variant="outline"
-                                                     className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 h-11"
-                                                     onClick={() => onOpenChange(false)}
-                                                 >
-                                                     Tutup
-                                                 </Button>
-                                                
-                                             </div>
-                                         ) : (
-                                             <>
-                                                 <div className="space-y-3">
-                                                     <Label className="text-slate-800 font-semibold mb-2 block">Hasil Checking</Label>
-                                                     <div className="flex flex-col gap-3">
-                                                         <div
-                                                             className={cn(
-                                                                 "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
-                                                                 surveyResult === "SUCCESS"
-                                                                     ? "bg-emerald-50 border-emerald-500"
-                                                                     : "border-slate-200 hover:bg-slate-50"
-                                                             )}
-                                                             onClick={() => setSurveyResult("SUCCESS")}
-                                                         >
-                                                             <div className={cn(
-                                                                 "w-4 h-4 rounded-full border flex items-center justify-center",
-                                                                 surveyResult === "SUCCESS" ? "border-emerald-500 bg-emerald-500" : "border-slate-300"
-                                                             )}>
-                                                                 {surveyResult === "SUCCESS" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                                             </div>
-                                                             <span className="flex-1 cursor-pointer font-semibold text-emerald-800">
-                                                                 Site Id / Home Pass Tersedia
-                                                             </span>
+                                         )}                                         <>
+                                             <div className="space-y-3">
+                                                 <Label className="text-slate-800 font-semibold mb-2 block">Hasil Checking</Label>
+                                                 <div className="flex flex-col gap-3">
+                                                     <div
+                                                         className={cn(
+                                                             "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
+                                                             surveyResult === "SUCCESS"
+                                                                 ? "bg-emerald-50 border-emerald-500"
+                                                                 : "border-slate-200 hover:bg-slate-50"
+                                                         )}
+                                                         onClick={() => setSurveyResult("SUCCESS")}
+                                                     >
+                                                         <div className={cn(
+                                                             "w-4 h-4 rounded-full border flex items-center justify-center",
+                                                             surveyResult === "SUCCESS" ? "border-emerald-500 bg-emerald-500" : "border-slate-300"
+                                                         )}>
+                                                             {surveyResult === "SUCCESS" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                                                          </div>
-                                                         <div
-                                                             className={cn(
-                                                                 "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
-                                                                 surveyResult === "REJECTED"
-                                                                     ? "bg-rose-50 border-rose-500"
-                                                                     : "border-slate-200 hover:bg-slate-50"
-                                                             )}
-                                                             onClick={() => setSurveyResult("REJECTED")}
-                                                         >
-                                                             <div className={cn(
-                                                                 "w-4 h-4 rounded-full border flex items-center justify-center",
-                                                                 surveyResult === "REJECTED" ? "border-rose-500 bg-rose-500" : "border-slate-300"
-                                                             )}>
-                                                                 {surveyResult === "REJECTED" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                                             </div>
-                                                             <span className="flex-1 cursor-pointer font-semibold text-rose-800">
-                                                                 Create Account / Site Id Tidak Tersedia
-                                                             </span>
+                                                         <span className="flex-1 cursor-pointer font-semibold text-emerald-800">
+                                                             {localStatus === "CA_PENDING" ? "CA Berhasil / Site ID Terbit" : "Site Id / Home Pass Tersedia"}
+                                                         </span>
+                                                     </div>
+                                                     <div
+                                                         className={cn(
+                                                             "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
+                                                             surveyResult === "REJECTED"
+                                                                 ? "bg-rose-50 border-rose-500"
+                                                                 : "border-slate-200 hover:bg-slate-50"
+                                                         )}
+                                                         onClick={() => setSurveyResult("REJECTED")}
+                                                     >
+                                                         <div className={cn(
+                                                             "w-4 h-4 rounded-full border flex items-center justify-center",
+                                                             surveyResult === "REJECTED" ? "border-rose-500 bg-rose-500" : "border-slate-300"
+                                                         )}>
+                                                             {surveyResult === "REJECTED" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                                                          </div>
+                                                         <span className="flex-1 cursor-pointer font-semibold text-rose-800">
+                                                             {localStatus === "CA_PENDING" ? "CA Gagal / Survei Ditolak" : "Create Account / Site Id Tidak Tersedia"}
+                                                         </span>
                                                      </div>
                                                  </div>
+                                             </div>
 
                                                  {surveyResult === "SUCCESS" && (
                                                      <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
@@ -595,6 +663,129 @@ export function LinknetPipelineModal({
                                                              onChange={(e) => setSiteId(e.target.value)}
                                                              className="h-11 bg-slate-50 focus:bg-white"
                                                          />
+                                                     </div>
+                                                 )}
+
+                                                 {surveyResult === "REJECTED" && (
+                                                     <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+                                                         <Label className="text-sm font-bold text-slate-800 block">
+                                                             Pilih Dokumen & Foto untuk Dikirim ke Linknet
+                                                         </Label>
+                                                         <span className="text-xs text-slate-500 block leading-relaxed mb-2">
+                                                             Pilih file yang akan dilampirkan untuk proses pembuatan akun Linknet. Anda juga dapat menambahkan/mengganti file di bawah ini.
+                                                         </span>
+
+                                                         <div className="divide-y divide-slate-100 bg-white rounded-lg border border-slate-150 overflow-hidden">
+                                                             {FILE_FIELDS.map((field) => {
+                                                                 const hasNew = !!newFiles[field.key];
+                                                                 const hasExisting = !!(customer as any)[field.key];
+                                                                 const isSelected = selectedFileFields.includes(field.key);
+
+                                                                 return (
+                                                                     <div key={field.key} className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition-all gap-4">
+                                                                         <div className="flex items-center gap-2">
+                                                                             <Checkbox
+                                                                                 id={`file-chk-${field.key}`}
+                                                                                 checked={isSelected}
+                                                                                 disabled={!hasNew && !hasExisting}
+                                                                                 onCheckedChange={(checked) => {
+                                                                                     if (checked) {
+                                                                                         if (selectedFileFields.length >= 5) {
+                                                                                             toast.error("Maksimal hanya 5 berkas yang dapat dipilih untuk dikirim ke Linknet");
+                                                                                             return;
+                                                                                         }
+                                                                                         setSelectedFileFields((prev) => [...prev, field.key]);
+                                                                                     } else {
+                                                                                         setSelectedFileFields((prev) => prev.filter((f) => f !== field.key));
+                                                                                     }
+                                                                                 }}
+                                                                             />
+                                                                             <Label
+                                                                                 htmlFor={`file-chk-${field.key}`}
+                                                                                 className="text-xs font-semibold text-slate-700 cursor-pointer select-none"
+                                                                             >
+                                                                                 {field.label}
+                                                                             </Label>
+                                                                         </div>
+
+                                                                         <div className="flex items-center gap-2 shrink-0">
+                                                                             {hasNew ? (
+                                                                                 <div className="flex items-center gap-1">
+                                                                                     <span className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-150 rounded-md max-w-30 truncate" title={newFiles[field.key].name}>
+                                                                                         Baru: {newFiles[field.key].name}
+                                                                                     </span>
+                                                                                     <Button
+                                                                                         type="button"
+                                                                                         variant="ghost"
+                                                                                         size="icon"
+                                                                                         className="h-6 w-6 text-slate-400 hover:text-slate-600 rounded-full"
+                                                                                         onClick={() => handlePreviewFile(field.key, field.label)}
+                                                                                     >
+                                                                                         <Eye size={12} />
+                                                                                     </Button>
+                                                                                 </div>
+                                                                             ) : hasExisting ? (
+                                                                                 <div className="flex items-center gap-1">
+                                                                                     <span className="text-[10px] font-medium px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-150 rounded-md">
+                                                                                         Tersedia
+                                                                                     </span>
+                                                                                     <Button
+                                                                                         type="button"
+                                                                                         variant="ghost"
+                                                                                         size="icon"
+                                                                                         className="h-6 w-6 text-slate-400 hover:text-slate-600 rounded-full"
+                                                                                         onClick={() => handlePreviewFile(field.key, field.label)}
+                                                                                     >
+                                                                                         <Eye size={12} />
+                                                                                     </Button>
+                                                                                 </div>
+                                                                             ) : (
+                                                                                 <span className="text-[10px] font-medium px-2 py-0.5 bg-slate-100 text-slate-500 border border-slate-200 rounded-md">
+                                                                                     Belum Ada
+                                                                                 </span>
+                                                                             )}
+
+                                                                             <div>
+                                                                                 <input
+                                                                                     type="file"
+                                                                                     id={`file-input-${field.key}`}
+                                                                                     className="hidden"
+                                                                                     accept="image/*,application/pdf"
+                                                                                     onChange={(e) => {
+                                                                                         const file = e.target.files?.[0];
+                                                                                         if (file) {
+                                                                                             // 1. Validate file size (max 4 MB)
+                                                                                             const maxSizeBytes = 4 * 1024 * 1024;
+                                                                                             if (file.size > maxSizeBytes) {
+                                                                                                 toast.error(`Ukuran file "${file.name}" melebihi batas maksimal 4 MB`);
+                                                                                                 return;
+                                                                                             }
+                                                                                             // 2. Validate max selected files limit
+                                                                                             if (!selectedFileFields.includes(field.key) && selectedFileFields.length >= 5) {
+                                                                                                 toast.error("Maksimal hanya 5 berkas yang dapat dipilih untuk dikirim ke Linknet");
+                                                                                                 return;
+                                                                                             }
+                                                                                             setNewFiles((prev) => ({ ...prev, [field.key]: file }));
+                                                                                             setSelectedFileFields((prev) => prev.includes(field.key) ? prev : [...prev, field.key]);
+                                                                                         }
+                                                                                     }}
+                                                                                 />
+                                                                                 <Button
+                                                                                     type="button"
+                                                                                     variant="outline"
+                                                                                     size="sm"
+                                                                                     className="h-7 px-2 text-[10px] border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 font-medium"
+                                                                                     onClick={() => document.getElementById(`file-input-${field.key}`)?.click()}
+                                                                                 >
+                                                                                     <Upload size={10} className="mr-1" />
+                                                                                     {hasNew || hasExisting ? "Ganti" : "Pilih"}
+                                                                                 </Button>
+                                                                             </div>
+                                                                         </div>
+                                                                     </div>
+                                                                 );
+                                                             })}
+                                                         </div>
                                                      </div>
                                                  )}
 
@@ -632,9 +823,18 @@ export function LinknetPipelineModal({
                                                              Ajukan Survei Ulang
                                                          </Button>
                                                      )}
+                                                     {localStatus === "CA_PENDING" && (
+                                                         <Button
+                                                             variant="outline"
+                                                             className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 h-11"
+                                                             onClick={() => onOpenChange(false)}
+                                                             disabled={loading}
+                                                         >
+                                                             Tutup
+                                                         </Button>
+                                                     )}
                                                  </div>
                                              </>
-                                         )}
                                      </div>
                                  )}
 
@@ -645,7 +845,7 @@ export function LinknetPipelineModal({
                                             <Calendar className="text-amber-500 mt-1 shrink-0" size={18} />
                                             <div>
                                                 <p className="text-amber-900 font-semibold text-sm">Cari Slot Waktu Pemasangan</p>
-                                                <p className="text-amber-700 text-[11px] mt-1">Gunakan form di bawah ini untuk mencari kalender operasional Linknet terdekat berdasarkan Site ID pelanggan (<span className="font-bold truncate max-w-50 mt-1 px-1.5 py-0.5 bg-amber-200/50 rounded inline-block">{customer.siteId}</span>).</p>
+                                                <p className="text-amber-700 text-[11px] mt-1">Gunakan form di bawah ini untuk mencari kalender operasional Linknet terdekat berdasarkan Site ID pelanggan (<span className="font-bold truncate max-w-50 mt-1 px-1.5 py-0.5 bg-amber-200/50 rounded inline-block">{siteId}</span>).</p>
                                             </div>
                                         </div>
 
@@ -836,5 +1036,34 @@ export function LinknetPipelineModal({
                 </div>
             </DialogContent>
         </Dialog>
-    );
+
+        {/* Fullscreen Image Preview Dialog */}
+        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+            <DialogContent className="max-w-7xl w-full h-screen border-none bg-black/95 p-0 sm:rounded-none flex flex-col justify-center items-center shadow-none focus:outline-none z-100">
+                <div className="absolute top-4 right-4 z-110">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-white/20 rounded-full h-12 w-12"
+                        onClick={() => setPreviewImage(null)}
+                    >
+                        <X size={24} />
+                    </Button>
+                </div>
+                {previewImage && (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                        <img
+                            src={previewImage.src}
+                            alt={previewImage.label}
+                            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        />
+                        <p className="text-white/80 mt-4 text-lg font-medium">
+                            {previewImage.label}
+                        </p>
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+    </>
+);
 }

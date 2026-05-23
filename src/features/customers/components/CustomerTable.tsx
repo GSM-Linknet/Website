@@ -529,8 +529,8 @@ export const CustomerTable = ({
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
-                        disabled
-                        className="rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-indigo-600/50 cursor-not-allowed opacity-50 transition-colors"
+                      
+                        className="rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-indigo-600 transition-colors"
                         onClick={() => {
                           setLinknetActionCustomer(row);
                           setActiveLinknetModal("change_service");
@@ -541,8 +541,8 @@ export const CustomerTable = ({
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
-                        disabled
-                        className="rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-amber-600/50 cursor-not-allowed opacity-50 transition-colors"
+                       
+                        className="rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-amber-600 transition-colors"
                         onClick={() => {
                           setLinknetActionCustomer(row);
                           setActiveLinknetModal("change_device");

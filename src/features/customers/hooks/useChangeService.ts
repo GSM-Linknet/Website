@@ -4,11 +4,11 @@
  * Dipakai oleh: features/customers/components/LinknetActionModals.tsx (ChangeServiceModal)
  * Dependensi  : @/services/linknet.service, @/services/customer.service, react
  * Fungsi utama:
- *   - Memuat data perangkat pelanggan saat modal dibuka
+ *   - Memuat data perangkat pelanggan riil dari API Linknet (tanpa mock) saat modal dibuka
  *   - Mengelola state form input dan pesan error validasi
  *   - Mengelola state check/uncheck status hapus perangkat
- *   - Mengelola penambahan/penghapusan produk dan add-on dinamis
- *   - Mengirimkan Service Order CHANGE_SERVICE ke API Gateway
+ *   - Mengelola penambahan/penghapusan produk (menggunakan 11 penawaran Linknet dengan rate code) dan add-on dinamis (sementara dikosongkan)
+ *   - Mengirimkan Service Order CHANGE_SERVICE ke API Gateway dengan Sales Code GSM Partner ("GSM" & "GSM PARTNER")
  * Side Effect : Panggilan API Linknet getCustomerDevices dan createChangeService (HTTP calls).
  */
 
@@ -35,7 +35,7 @@ export function useChangeService({ customer, isOpen, onClose }: Props) {
   const [wipComment, setWipComment] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
-  const [salesCode, setSalesCode] = useState("");
+  const [salesCode, setSalesCode] = useState("GSM");
 
   // Validation & Loading
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,18 +59,30 @@ export function useChangeService({ customer, isOpen, onClose }: Props) {
 
   // Available sample data for Products & Addons to select from
   const AVAILABLE_PRODUCTS = [
-    { id: "PROD-FTTH-50M", name: "Internet Fast 50 Mbps", price: 250000, speed: "50 Mbps" },
-    { id: "PROD-FTTH-100M", name: "Internet Super 100 Mbps", price: 350000, speed: "100 Mbps" },
-    { id: "PROD-FTTH-200M", name: "Internet Hyper 200 Mbps", price: 550000, speed: "200 Mbps" },
-    { id: "PROD-FTTH-500M", name: "Internet Ultra 500 Mbps", price: 850000, speed: "500 Mbps" },
+    { id: "O02604025", name: "GSM OFFER PAKET NGEBUT 20 Mbps TV", rateCode: "", price: 0, speed: "20 Mbps" },
+    { id: "O02504003", name: "GSM OFFER PAKET QUANTUM 50 Mbps - TV", rateCode: "", price: 0, speed: "50 Mbps" },
+    { id: "O02604026", name: "GSM OFFER PAKET SUPER NGEBUT 30 Mbps TV", rateCode: "", price: 0, speed: "30 Mbps" },
+    { id: "O02512019", name: "NAB ISP GSM - STB 10 Mbps", rateCode: "", price: 0, speed: "10 Mbps" },
+    { id: "O02604036", name: "FTTH Prime Lite 10 Mbps GSM  [FREE STB]", rateCode: "IF066", price: 0, speed: "10 Mbps" },
+    { id: "O02605012", name: "FTTH Prime Lite 20 Mbps GSM [FREE STB]", rateCode: "IF068", price: 0, speed: "20 Mbps" },
+    { id: "O02605013", name: "FTTH Prime Lite 30 Mbps GSM [FREE STB]", rateCode: "IF070", price: 0, speed: "30 Mbps" },
+    { id: "O02503002", name: "GSM OFFER 10 Mbps - FTTH", rateCode: "", price: 0, speed: "10 Mbps" },
+    { id: "O02604071", name: "GSM OFFER 10 Mbps - FTTH  [FREE STB]", rateCode: "IF030", price: 0, speed: "10 Mbps" },
+    { id: "O02501022", name: "GSM OFFER 100 Mbps - FTTH", rateCode: "", price: 0, speed: "100 Mbps" },
+    { id: "O02510004", name: "GSM OFFER 100Mbps", rateCode: "", price: 0, speed: "100 Mbps" },
+    { id: "O02604033", name: "GSM OFFER 100Mbps  [FREE STB]", rateCode: "", price: 0, speed: "100 Mbps" },
+    { id: "O02509074", name: "GSM OFFER 15 Mbps - FTTH", rateCode: "", price: 0, speed: "15 Mbps" },
+    { id: "O02604063", name: "GSM OFFER 15 Mbps - FTTH [FREE STB]", rateCode: "IF055", price: 0, speed: "15 Mbps" },
+    { id: "O02501021", name: "GSM OFFER 20 Mbps - FTTH", rateCode: "", price: 0, speed: "20 Mbps" },
+    { id: "O02604041", name: "GSM OFFER 20 Mbps - FTTH  [FREE STB]", rateCode: "IF028", price: 0, speed: "20 Mbps" },
+    { id: "O02501023", name: "GSM OFFER 30 Mbps - FTTH", rateCode: "", price: 0, speed: "30 Mbps" },
+    { id: "O02604070", name: "GSM OFFER 30 Mbps - FTTH  [FREE STB]", rateCode: "IF021", price: 0, speed: "30 Mbps" },
+    { id: "O02501024", name: "GSM OFFER 50 Mbps - FTTH", rateCode: "", price: 0, speed: "50 Mbps" },
+    { id: "O02604042", name: "GSM OFFER 50 Mbps - FTTH  [FREE STB]", rateCode: "IF022", price: 0, speed: "50 Mbps" },
+    { id: "O02604069", name: "GSM OFFER 75 Mbps - FTTH  [FREE STB]", rateCode: "IF029", price: 0, speed: "75 Mbps" },
   ];
 
-  const AVAILABLE_ADDONS = [
-    { id: "ADDON-STB-01", type: "TV", name: "Smart Box STB", price: 45000 },
-    { id: "ADDON-WIFI-EXT", type: "Router", name: "Wi-Fi Extender", price: 30000 },
-    { id: "ADDON-CATCHPLAY", type: "SVOD", name: "Catchplay+ Subscription", price: 25000 },
-    { id: "ADDON-HBOGO", type: "SVOD", name: "HBO GO Subscription", price: 35000 },
-  ];
+  const AVAILABLE_ADDONS: Array<{ id: string; type: string; name: string; price: number }> = [];
 
   // Load and Prefill Data
   useEffect(() => {
@@ -85,7 +97,7 @@ export function useChangeService({ customer, isOpen, onClose }: Props) {
       setWipComment("");
       setScheduleDate("");
       setScheduleTime("");
-      setSalesCode("");
+      setSalesCode("GSM");
       setErrors({});
       setAddedProducts([]);
       setAddedAddons([]);
@@ -97,35 +109,9 @@ export function useChangeService({ customer, isOpen, onClose }: Props) {
         try {
           const res = await LinkNetService.getCustomerDevices(customer.id);
           const activeDevices = (res?.data as any) || [];
-          if (activeDevices.length > 0) {
-            setDevices(activeDevices);
-          } else {
-            // Fill mock device if none found, matching UI mockup
-            setDevices([
-              {
-                id: "dev-mock-1",
-                DEVICETYPE: "Device",
-                RATECODENAME: "ONT_PARTNER",
-                LN_RC: "IM018",
-                SC_CODE: "ONT",
-                SNDEVICE: ".C45E5C04CC74",
-                SERVICE: "IF030/002501021-IF030-105/INTERNET/INTERNET",
-              },
-            ]);
-          }
+          setDevices(activeDevices);
         } catch (err) {
-          // Graceful fallback to mock device
-          setDevices([
-            {
-              id: "dev-mock-1",
-              DEVICETYPE: "Device",
-              RATECODENAME: "ONT_PARTNER",
-              LN_RC: "IM018",
-              SC_CODE: "ONT",
-              SNDEVICE: ".C45E5C04CC74",
-              SERVICE: "IF030/002501021-IF030-105/INTERNET/INTERNET",
-            },
-          ]);
+          setDevices([]);
         } finally {
           setDeviceLoading(false);
         }
@@ -160,6 +146,7 @@ export function useChangeService({ customer, isOpen, onClose }: Props) {
             name: match.name,
             sn: snToAdd || "-",
             price: match.price,
+            rateCode: match.rateCode,
             promo: promoToAdd || "-",
             speed: match.speed,
           },
@@ -229,7 +216,8 @@ export function useChangeService({ customer, isOpen, onClose }: Props) {
         { name: "wip_comment", value: wipComment },
         { name: "schedule_date", value: scheduleDate },
         { name: "schedule_time", value: scheduleTime },
-        { name: "sales_code", value: salesCode },
+        { name: "SalesCode", value: "GSM" },
+        { name: "SalesName", value: "GSM PARTNER" },
         { name: "service_type", value: "FTTH" },
         {
           name: "removed_devices",

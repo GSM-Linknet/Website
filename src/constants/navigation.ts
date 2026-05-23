@@ -72,12 +72,6 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         href: "/pelanggan/trash",
         resource: "pelanggan.trash",
       },
-
-      {
-        title: "Layanan Link Net",
-        href: "/pelanggan/layanan",
-        resource: "pelanggan.layanan",
-      },
     ],
   },
   {

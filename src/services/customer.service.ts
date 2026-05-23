@@ -1,3 +1,12 @@
+/**
+ * @file customer.service.ts
+ * @description Layanan API frontend untuk mengelola data pelanggan (Customer).
+ * @caller Berbagai komponen dan hook pelanggan di frontend (mis. LinknetPipelineModal.tsx)
+ * @dependency apiClient (dari api-client.ts), master.service.ts
+ * @public impersonatePortal, createLinknetAccount, updateSurveyResult, retrySurvey, setDocumentUploaded, submitToLinknetOM
+ * @sideeffects HTTP Calls (fetch/patch/post) ke backend.
+ */
+
 import { apiClient, apiInstance } from "./api-client";
 import type {
   BaseQuery,
@@ -180,7 +189,31 @@ export const CustomerService = {
     result: "SUCCESS" | "REJECTED",
     data?: { siteId?: string },
     notes?: string,
+    selectedFiles?: string[],
+    newFiles?: Record<string, File>
   ) => {
+    if (selectedFiles || (newFiles && Object.keys(newFiles).length > 0)) {
+      const formData = new FormData();
+      formData.append("result", result);
+      if (data?.siteId) formData.append("siteId", data.siteId);
+      if (notes) formData.append("notes", notes);
+      if (selectedFiles) {
+        selectedFiles.forEach((fileField) => {
+          formData.append("selectedFiles", fileField);
+        });
+      }
+      if (newFiles) {
+        Object.entries(newFiles).forEach(([key, file]) => {
+          formData.append(key, file);
+        });
+      }
+      return apiClient.patch(`${ENDPOINT}/survey-result/${id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+
     return apiClient.patch(`${ENDPOINT}/survey-result/${id}`, {
       result,
       siteId: data?.siteId,

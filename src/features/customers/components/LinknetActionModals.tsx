@@ -1,13 +1,14 @@
 /**
  * features/customers/components/LinknetActionModals.tsx
- * Tujuan      : Kumpulan modal aksi untuk layanan Linknet (Change Service, Ticket, etc.)
+ * Tujuan      : Kumpulan modal aksi untuk layanan Linknet (Change Service, Ticket, dll.)
  * Dipakai oleh: features/customers/pages/LinkNetPage.tsx
- * Dependensi  : @/components/shared/BaseModal, @/services/linknet.service, @/components/ui/button
+ * Dependensi  : @/components/shared/BaseModal, @/services/linknet.service, @/components/ui/button, ../hooks/useChangeService
  * Fungsi utama:
- *   - ChangeServiceModal (Mengubah paket layanan)
+ *   - ChangeServiceModal (Mengubah paket layanan pelanggan terintegrasi perangkat riil, 11 penawaran rate code Linknet, dan Sales Code GSM PARTNER)
  *   - DisconnectModal (Dismantle layanan)
  *   - TicketStatusModal (Menampilkan daftar & status tiket per pelanggan dalam tabel, cek status real-time, dan buka tiket baru)
  *   - ChangeDeviceModal (Ganti/pasang perangkat ONT/STB)
+ *   - formatDeviceService (Helper untuk memformat array/object service dari perangkat Linknet)
  * Side Effect : Panggilan API LinkNet (HTTP POST/GET/PATCH).
  */
 
@@ -35,8 +36,24 @@ import {
 } from "lucide-react";
 import { useChangeService } from "../hooks/useChangeService";
 
-// ─── 1. Change Service Modal ───
-// (Unchanged code continues below)
+// Helper function to format service arrays/objects safely to string to prevent React rendering crashes (Minified React Error #31)
+const formatDeviceService = (service: any): string => {
+  if (!service) return "-";
+  const array = Array.isArray(service) ? service : [service];
+  const formatted = array
+    .map((s) => {
+      if (!s) return "";
+      if (typeof s === "object") {
+        const name = s.ratecodeName || s.SERVCO_RATECODE_NAME || "";
+        const code = s.ratecode || s.SERVCO_RATECODE || "";
+        const type = s.SERVCO_RATECODE_TYPE || "";
+        return [name, code, type].filter(Boolean).join(" / ");
+      }
+      return String(s);
+    })
+    .filter(Boolean);
+  return formatted.length > 0 ? formatted.join(", ") : "-";
+};
 
 // ─── 1. Change Service Modal ───
 
@@ -166,11 +183,7 @@ export function ChangeServiceModal({ customer, isOpen, onClose }: { customer: Cu
                   <SelectValue placeholder="Please Select" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-slate-100 rounded-xl shadow-lg">
-                  <SelectItem value="DIRECT" className="cursor-pointer text-xs">DIRECT - Direct Sales</SelectItem>
-                  <SelectItem value="TELE" className="cursor-pointer text-xs">TELE - Telesales</SelectItem>
-                  <SelectItem value="ONLINE" className="cursor-pointer text-xs">ONLINE - Online Channel</SelectItem>
-                  <SelectItem value="AGENT" className="cursor-pointer text-xs">AGENT - Sales Agent</SelectItem>
-                  <SelectItem value="RETAIL" className="cursor-pointer text-xs">RETAIL - Retail Partner</SelectItem>
+                  <SelectItem value="GSM" className="cursor-pointer text-xs">GSM - GSM PARTNER</SelectItem>
                 </SelectContent>
               </Select>
               {errors.salesCode && <p className="text-[11px] font-bold text-rose-500">{errors.salesCode}</p>}
@@ -181,7 +194,7 @@ export function ChangeServiceModal({ customer, isOpen, onClose }: { customer: Cu
           <div className="space-y-4">
             <div className="space-y-1">
               <Label className="text-xs font-bold uppercase text-slate-500">Homepass ID *</Label>
-              <Input value={customer.lnId || ""} disabled className="bg-slate-100 border-slate-200 cursor-not-allowed font-semibold text-slate-500 rounded-xl h-10" />
+              <Input value={customer.siteId|| ""} disabled className="bg-slate-100 border-slate-200 cursor-not-allowed font-semibold text-slate-500 rounded-xl h-10" />
             </div>
 
             <div className="space-y-1">
@@ -273,6 +286,7 @@ export function ChangeServiceModal({ customer, isOpen, onClose }: { customer: Cu
                     devices.map((dev, idx) => {
                       const devId = dev.id || dev.SNDEVICE;
                       const isChecked = !!removedDevices[devId];
+                      const svcText = formatDeviceService(dev.SERVICE || dev.Service);
                       return (
                         <tr key={idx} className={`hover:bg-slate-50/50 transition-colors ${isChecked ? 'bg-rose-50/30' : ''}`}>
                           <td className="px-4 py-3 text-center">
@@ -288,7 +302,7 @@ export function ChangeServiceModal({ customer, isOpen, onClose }: { customer: Cu
                           <td className="px-4 py-3 text-slate-500 font-mono">{dev.LN_RC || "-"}</td>
                           <td className="px-4 py-3 text-slate-600">{dev.SC_CODE || "-"}</td>
                           <td className="px-4 py-3 font-mono font-medium text-slate-700">{dev.SNDEVICE || "-"}</td>
-                          <td className="px-4 py-3 text-slate-500 max-w-[250px] truncate" title={dev.SERVICE || dev.Service}>{dev.SERVICE || dev.Service || "-"}</td>
+                          <td className="px-4 py-3 text-slate-500 max-w-62.5 truncate" title={svcText}>{svcText}</td>
                         </tr>
                       );
                     })
@@ -338,7 +352,7 @@ export function ChangeServiceModal({ customer, isOpen, onClose }: { customer: Cu
                       {addType === "product"
                         ? AVAILABLE_PRODUCTS.map(p => (
                             <SelectItem key={p.id} value={p.id} className="text-xs cursor-pointer">
-                              {p.name} (Rp {p.price.toLocaleString("id-ID")})
+                              {p.id} - {p.name} - {p.rateCode} ({p.speed})
                             </SelectItem>
                           ))
                         : AVAILABLE_ADDONS.map(a => (
@@ -390,7 +404,7 @@ export function ChangeServiceModal({ customer, isOpen, onClose }: { customer: Cu
                     <th className="px-4 py-2.5">Product Id</th>
                     <th className="px-4 py-2.5">Product Name</th>
                     <th className="px-4 py-2.5">Serial Number</th>
-                    <th className="px-4 py-2.5">Price</th>
+                    <th className="px-4 py-2.5">Rate Code</th>
                     <th className="px-4 py-2.5">Promo</th>
                     <th className="px-4 py-2.5">Speed</th>
                     <th className="px-4 py-2.5 text-right w-16">Action</th>
@@ -409,7 +423,7 @@ export function ChangeServiceModal({ customer, isOpen, onClose }: { customer: Cu
                         <td className="px-4 py-2.5 font-semibold text-slate-700">{prod.id}</td>
                         <td className="px-4 py-2.5 text-slate-600">{prod.name}</td>
                         <td className="px-4 py-2.5 font-mono text-slate-600">{prod.sn}</td>
-                        <td className="px-4 py-2.5 text-slate-600 font-semibold">Rp {prod.price.toLocaleString("id-ID")}</td>
+                        <td className="px-4 py-2.5 text-slate-600 font-semibold">{prod.rateCode || "-"}</td>
                         <td className="px-4 py-2.5 text-indigo-600 font-medium">{prod.promo}</td>
                         <td className="px-4 py-2.5 text-slate-500 font-medium">{prod.speed}</td>
                         <td className="px-4 py-2.5 text-right">
@@ -777,7 +791,7 @@ export function TicketStatusModal({
         version: 1,
         requestedResolutionDate: new Date(Date.now() + 86400000).toISOString(),
         relatedEntity: [
-          { id: customer.lnId || "", name: "account_id", role: "CustomerAccount", "@referredType": "CustomerAccount" },
+          { id: customer.customerId || "", name: "account_id", role: "CustomerAccount", "@referredType": "CustomerAccount" },
           { id: "Mobile", name: "channel", role: "Channel", "@referredType": "Channel" }
         ]
       });
@@ -961,7 +975,7 @@ export function TicketStatusModal({
                               >
                                 <td className="px-4 py-3 font-bold text-slate-800 font-mono">{opt.id}</td>
                                 <td className="px-4 py-3 text-slate-600 font-medium">{getProblemName(opt.ticketType)}</td>
-                                <td className="px-4 py-3 text-slate-500 max-w-[120px] truncate" title={opt.description}>{opt.description}</td>
+                                <td className="px-4 py-3 text-slate-500 max-w-30 truncate" title={opt.description}>{opt.description}</td>
                                 <td className="px-4 py-3">
                                   <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadge(opt.status)}`}>
                                     {opt.status}
@@ -1010,7 +1024,7 @@ export function TicketStatusModal({
 
                 {/* Right Side: Ticket Status Details */}
                 {showDetail && (
-                  <div className="lg:col-span-5 space-y-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-between min-h-[350px]">
+                  <div className="lg:col-span-5 space-y-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-between min-h-87.5">
                     <div className="space-y-4">
                       {/* Detail Header */}
                       <div className="flex justify-between items-center pb-2 border-b border-slate-100">
