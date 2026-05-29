@@ -91,8 +91,10 @@ class ReportingService {
     return response.data;
   }
 
-  async exportFinancialReportExcel(type: string, filters?: ReportFilters): Promise<void> {
-    const queryString = filters ? buildQueryParams({ ...filters, type }) : `type=${type}`;
+  async exportFinancialReportExcel(reportType: string, filters?: ReportFilters): Promise<void> {
+    // `reportType` = activeTab (e.g. "invoice"), hanya untuk nama file.
+    // Filter InvoiceType (MONTHLY/REGISTRATION) sudah ada di `filters.type`.
+    const queryString = filters ? buildQueryParams(filters) : '';
     const response = await apiClient.get<Blob>(
       `/reporting/reports/financial/export/excel?${queryString}`,
       { responseType: 'blob' }
@@ -101,18 +103,20 @@ class ReportingService {
     const blob = new Blob([response], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
-    downloadBlob(blob, generateExportFilename(`keuangan-${type}`, 'excel'));
+    downloadBlob(blob, generateExportFilename(`keuangan-${reportType}`, 'excel'));
   }
 
-  async exportFinancialReportPDF(type: string, filters?: ReportFilters): Promise<void> {
-    const queryString = filters ? buildQueryParams({ ...filters, type }) : `type=${type}`;
+  async exportFinancialReportPDF(reportType: string, filters?: ReportFilters): Promise<void> {
+    // `reportType` = activeTab (e.g. "invoice"), hanya untuk nama file.
+    // Filter InvoiceType (MONTHLY/REGISTRATION) sudah ada di `filters.type`.
+    const queryString = filters ? buildQueryParams(filters) : '';
     const response = await apiClient.get<Blob>(
       `/reporting/reports/financial/export/pdf?${queryString}`,
       { responseType: 'blob' }
     );
     
     const blob = new Blob([response], { type: 'application/pdf' });
-    downloadBlob(blob, generateExportFilename(`keuangan-${type}`, 'pdf'));
+    downloadBlob(blob, generateExportFilename(`keuangan-${reportType}`, 'pdf'));
   }
 
   /**

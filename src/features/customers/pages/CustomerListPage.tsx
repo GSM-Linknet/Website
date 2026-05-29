@@ -132,7 +132,7 @@ export default function CustomerListPage() {
     setQuery({
       where: whereParts.length > 0 ? whereParts.join("+") : undefined,
       search: debouncedSearchQuery || undefined,
-      labelIds: selectedLabels.length > 0 ? selectedLabels : undefined,
+      labelIds: selectedLabels.length > 0 ? selectedLabels.join(',') : undefined,
       gte: dateFrom ? `createdAt:${dateFrom}` : undefined,
       lte: dateTo ? `createdAt:${dateTo}` : undefined,
       linknetPipeline: 'done' as const,
@@ -198,7 +198,7 @@ export default function CustomerListPage() {
       await CustomerService.exportExcel({
         where: whereParts.length > 0 ? whereParts.join("+") : undefined,
         search: debouncedSearchQuery || undefined,
-        labelIds: selectedLabels.length > 0 ? selectedLabels : undefined,
+        labelIds: selectedLabels.length > 0 ? selectedLabels.join(',') : undefined,
         gte: dateFrom ? `createdAt:${dateFrom}` : undefined,
         lte: dateTo ? `createdAt:${dateTo}` : undefined,
         paginate: false as any,
@@ -630,13 +630,16 @@ const LabelFilterDropdown = ({ labels, selectedIds, onSelect, onClear }: LabelFi
           {labels.length === 0 ? (
             <p className="text-xs text-slate-400 text-center py-4">Tidak ada label</p>
           ) : labels.map((label) => (
-            <div
+            <DropdownMenuItem
               key={label.id}
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors",
                 selectedIds.includes(label.id) && "bg-blue-50"
               )}
-              onClick={() => onSelect(label.id)}
+              onSelect={(e) => {
+                e.preventDefault();
+                onSelect(label.id);
+              }}
             >
               <div
                 className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -648,7 +651,7 @@ const LabelFilterDropdown = ({ labels, selectedIds, onSelect, onClear }: LabelFi
               {selectedIds.includes(label.id) && (
                 <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
               )}
-            </div>
+            </DropdownMenuItem>
           ))}
         </div>
         {selectedIds.length > 0 && (

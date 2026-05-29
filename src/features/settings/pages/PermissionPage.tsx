@@ -114,6 +114,7 @@ const MODULE_GROUPS: {
                 { key: "keuangan.invoice", label: "Tagihan" },
                 { key: "keuangan.review", label: "Review Tagihan" },
                 { key: "keuangan.history", label: "History Pembayaran" },
+                { key: "keuangan.unallocated", label: "Dana Mengendap" },
                 { key: "keuangan.batch-payment", label: "Pembayaran Batch" },
                 { key: "keuangan.aging", label: "Aging Reports" },
                 { key: "keuangan.saldo", label: "Saldo & Payout" },
@@ -242,7 +243,7 @@ export default function PermissionPage() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-[600px] space-y-4">
+            <div className="flex flex-col items-center justify-center h-150 space-y-4">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
                 <p className="text-slate-500 font-medium">Memuat konfigurasi hak akses...</p>
             </div>
@@ -274,7 +275,7 @@ export default function PermissionPage() {
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden flex flex-col md:flex-row min-h-150">
 
                 {/* Role Sidebar (Tabs) */}
                 <div className="w-full md:w-64 bg-slate-50/50 border-r border-slate-100 p-6 shrink-0">
@@ -304,7 +305,7 @@ export default function PermissionPage() {
                 </div>
 
                 {/* Permissions Content */}
-                <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto max-h-[800px]">
+                <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto max-h-200">
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h2 className="text-xl font-bold text-brand-blue">{ROLE_LABELS[activeRole]} Permissions</h2>
@@ -340,7 +341,7 @@ export default function PermissionPage() {
 
                                             return (
                                                 <div key={res.key} className="px-5 py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 hover:bg-slate-50/30 transition-colors">
-                                                    <div className="min-w-[200px] flex items-center gap-2">
+                                                    <div className="min-w-50 flex items-center gap-2">
                                                         <div>
                                                             <div className="text-sm font-bold text-brand-blue">{res.label}</div>
                                                             <div className="text-[10px] text-slate-400 font-mono mt-0.5">{res.key}</div>

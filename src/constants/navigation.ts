@@ -236,6 +236,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         resource: "keuangan.history",
       },
       {
+        title: "Dana Mengendap",
+        href: "/keuangan/unallocated",
+        resource: "keuangan.unallocated",
+      },
+      {
         title: "Pembayaran Batch",
         href: "/keuangan/batch-payment",
         resource: "keuangan.batch-payment",

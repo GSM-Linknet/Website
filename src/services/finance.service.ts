@@ -60,6 +60,21 @@ export interface Payment {
   unit?: { id: string; name: string; code: string };
 }
 
+export interface UnallocatedPayment {
+  id: string;
+  customerId: string;
+  amount: number;
+  bankCode: string;
+  accountNumber: string;
+  referenceId?: string;
+  status: string;
+  notes?: string;
+  allocatedInvoiceId?: string;
+  createdAt: string;
+  customer?: { name: string; phone: string };
+  allocatedInvoice?: { invoiceNumber: string };
+}
+
 export interface CommissionLedger {
   id: string;
   userId: string;
@@ -191,6 +206,18 @@ export const FinanceService = {
   },
   deletePayment: async (id: string): Promise<void> => {
     await apiClient.delete(`${ENDPOINTS.PAYMENT}/delete/${id}`);
+  },
+  getUnallocatedPayments: async (query: BaseQuery = {}) => {
+    return apiClient.get<PaginatedResponse<UnallocatedPayment>>(
+      `${ENDPOINTS.PAYMENT}/unallocated`,
+      { params: query },
+    );
+  },
+  allocateUnallocatedPayment: async (id: string, invoiceId: string) => {
+    return apiClient.post<{ status: boolean; message: string; data: any }>(
+      `${ENDPOINTS.PAYMENT}/unallocated/${id}/allocate`,
+      { invoiceId }
+    );
   },
 
   // Commissions

@@ -46,10 +46,14 @@ interface SalesMetrics {
 export const DashboardService = {
   async getOverview(
     isLegacy?: "all" | "new" | "legacy",
+    unitId?: string
   ): Promise<DashboardMetrics> {
     const params: Record<string, string> = {};
     if (isLegacy && isLegacy !== "all") {
       params.isLegacy = isLegacy === "legacy" ? "true" : "false";
+    }
+    if (unitId && unitId !== "all") {
+      params.unitId = unitId;
     }
     const response = await apiClient.get<{ data: DashboardMetrics }>(
       "/dashboard/overview",
@@ -92,22 +96,24 @@ export const DashboardService = {
   },
 
   // Chart data methods
-  async getRevenueTrend(isLegacy?: "all" | "new" | "legacy") {
+  async getRevenueTrend(isLegacy?: "all" | "new" | "legacy", unitId?: string) {
     const params: Record<string, string> = { type: "revenue-trend" };
     if (isLegacy && isLegacy !== "all") {
       params.isLegacy = isLegacy === "legacy" ? "true" : "false";
     }
+    if (unitId && unitId !== "all") params.unitId = unitId;
     const response = await apiClient.get<{
       data: Array<{ day: string; revenue: number }>;
     }>("/dashboard/chart-data", { params });
     return response.data;
   },
 
-  async getCustomerGrowth(isLegacy?: "all" | "new" | "legacy") {
+  async getCustomerGrowth(isLegacy?: "all" | "new" | "legacy", unitId?: string) {
     const params: Record<string, string> = { type: "customer-growth" };
     if (isLegacy && isLegacy !== "all") {
       params.isLegacy = isLegacy === "legacy" ? "true" : "false";
     }
+    if (unitId && unitId !== "all") params.unitId = unitId;
     const response = await apiClient.get<{
       data: Array<{ month: string; customers: number }>;
     }>("/dashboard/chart-data", { params });
@@ -136,33 +142,36 @@ export const DashboardService = {
     return response.data;
   },
 
-  async getUnitCustomerTrend(isLegacy?: "all" | "new" | "legacy") {
+  async getUnitCustomerTrend(isLegacy?: "all" | "new" | "legacy", unitId?: string) {
     const params: Record<string, string> = { type: "unit-customer" };
     if (isLegacy && isLegacy !== "all") {
       params.isLegacy = isLegacy === "legacy" ? "true" : "false";
     }
+    if (unitId && unitId !== "all") params.unitId = unitId;
     const response = await apiClient.get<{
       data: Array<{ month: string; total: number; active: number }>;
     }>("/dashboard/chart-data", { params });
     return response.data;
   },
 
-  async getUnitInvoiceTrend(isLegacy?: "all" | "new" | "legacy") {
+  async getUnitInvoiceTrend(isLegacy?: "all" | "new" | "legacy", unitId?: string) {
     const params: Record<string, string> = { type: "unit-invoice" };
     if (isLegacy && isLegacy !== "all") {
       params.isLegacy = isLegacy === "legacy" ? "true" : "false";
     }
+    if (unitId && unitId !== "all") params.unitId = unitId;
     const response = await apiClient.get<{
       data: Array<{ week: string; paid: number; unpaid: number }>;
     }>("/dashboard/chart-data", { params });
     return response.data;
   },
 
-  async getCustomerBillingStats(isLegacy?: "all" | "new" | "legacy") {
+  async getCustomerBillingStats(isLegacy?: "all" | "new" | "legacy", unitId?: string) {
     const params: Record<string, string> = { type: "customer-billing" };
     if (isLegacy && isLegacy !== "all") {
       params.isLegacy = isLegacy === "legacy" ? "true" : "false";
     }
+    if (unitId && unitId !== "all") params.unitId = unitId;
     const response = await apiClient.get<{
       data: {
         billed: number;
@@ -170,16 +179,18 @@ export const DashboardService = {
         paid: number;
         unpaid: number;
         freeCustomers: number;
+        wajibBayar: number;
       };
     }>("/dashboard/chart-data", { params });
     return response.data;
   },
 
-  async getCustomerBillingTrend(isLegacy?: "all" | "new" | "legacy") {
+  async getCustomerBillingTrend(isLegacy?: "all" | "new" | "legacy", unitId?: string) {
     const params: Record<string, string> = { type: "customer-billing-trend" };
     if (isLegacy && isLegacy !== "all") {
       params.isLegacy = isLegacy === "legacy" ? "true" : "false";
     }
+    if (unitId && unitId !== "all") params.unitId = unitId;
     const response = await apiClient.get<{
       data: Array<{
         month: string;
@@ -192,11 +203,12 @@ export const DashboardService = {
     return response.data;
   },
 
-  async getCustomerStatusStats(isLegacy?: "all" | "new" | "legacy") {
+  async getCustomerStatusStats(isLegacy?: "all" | "new" | "legacy", unitId?: string) {
     const params: Record<string, string> = { type: "customer-status" };
     if (isLegacy && isLegacy !== "all") {
       params.isLegacy = isLegacy === "legacy" ? "true" : "false";
     }
+    if (unitId && unitId !== "all") params.unitId = unitId;
     const response = await apiClient.get<{
       data: {
         internetStatus: {

@@ -298,23 +298,39 @@ export const CustomerTable = ({
     {
       header: "INTERNET",
       accessorKey: "statusNet",
-      cell: (row: Customer) => (
-        <Badge
-          className={cn(
-            "rounded-xl text-[10px] font-bold px-2.5 py-1 space-x-1.5 border-none",
-            row.statusNet
-              ? "bg-emerald-500 text-white"
-              : "bg-red-200 text-red-600",
-          )}
-        >
-          {row.statusNet ? (
-            <ShieldCheck size={12} />
-          ) : (
-            <ShieldAlert size={12} />
-          )}
-          <span>{row.statusNet ? "Online" : "Suspend"}</span>
-        </Badge>
-      ),
+      cell: (row: Customer) => {
+        let suspendedDaysText = null;
+        if (!row.statusNet && row.suspendedAt) {
+          const diffTime = Math.abs(new Date().getTime() - new Date(row.suspendedAt).getTime());
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          suspendedDaysText = `${diffDays} Hari`;
+        }
+
+        return (
+          <div className="flex flex-col gap-1 items-start">
+            <Badge
+              className={cn(
+                "rounded-xl text-[10px] font-bold px-2.5 py-1 space-x-1.5 border-none",
+                row.statusNet
+                  ? "bg-emerald-500 text-white"
+                  : "bg-red-200 text-red-600",
+              )}
+            >
+              {row.statusNet ? (
+                <ShieldCheck size={12} />
+              ) : (
+                <ShieldAlert size={12} />
+              )}
+              <span>{row.statusNet ? "Online" : "Suspend"}</span>
+            </Badge>
+            {suspendedDaysText && (
+              <span className="text-[10px] text-red-500 font-bold px-1 tracking-tight">
+                {suspendedDaysText}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: "LINKNET",

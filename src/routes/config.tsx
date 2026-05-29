@@ -58,6 +58,9 @@ const DeleteRequestsPage = lazy(() => import("@/features/finance/pages/DeleteReq
 const PaymentHistoryPage = lazy(
   () => import("@/features/finance/pages/PaymentHistoryPage"),
 );
+const UnallocatedPaymentPage = lazy(
+  () => import("@/features/finance/pages/UnallocatedPaymentPage"),
+);
 const AgingReportsPage = lazy(
   () => import("@/features/finance/pages/AgingReportsPage"),
 );
@@ -591,6 +594,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <PaymentHistoryPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "unallocated",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <UnallocatedPaymentPage />
               </Suspense>
             ),
           },

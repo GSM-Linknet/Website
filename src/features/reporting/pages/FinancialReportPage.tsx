@@ -45,9 +45,11 @@ export default function FinancialReportPage() {
     const [activeTab, setActiveTab] = useState<TabType>("invoice");
     const [reportData, setReportData] = useState<FinancialData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
     const [unitFilter, setUnitFilter] = useState<string>('all');
     const [hierarchyFilter, setHierarchyFilter] = useState<'all' | 'parent_only' | 'child_only'>('all');
+    const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<'all' | 'MONTHLY' | 'REGISTRATION'>('all');
     const [units, setUnits] = useState<Unit[]>([]);
     
     // Pagination state
@@ -62,7 +64,7 @@ export default function FinancialReportPage() {
     // Reset page when tab or other filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [activeTab, legacyFilter, unitFilter, hierarchyFilter, filters.startDate, filters.endDate]);
+    }, [activeTab,  unitFilter, hierarchyFilter, invoiceTypeFilter, filters.startDate, filters.endDate]);
 
     // Fetch units on mount
     useEffect(() => {
@@ -81,16 +83,17 @@ export default function FinancialReportPage() {
         if (activeTab !== 'profitLoss') {
             fetchReportData();
         }
-    }, [filters, activeTab, legacyFilter, unitFilter, hierarchyFilter, currentPage, pageSize]);
+    }, [filters, activeTab,  unitFilter, hierarchyFilter, invoiceTypeFilter, currentPage, pageSize]);
 
     const fetchReportData = async () => {
         try {
             setLoading(true);
             const reportFilters = {
                 ...filters,
-                isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+                // isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
                 unitId: unitFilter !== 'all' ? unitFilter : undefined,
                 hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
+                type: invoiceTypeFilter !== 'all' ? invoiceTypeFilter : undefined,
                 page: currentPage,
                 limit: pageSize,
                 paginate: true
@@ -132,18 +135,20 @@ export default function FinancialReportPage() {
     const handleExportExcel = async () => {
         await reportService.exportFinancialReportExcel(activeTab, {
             ...filters,
-            isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+            // isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
             unitId: unitFilter !== 'all' ? unitFilter : undefined,
             hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
+            type: invoiceTypeFilter !== 'all' ? invoiceTypeFilter : undefined,
         });
     };
 
     const handleExportPDF = async () => {
         await reportService.exportFinancialReportPDF(activeTab, {
             ...filters,
-            isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+            // isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
             unitId: unitFilter !== 'all' ? unitFilter : undefined,
             hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
+            type: invoiceTypeFilter !== 'all' ? invoiceTypeFilter : undefined,
         });
     };
 
@@ -374,10 +379,10 @@ export default function FinancialReportPage() {
     }, [reportData, activeTab]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/20 -m-8 p-8">
-            <div className="max-w-[1600px] mx-auto space-y-6">
+        <div className="min-h-screen bg-linear-to-br from-gray-50 via-green-50/30 to-emerald-50/20 -m-8 p-8">
+            <div className="max-w-400 mx-auto space-y-6">
                 {/* Header with Gradient */}
-                <div className="relative overflow-hidden bg-gradient-to-r from-green-600 via-emerald-600 to-teal-700 rounded-2xl shadow-xl p-8">
+                <div className="relative overflow-hidden bg-linear-to-r from-green-600 via-emerald-600 to-teal-700 rounded-2xl shadow-xl p-8">
                     <div className="absolute inset-0 bg-black/10"></div>
                     <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl"></div>
                     <div className="relative flex justify-between items-start">
@@ -412,7 +417,7 @@ export default function FinancialReportPage() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${activeTab === tab.id
-                                        ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg"
+                                        ? "bg-linear-to-r from-green-600 to-emerald-600 text-white shadow-lg"
                                         : "text-gray-600 hover:bg-gray-100"
                                         }`}
                                 >
@@ -439,7 +444,7 @@ export default function FinancialReportPage() {
                             <select
                                 value={unitFilter}
                                 onChange={(e) => setUnitFilter(e.target.value)}
-                                className="px-4 py-2 text-sm font-medium rounded-lg border-2 border-gray-200 bg-white text-gray-700 hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all outline-none min-w-[200px]"
+                                className="px-4 py-2 text-sm font-medium rounded-lg border-2 border-gray-200 bg-white text-gray-700 hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all outline-none min-w-50"
                             >
                                 <option value="all">Semua Unit</option>
                                 {units.map((unit) => (
@@ -470,7 +475,7 @@ export default function FinancialReportPage() {
                             </div>
 
                             {/* Legacy Filter Tabs */}
-                            <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+                            {/* <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
                                 {[
                                     { value: 'all' as const, label: 'Semua' },
                                     { value: 'new' as const, label: 'Baru' },
@@ -480,6 +485,26 @@ export default function FinancialReportPage() {
                                         key={tab.value}
                                         onClick={() => setLegacyFilter(tab.value)}
                                         className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all ${legacyFilter === tab.value
+                                            ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
+                                            : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                                            }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div> */}
+                            
+                            {/* Invoice Type Filter Tabs */}
+                            <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+                                {[
+                                    { value: 'all' as const, label: 'Semua Tipe' },
+                                    { value: 'MONTHLY' as const, label: 'Bulanan' },
+                                    { value: 'REGISTRATION' as const, label: 'Registrasi' },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.value}
+                                        onClick={() => setInvoiceTypeFilter(tab.value)}
+                                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all ${invoiceTypeFilter === tab.value
                                             ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
                                             : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
                                             }`}
@@ -501,7 +526,7 @@ export default function FinancialReportPage() {
                     <div className="mt-8">
                          <ProfitLossReportView filters={{
                             ...filters,
-                            isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
+                            // isLegacy: legacyFilter !== 'all' ? legacyFilter : undefined,
                             unitId: unitFilter !== 'all' ? unitFilter : undefined,
                             hierarchy: hierarchyFilter !== 'all' ? hierarchyFilter : undefined,
                          }} />
@@ -540,7 +565,7 @@ export default function FinancialReportPage() {
                                 {/* Data Table */}
                                 <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200/50">
                                     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                        <div className="w-1 h-6 bg-gradient-to-b from-green-600 to-emerald-600 rounded-full"></div>
+                                        <div className="w-1 h-6 bg-linear-to-b from-green-600 to-emerald-600 rounded-full"></div>
                                         Detail {tabs.find((t) => t.id === activeTab)?.label}
                                     </h2>
                                     <ReportDataTable

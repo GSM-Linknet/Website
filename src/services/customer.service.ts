@@ -54,6 +54,7 @@ export interface Customer {
   idPackages: string;
   statusCust: boolean;
   statusNet: boolean;
+  suspendedAt?: string;
   siteId?: string;
   isFreeAccount: boolean;
   isFreeRegistration?: boolean;

@@ -52,8 +52,8 @@ export type PermissionResource =
   | "reporting.master"
   | "reporting.activity"
   | "reporting.kpi"
-  // Keuangan
   | "keuangan.history"
+  | "keuangan.unallocated"
   | "keuangan.aging"
   | "keuangan.saldo"
   | "keuangan.invoice"
@@ -159,6 +159,7 @@ export const PERMISSIONS: PermissionMatrix = {
     "reporting.unit": ["view", "export"],
     "reporting.berkala": ["view", "export"],
     "keuangan.history": ["view", "export"],
+    "keuangan.unallocated": ["view", "edit", "create", "delete", "export"],
     "keuangan.aging": ["view", "export"],
     "keuangan.saldo": ["view", "export"],
     "keuangan.invoice": ["view", "create", "edit", "delete", "export", "pay"],
@@ -190,6 +191,7 @@ export const PERMISSIONS: PermissionMatrix = {
     "reporting.unit": ["view", "export"],
     "reporting.berkala": ["view", "export"],
     "keuangan.history": ["view"],
+    "keuangan.unallocated": ["view", "edit"],
     "keuangan.aging": ["view"],
     "keuangan.saldo": ["view"],
     "settings.permissions": ["view"],
