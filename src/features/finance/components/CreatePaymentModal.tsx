@@ -38,8 +38,10 @@ export function CreatePaymentModal({
 }: CreatePaymentModalProps) {
     const user = AuthService.getUser();
     const isSales = user?.role === "SALES";
+    const isSuperAdmin = user?.role === "SUPER_ADMIN";
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
+    const [proofOfPayment, setProofOfPayment] = useState<File | null>(null);
     const [formData, setFormData] = useState({
         amount: 0,
         discount: 0,
@@ -63,6 +65,7 @@ export function CreatePaymentModal({
                 reference: "",
                 notes: "",
             });
+            setProofOfPayment(null);
         }
     }, [invoice]);
 
@@ -100,23 +103,39 @@ export function CreatePaymentModal({
                 return;
             }
 
-            await FinanceService.createPayment({
-                invoiceId: invoice.id,
-                amount: formData.amount,
-                discount: formData.discount,
-                commission: formData.commission,
-                amountReceived: formData.amountReceived,
-                paymentSystem: formData.paymentSystem as any,
-                method: formData.method,
-                reference: formData.reference || undefined,
-                notes: formData.notes || undefined,
-                paidAt: new Date().toISOString(), // Add current datetime
-                isAutomatic: false, // Manual payment
-            });
+            if (!isSuperAdmin && !proofOfPayment) {
+                toast({
+                    title: "Validasi Gagal",
+                    description: "Bukti pembayaran wajib dilampirkan",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            const payload = new FormData();
+            payload.append("invoiceId", invoice.id);
+            payload.append("amount", String(formData.amount));
+            payload.append("discount", String(formData.discount));
+            payload.append("commission", String(formData.commission));
+            payload.append("amountReceived", String(formData.amountReceived));
+            payload.append("paymentSystem", formData.paymentSystem);
+            payload.append("method", formData.method);
+            if (formData.reference) payload.append("reference", formData.reference);
+            if (formData.notes) payload.append("notes", formData.notes);
+            payload.append("paidAt", new Date().toISOString());
+            payload.append("isAutomatic", "false");
+            
+            if (proofOfPayment) {
+                payload.append("proofOfPayment", proofOfPayment);
+            }
+
+            await FinanceService.createPayment(payload);
 
             toast({
                 title: "Berhasil",
-                description: "Pembayaran berhasil dicatat",
+                description: isSuperAdmin 
+                  ? "Pembayaran berhasil dicatat dan disetujui" 
+                  : "Pembayaran telah diajukan dan menunggu persetujuan",
             });
             onSuccess();
             onClose();
@@ -133,7 +152,7 @@ export function CreatePaymentModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[600px] bg-white">
+            <DialogContent className="sm:max-w-150 bg-white">
                 <DialogHeader>
                     <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
                         <div className="p-2 bg-blue-50 rounded-lg">
@@ -178,10 +197,10 @@ export function CreatePaymentModal({
                                     <SelectItem value="CASH_SALES">Cash via Sales</SelectItem>
                                 ) : (
                                     <>
-                                        <SelectItem value="CASH_UNIT">Cash di Unit</SelectItem>
-                                        <SelectItem value="CASH_SALES">Cash via Sales</SelectItem>
+                                        {/* <SelectItem value="CASH_UNIT">Cash di Unit</SelectItem>
+                                        <SelectItem value="CASH_SALES">Cash via Sales</SelectItem> */}
                                         <SelectItem value="BANK_TRANSFER_PT">Transfer Bank PT</SelectItem>
-                                        <SelectItem value="VIRTUAL_ACCOUNT">Virtual Account (Manual Input)</SelectItem>
+                                        <SelectItem value="VIRTUAL_ACCOUNT">Virtual Account (VA LAMA)</SelectItem>
                                     </>
                                 )}
                             </SelectContent>
@@ -256,9 +275,9 @@ export function CreatePaymentModal({
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="cash">Cash</SelectItem>
+                                    {/* <SelectItem value="cash">Cash</SelectItem> */}
                                     <SelectItem value="transfer">Transfer</SelectItem>
-                                    <SelectItem value="card">Card</SelectItem>
+                                    {/* <SelectItem value="card">Card</SelectItem> */}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -273,6 +292,19 @@ export function CreatePaymentModal({
                             placeholder="Catatan pembayaran..."
                         />
                     </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-slate-700">
+                            Bukti Pembayaran {!isSuperAdmin && <span className="text-red-500">*</span>}
+                        </Label>
+                        <Input
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={(e) => setProofOfPayment(e.target.files?.[0] || null)}
+                            className="bg-white border-slate-300 cursor-pointer"
+                        />
+                        {isSuperAdmin && <p className="text-xs text-slate-500">Opsional untuk Super Admin</p>}
+                    </div>
                 </div>
 
                 <DialogFooter>
@@ -282,7 +314,7 @@ export function CreatePaymentModal({
                     <Button
                         onClick={handleSubmit}
                         disabled={loading}
-                        className="h-10 px-6 bg-[#101D42] hover:bg-[#1a2d61] text-white"
+                        className="h-10 px-6 bg-brand-blue hover:bg-[#1a2d61] text-white"
                     >
                         {loading ? (
                             <>

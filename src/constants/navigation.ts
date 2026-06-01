@@ -231,6 +231,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         resource: "keuangan.invoice",
       },
       {
+        title: "Persetujuan Pembayaran",
+        href: "/keuangan/pending-payments",
+        resource: "keuangan.history",
+      },
+      {
         title: "History Pembayaran",
         href: "/keuangan/history",
         resource: "keuangan.history",

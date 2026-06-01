@@ -58,6 +58,9 @@ const DeleteRequestsPage = lazy(() => import("@/features/finance/pages/DeleteReq
 const PaymentHistoryPage = lazy(
   () => import("@/features/finance/pages/PaymentHistoryPage"),
 );
+const PendingPaymentsPage = lazy(
+  () => import("@/features/finance/pages/PendingPaymentsPage"),
+);
 const UnallocatedPaymentPage = lazy(
   () => import("@/features/finance/pages/UnallocatedPaymentPage"),
 );
@@ -594,6 +597,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <PaymentHistoryPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "pending-payments",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <PendingPaymentsPage />
               </Suspense>
             ),
           },

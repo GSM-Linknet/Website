@@ -112,6 +112,7 @@ const MODULE_GROUPS: {
             icon: TrendingUp,
             resources: [
                 { key: "keuangan.invoice", label: "Tagihan" },
+                { key: "keuangan.payment", label: "Pending Payments" },
                 { key: "keuangan.review", label: "Review Tagihan" },
                 { key: "keuangan.history", label: "History Pembayaran" },
                 { key: "keuangan.unallocated", label: "Dana Mengendap" },
@@ -145,6 +146,7 @@ const ACTIONS: { id: AppAction; label: string }[] = [
     { id: "export", label: "Exp" },
     { id: "impersonate", label: "Imp" },
     { id: "suspend", label: "Sus" },
+    { id: "approve", label: "App" },
     { id: "linknet", label: "LNet" },
 ];
 

@@ -57,6 +57,7 @@ export type PermissionResource =
   | "keuangan.aging"
   | "keuangan.saldo"
   | "keuangan.invoice"
+  | "keuangan.payment"
   | "keuangan.batch-payment"
   | "keuangan.revenue-share"
   | "keuangan.unit-expense"
@@ -87,6 +88,7 @@ export type AppAction =
   | "impersonate"
   | "suspend"
   | "pay"
+  | "approve"
   | "linknet";
 
 export interface User {
@@ -163,6 +165,7 @@ export const PERMISSIONS: PermissionMatrix = {
     "keuangan.aging": ["view", "export"],
     "keuangan.saldo": ["view", "export"],
     "keuangan.invoice": ["view", "create", "edit", "delete", "export", "pay"],
+    "keuangan.payment": ["view", "approve"],
     "settings.permissions": ["view", "create", "edit", "delete"],
     "settings.whatsapp": ["view", "edit"],
     "settings.system": ["view", "edit"],
