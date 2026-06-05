@@ -38,6 +38,7 @@ import { useUser } from "@/features/master/hooks/useUser";
 import { useToast } from "@/hooks/useToast";
 import { CustomerService } from "@/services/customer.service";
 import { ApiError } from "@/services/api-client";
+import { ImageCropperModal } from "@/components/shared/ImageCropperModal";
 
 interface AddLegacyCustomerDialogProps {
     isOpen: boolean;
@@ -61,6 +62,10 @@ export function AddLegacyCustomerDialog({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { data: packages } = usePackage({ paginate: false });
     const { data: users } = useUser({ paginate: false });
+
+    const [cropperModalOpen, setCropperModalOpen] = useState(false);
+    const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+    const [activeFileSetter, setActiveFileSetter] = useState<React.Dispatch<React.SetStateAction<FilePreview>> | null>(null);
 
     const [formData, setFormData] = useState({
         fullName: "",
@@ -107,8 +112,28 @@ export function AddLegacyCustomerDialog({
                 return;
             }
             const preview = URL.createObjectURL(file);
-            setter({ file, preview });
+            
+            // Open cropper for all images
+            setRawImageSrc(preview);
+            setActiveFileSetter(() => setter);
+            setCropperModalOpen(true);
         }
+    };
+
+    const handleCropComplete = (croppedBlob: Blob) => {
+        if (!activeFileSetter) return;
+
+        let filename = "image-cropped.jpg";
+        if (activeFileSetter === setKtpFile) filename = "ktp-cropped.jpg";
+        else if (activeFileSetter === setFrontHome) filename = "front-home-cropped.jpg";
+        else if (activeFileSetter === setSideHome) filename = "side-home-cropped.jpg";
+        else if (activeFileSetter === setOdpImage) filename = "odp-cropped.jpg";
+
+        const croppedFile = new File([croppedBlob], filename, { type: "image/jpeg" });
+        const previewUrl = URL.createObjectURL(croppedBlob);
+        
+        activeFileSetter({ file: croppedFile, preview: previewUrl });
+        setCropperModalOpen(false);
     };
 
     const clearFile = (setter: React.Dispatch<React.SetStateAction<FilePreview>>) => {
@@ -261,7 +286,7 @@ export function AddLegacyCustomerDialog({
                 {value.preview ? (
                     <div className="relative group">
                         <div className="w-full h-32 rounded-xl border-2 border-blue-200 bg-blue-50/50 overflow-hidden">
-                            <img src={value.preview} alt="Preview" className="w-full h-full object-cover" />
+                            <img src={value.preview} alt="Preview" className="w-full h-full object-contain" />
                         </div>
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
                             <Button
@@ -711,6 +736,16 @@ export function AddLegacyCustomerDialog({
                     </DialogFooter>
                 </Tabs>
             </DialogContent>
+            {rawImageSrc && (
+                <ImageCropperModal 
+                    isOpen={cropperModalOpen} 
+                    onClose={() => setCropperModalOpen(false)} 
+                    imageSrc={rawImageSrc} 
+                    onCropComplete={handleCropComplete} 
+                    aspectRatio={activeFileSetter === setKtpFile ? 85.6 / 53.98 : undefined}
+                    title={activeFileSetter === setKtpFile ? "Sesuaikan Foto KTP" : "Sesuaikan Foto"}
+                />
+            )}
         </Dialog>
     );
 }

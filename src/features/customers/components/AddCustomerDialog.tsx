@@ -16,6 +16,7 @@ import {
   X,
   Image as ImageIcon,
   AlertCircle,
+  Search,
 } from "lucide-react";
 import {
   Dialog,
@@ -34,11 +35,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LocationPicker } from "@/components/shared/LocationPicker";
 import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ImageCropperModal } from "@/components/shared/ImageCropperModal";
 import { usePackage } from "@/features/master/hooks/usePackage";
 import { useUser } from "@/features/master/hooks/useUser";
 import { useToast } from "@/hooks/useToast";
 import { AuthService } from "@/services/auth.service";
-import { ApiError } from "@/services/api-client";
+import { ApiError, apiClient } from "@/services/api-client";
 import type { Customer } from "@/services/customer.service";
 
 interface AddCustomerDialogProps {
@@ -61,6 +63,13 @@ export function AddCustomerDialog({
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [mapsLink, setMapsLink] = useState("");
+  const [isParsingMaps, setIsParsingMaps] = useState(false);
+  const [isParsingKtp, setIsParsingKtp] = useState(false);
+  const [cropperModalOpen, setCropperModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+  const [activeFileSetter, setActiveFileSetter] = useState<React.Dispatch<React.SetStateAction<FilePreview>> | null>(null);
+  
   const { data: packages } = usePackage({ paginate: false, where: "isActive:true" });
   const { data: users } = useUser({ paginate: false });
 
@@ -164,8 +173,13 @@ export function AddCustomerDialog({
         e.target.value = "";
         return;
       }
-      const preview = URL.createObjectURL(file);
-      setter({ file, preview });
+      // Create object URL for preview
+      const objectUrl = URL.createObjectURL(file);
+
+      // Open cropper for all images
+      setRawImageSrc(objectUrl);
+      setActiveFileSetter(() => setter);
+      setCropperModalOpen(true);
     }
   };
 
@@ -180,6 +194,92 @@ export function AddCustomerDialog({
     coords: { lat: number; lng: number },
   ) => {
     setFormData((prev) => ({ ...prev, [key]: coords }));
+  };
+
+  const handleSmartFill = async () => {
+    if (!mapsLink) {
+      toast({ title: "Link Kosong", description: "Masukkan link Google Maps terlebih dahulu", variant: "destructive" });
+      return;
+    }
+
+    setIsParsingMaps(true);
+    try {
+      const response = await apiClient.get<any>(`/utils/parse-maps-link?url=${encodeURIComponent(mapsLink)}`);
+      const { lat, lng, address } = response.data;
+      
+      setFormData(prev => ({
+        ...prev,
+        customerLocation: (lat && lng) ? { lat, lng } : prev.customerLocation,
+        address: address ? address : prev.address
+      }));
+
+      toast({
+        title: "Berhasil",
+        description: "Data alamat berhasil diisi dari link Maps",
+      });
+      setMapsLink("");
+    } catch (error) {
+      toast({
+        title: "Gagal Ekstrak Link",
+        description: "Tidak dapat mengekstrak data dari link Maps.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsParsingMaps(false);
+    }
+  };
+
+  const handleSmartFillKtp = async () => {
+    if (!ktpFile.file) return;
+
+    setIsParsingKtp(true);
+    try {
+      const form = new FormData();
+      form.append("ktp", ktpFile.file);
+
+      const response = await apiClient.post<any>("/utils/parse-ktp", form, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      const { nik, name } = response.data;
+      
+      let updated = false;
+      setFormData(prev => {
+        const newData = { ...prev };
+        if (nik) { newData.ktp = nik; updated = true; }
+        if (name) { newData.fullName = name; updated = true; }
+        return newData;
+      });
+
+      if (updated) {
+         toast({ title: "Berhasil", description: `Data KTP berhasil diekstrak. ${nik ? 'NIK ' : ''}${name ? 'Nama' : ''}`.trim() });
+      } else {
+         toast({ title: "Perhatian", description: "Teks pada KTP tidak terbaca jelas.", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Gagal Ekstrak KTP", description: "Terjadi kesalahan atau foto kurang jelas.", variant: "destructive" });
+    } finally {
+      setIsParsingKtp(false);
+    }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    if (!activeFileSetter) return;
+
+    // Generate a contextual name based on the setter
+    let filename = "image-cropped.jpg";
+    if (activeFileSetter === setKtpFile) filename = "ktp-cropped.jpg";
+    else if (activeFileSetter === setFrontHome) filename = "front-home-cropped.jpg";
+    else if (activeFileSetter === setSideHome) filename = "side-home-cropped.jpg";
+    else if (activeFileSetter === setOdpImage) filename = "odp-cropped.jpg";
+    else if (activeFileSetter === setCaImage) filename = "ca-cropped.jpg";
+    else if (activeFileSetter === setAttachment) filename = "attachment-cropped.jpg";
+
+    const croppedFile = new File([croppedBlob], filename, { type: "image/jpeg" });
+    const previewUrl = URL.createObjectURL(croppedBlob);
+    
+    activeFileSetter({ file: croppedFile, preview: previewUrl });
+    setCropperModalOpen(false);
   };
 
   const resetForm = () => {
@@ -329,7 +429,7 @@ export function AddCustomerDialog({
               <img
                 src={value.preview}
                 alt="Preview"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
@@ -391,7 +491,7 @@ export function AddCustomerDialog({
           <span className="font-semibold">Tambah Pelanggan</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] h-[90vh] flex flex-col py-0 px-0 gap-0 overflow-hidden bg-white sm:rounded-2xl transition-all duration-300">
+      <DialogContent className="w-screen max-w-none h-[100dvh] max-h-[100dvh] sm:w-full sm:max-w-2xl sm:h-[90vh] sm:max-h-[90vh] flex flex-col py-0 px-0 gap-0 overflow-hidden bg-white rounded-none sm:rounded-2xl transition-all duration-300">
         <div className="bg-[#101D42] p-4 sm:p-6 text-white text-center sm:text-left">
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-2xl font-bold tracking-tight text-white flex items-center justify-start gap-3">
@@ -545,15 +645,52 @@ export function AddCustomerDialog({
                 </div>
 
                 {/* If selection is shown, move KTP file uploader to new row or next to it */}
-                  <div className="w-full">
+                  <div className="w-full space-y-3">
                     <FileUploader
                       label="Foto KTP"
                       value={ktpFile}
                       onChange={(e) => handleFileChange(e, setKtpFile)}
                       onClear={() => clearFile(setKtpFile)}
                     />
+                    {ktpFile.file && (
+                       <Button 
+                          type="button"
+                          variant="outline"
+                          onClick={handleSmartFillKtp}
+                          disabled={isParsingKtp}
+                          className="w-full border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                       >
+                          {isParsingKtp ? <Loader2 size={16} className="animate-spin mr-2" /> : <Search size={16} className="mr-2" />}
+                          Ekstrak NIK & Nama Otomatis
+                       </Button>
+                    )}
                   </div>
               
+                <div className="space-y-2 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
+                  <Label className="text-blue-900 font-bold flex gap-2 items-center">
+                    <MapPin size={16} className="text-blue-600" /> Smart Fill (Otomatis Isi Alamat)
+                  </Label>
+                  <p className="text-xs text-blue-700/70 mb-2">Tempel link (tautan) Google Maps pelanggan di sini untuk mengisi Alamat pelanggan secara otomatis.</p>
+                  <div className="flex gap-2">
+                     <Input 
+                        placeholder="Contoh: https://maps.app.goo.gl/..." 
+                        value={mapsLink}
+                        onChange={(e) => setMapsLink(e.target.value)}
+                        className="flex-1 h-11 bg-white border-blue-200 focus:ring-blue-500/20 shadow-sm"
+                     />
+                     <Button 
+                        type="button" 
+                        onClick={handleSmartFill} 
+                        disabled={isParsingMaps || !mapsLink} 
+                        className="h-11 px-5 bg-blue-600 hover:bg-blue-700 text-white shrink-0 shadow-md shadow-blue-500/20"
+                     >
+                        {isParsingMaps ? <Loader2 size={16} className="animate-spin mr-2" /> : <Search size={16} className="mr-2" />}
+                        <span className="hidden sm:inline">Ekstrak Link</span>
+                        <span className="sm:hidden">Ekstrak</span>
+                     </Button>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label className="text-slate-600 font-medium flex gap-2 items-center">
                     <MapPin size={14} /> Alamat Pemasangan
@@ -635,7 +772,7 @@ export function AddCustomerDialog({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-slate-600 font-medium flex gap-2 items-center">
-                    <Hash size={14} /> Kode ODP
+                    <Hash size={14} /> Kode ODP (Opsional)
                   </Label>
                   <Input
                     className="h-11 rounded-lg border-slate-200 bg-white font-mono"
@@ -647,7 +784,7 @@ export function AddCustomerDialog({
                   />
                 </div>
                 <FileUploader
-                  label="Foto ODP"
+                  label="Foto ODP (Opsional)"
                   value={odpImage}
                   onChange={(e) => handleFileChange(e, setOdpImage)}
                   onClear={() => clearFile(setOdpImage)}
@@ -873,6 +1010,16 @@ export function AddCustomerDialog({
           </DialogFooter>
         </Tabs>
       </DialogContent>
+      {rawImageSrc && (
+        <ImageCropperModal 
+          isOpen={cropperModalOpen} 
+          onClose={() => setCropperModalOpen(false)} 
+          imageSrc={rawImageSrc} 
+          onCropComplete={handleCropComplete} 
+          aspectRatio={activeFileSetter === setKtpFile ? 85.6 / 53.98 : undefined}
+          title={activeFileSetter === setKtpFile ? "Sesuaikan Foto KTP" : "Sesuaikan Foto"}
+        />
+      )}
     </Dialog>
   );
 }

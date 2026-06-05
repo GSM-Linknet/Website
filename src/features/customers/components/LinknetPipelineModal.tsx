@@ -40,6 +40,7 @@ import { CustomerService, type Customer } from "@/services/customer.service";
 import { LinkNetService, type TimeSlot } from "@/services/linknet.service";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ImageCropperModal } from "@/components/shared/ImageCropperModal";
 
 interface LinknetPipelineModalProps {
     open: boolean;
@@ -123,6 +124,11 @@ export function LinknetPipelineModal({
         label: string;
     } | null>(null);
 
+    // Image Cropper States
+    const [cropperModalOpen, setCropperModalOpen] = useState(false);
+    const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+    const [activeFileKey, setActiveFileKey] = useState<string | null>(null);
+
     // Step 3: Booking Appointment
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -144,6 +150,19 @@ export function LinknetPipelineModal({
     const [changing, setChanging] = useState(false);
 
     const currentStep = getStepIndex(localStatus);
+
+    const handleCropComplete = (croppedBlob: Blob) => {
+        if (!activeFileKey) return;
+        const filename = `${activeFileKey}-cropped.jpg`;
+        const croppedFile = new File([croppedBlob], filename, { type: "image/jpeg" });
+        
+        setNewFiles((prev) => ({ ...prev, [activeFileKey]: croppedFile }));
+        
+        if (!selectedFileFields.includes(activeFileKey) && selectedFileFields.length < 5) {
+            setSelectedFileFields((prev) => [...prev, activeFileKey]);
+        }
+        setCropperModalOpen(false);
+    };
 
     // Helper function to check if file/URL is an image
     const isImageFile = (urlOrFile: string | File) => {
@@ -762,11 +781,20 @@ export function LinknetPipelineModal({
                                                                                              }
                                                                                              // 2. Validate max selected files limit
                                                                                              if (!selectedFileFields.includes(field.key) && selectedFileFields.length >= 5) {
-                                                                                                 toast.error("Maksimal hanya 5 berkas yang dapat dipilih untuk dikirim ke Linknet");
+                                                                                                 toast.error("Maksimal hanya 5 berkas yang dapat dipilih. Hapus centang pada berkas lain terlebih dahulu.");
                                                                                                  return;
                                                                                              }
-                                                                                             setNewFiles((prev) => ({ ...prev, [field.key]: file }));
-                                                                                             setSelectedFileFields((prev) => prev.includes(field.key) ? prev : [...prev, field.key]);
+                                                                                             
+                                                                                             if (file.type.startsWith("image/")) {
+                                                                                                 setRawImageSrc(URL.createObjectURL(file));
+                                                                                                 setActiveFileKey(field.key);
+                                                                                                 setCropperModalOpen(true);
+                                                                                             } else {
+                                                                                                 setNewFiles((prev) => ({ ...prev, [field.key]: file }));
+                                                                                                 if (!selectedFileFields.includes(field.key)) {
+                                                                                                     setSelectedFileFields((prev) => [...prev, field.key]);
+                                                                                                 }
+                                                                                             }
                                                                                          }
                                                                                      }}
                                                                                  />
@@ -1064,6 +1092,18 @@ export function LinknetPipelineModal({
                 )}
             </DialogContent>
         </Dialog>
+
+        {/* Cropper Modal for Image Uploads */}
+        {rawImageSrc && (
+            <ImageCropperModal 
+                isOpen={cropperModalOpen} 
+                onClose={() => setCropperModalOpen(false)} 
+                imageSrc={rawImageSrc} 
+                onCropComplete={handleCropComplete} 
+                aspectRatio={activeFileKey === "ktpFile" ? 85.6 / 53.98 : undefined}
+                title={activeFileKey === "ktpFile" ? "Sesuaikan Foto KTP" : "Sesuaikan Foto"}
+            />
+        )}
     </>
 );
 }

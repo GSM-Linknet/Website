@@ -50,9 +50,10 @@ export function CustomerDetailModal({
 
   const { data: packages } = usePackage({ paginate: false });
 
-  const packageName =
-    packages.find((p) => p.id === customer?.idPackages)?.name ||
-    "Unknown Package";
+  const selectedPackage = packages?.find((p) => p.id === customer?.idPackages);
+  const packageName = selectedPackage
+    ? `${selectedPackage.name} - ${selectedPackage.speed}Mbps - ${selectedPackage.price}`
+    : "Unknown Package";
 
   const [previewImage, setPreviewImage] = useState<{
     src: string;

@@ -1,5 +1,5 @@
-
-import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck, Download, ClipboardList, Filter } from "lucide-react";
+import { useState } from "react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck, Download, ClipboardList, Filter, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -88,6 +88,23 @@ export default function CustomerRegistrationPage() {
     handleSetDocumentUploaded,
     handleCheckWOStatus,
   } = useCustomerRegistration();
+
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Compute active filter count (for badge)
+  const activeFilterCount = [
+    filters.status !== "all",
+    filters.linknetStatus !== "all",
+    filters.unit !== "all",
+    filters.upline !== "all",
+  ].filter(Boolean).length;
+
+  const resetAllFilters = () => {
+    handleFilterChange("status", "all");
+    handleFilterChange("linknetStatus", "all");
+    handleFilterChange("unit", "all");
+    handleFilterChange("upline", "all");
+  };
 
   const columns = [
     {
@@ -337,64 +354,111 @@ export default function CustomerRegistrationPage() {
 
       {/* Filters Section */}
       <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 space-y-4 mb-4">
-        <div className="flex items-center gap-1.5 text-slate-400 pb-1 border-b border-slate-50 md:border-none md:pb-0">
-          <Filter size={14} className="text-blue-500" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-brand-blue">Filter Pencarian</span>
+        {/* Header / Toggle untuk Mobile */}
+        <div className="flex items-center justify-between md:hidden pb-1 border-b border-slate-50">
+          <button
+            onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+            className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
+          >
+            <SlidersHorizontal size={16} className="text-blue-500" />
+            <span className="text-sm font-bold text-brand-blue">Filter Pencarian</span>
+            {activeFilterCount > 0 && (
+              <span className="bg-blue-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-5 h-5 shadow-sm">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          
+          <button
+            onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+          >
+            {isMobileFilterOpen ? "Sembunyikan" : "Tampilkan"}
+          </button>
         </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-2.5 w-full">
-          <div className="space-y-1 w-full md:w-auto">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status</span>
-            <FilterDropdown
-              label="Semua Status"
-              activeValue={filters.status}
-              options={[
-                { label: "Semua Status", value: "all" },
-                { label: "Terverifikasi", value: "verified" },
-                { label: "Pending", value: "pending" },
-              ]}
-              onSelect={(val) => handleFilterChange("status", val)}
-            />
-          </div>
 
-          <div className="space-y-1 w-full md:w-auto">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status Linknet</span>
-            <FilterDropdown
-              label="Semua Status Linknet"
-              activeValue={filters.linknetStatus}
-              options={[
-                { label: "Semua Status Linknet", value: "all" },
-                { label: "Menunggu Verif", value: "PENDING_VERIFICATION" },
-                { label: "Antrean Survei", value: "CREATE_ACCOUNT" },
-                { label: "Survei Berjalan", value: "SURVEY_IN_PROGRESS" },
-                { label: "Survei Sukses", value: "SURVEY_SUCCESS" },
-                { label: "Survei Ditolak", value: "SURVEY_REJECTED" },
-                { label: "Menunggu CA", value: "CA_PENDING" },
-                { label: "Booking Jadwal", value: "APPOINTMENT_PENDING" },
-                { label: "Menunggu IKR", value: "OM_SUBMITTED" },
-              ]}
-              onSelect={(val) => handleFilterChange("linknetStatus", val)}
-            />
-          </div>
+        {/* Filter Content Wrapper */}
+        <div className={cn(
+          "space-y-4 md:space-y-4 transition-all duration-300",
+          !isMobileFilterOpen && "hidden md:block"
+        )}>
+          {/* Row 1: Dropdown filters */}
+          <div className="flex flex-col md:flex-row md:items-center gap-3">
+            <div className="hidden md:flex items-center gap-1.5 text-slate-400 mr-1 shrink-0">
+              <Filter size={14} />
+              <span className="text-xs font-semibold uppercase tracking-wider">Filter</span>
+            </div>
+            
+            <div className="flex flex-col md:flex-row md:flex-wrap items-center gap-2.5 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-2.5 w-full">
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status</span>
+                  <FilterDropdown
+                    label="Semua Status"
+                    activeValue={filters.status}
+                    options={[
+                      { label: "Semua Status", value: "all" },
+                      { label: "Terverifikasi", value: "verified" },
+                      { label: "Pending", value: "pending" },
+                    ]}
+                    onSelect={(val) => handleFilterChange("status", val)}
+                  />
+                </div>
 
-          <div className="space-y-1 w-full md:w-auto">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Unit</span>
-            <FilterDropdown
-              label="Semua Unit"
-              activeValue={filters.unit}
-              options={units}
-              onSelect={(val) => handleFilterChange("unit", val)}
-            />
-          </div>
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status Linknet</span>
+                  <FilterDropdown
+                    label="Semua Status Linknet"
+                    activeValue={filters.linknetStatus}
+                    options={[
+                      { label: "Semua Status Linknet", value: "all" },
+                      { label: "Menunggu Verif", value: "PENDING_VERIFICATION" },
+                      { label: "Antrean Survei", value: "CREATE_ACCOUNT" },
+                      { label: "Survei Berjalan", value: "SURVEY_IN_PROGRESS" },
+                      { label: "Survei Sukses", value: "SURVEY_SUCCESS" },
+                      { label: "Survei Ditolak", value: "SURVEY_REJECTED" },
+                      { label: "Menunggu CA", value: "CA_PENDING" },
+                      { label: "Booking Jadwal", value: "APPOINTMENT_PENDING" },
+                      { label: "Menunggu IKR", value: "OM_SUBMITTED" },
+                    ]}
+                    onSelect={(val) => handleFilterChange("linknetStatus", val)}
+                  />
+                </div>
 
-          <div className="space-y-1 w-full md:w-auto">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Upline</span>
-            <FilterDropdown
-              label="Semua Upline"
-              activeValue={filters.upline}
-              options={uplines}
-              onSelect={(val) => handleFilterChange("upline", val)}
-            />
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Unit</span>
+                  <FilterDropdown
+                    label="Semua Unit"
+                    activeValue={filters.unit}
+                    options={units}
+                    onSelect={(val) => handleFilterChange("unit", val)}
+                  />
+                </div>
+
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Upline</span>
+                  <FilterDropdown
+                    label="Semua Upline"
+                    activeValue={filters.upline}
+                    options={uplines}
+                    onSelect={(val) => handleFilterChange("upline", val)}
+                  />
+                </div>
+                
+                {/* Reset button */}
+                {activeFilterCount > 0 && (
+                  <div className="w-full md:w-auto flex items-end pt-1 md:pt-0">
+                    <button
+                      onClick={resetAllFilters}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer h-9 w-full md:w-auto"
+                    >
+                      <X size={12} />
+                      Reset ({activeFilterCount})
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

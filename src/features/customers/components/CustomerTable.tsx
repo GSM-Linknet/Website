@@ -195,6 +195,11 @@ export const CustomerTable = ({
       className: "text-slate-500 font-medium text-[12px]",
     },
     {
+      header: "Site ID",
+      accessorKey: "siteId",
+      className: "text-slate-500 font-medium text-[12px]",
+    },
+    {
       header: "NAMA",
       accessorKey: "name",
       className: "min-w-[200px]",
