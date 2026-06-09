@@ -101,6 +101,7 @@ export interface User {
   cabangId?: string;
   unitId?: string;
   subUnitId?: string;
+  userPermissions?: string[] | null;
 }
 
 interface LoginResponse {
@@ -414,6 +415,15 @@ export const AuthService = {
   ): boolean {
     // Super Admin has all permissions
     if (role === "SUPER_ADMIN") return true;
+
+    // Strict Override: If user has explicit templates assigned, ignore Role permissions
+    const user = this.getUser();
+    if (user && user.userPermissions && user.userPermissions.length > 0) {
+      return (
+        user.userPermissions.includes(`${resource}:${action}`) ||
+        user.userPermissions.includes(`${resource}:*`)
+      );
+    }
 
     const permissionsStr = localStorage.getItem("app_permissions");
     let rolePermissions: any = null;
