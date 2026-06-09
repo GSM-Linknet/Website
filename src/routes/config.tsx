@@ -21,6 +21,9 @@ const DashboardPage = lazy(
 const CustomerListPage = lazy(
   () => import("@/features/customers/pages/CustomerListPage"),
 );
+const ChildrenCustomerListPage = lazy(
+  () => import("@/features/customers/pages/ChildrenCustomerListPage"),
+);
 const CustomerRegistrationPage = lazy(
   () => import("@/features/customers/pages/CustomerRegistrationPage"),
 );
@@ -262,6 +265,14 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <CustomerListPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "children",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ChildrenCustomerListPage />
               </Suspense>
             ),
           },

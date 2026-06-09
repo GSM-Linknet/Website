@@ -23,6 +23,8 @@ import {
     X,
     Upload,
     Eye,
+    CreditCard,
+    RefreshCw,
 } from "lucide-react";
 import {
     Dialog,
@@ -52,6 +54,7 @@ interface LinknetPipelineModalProps {
 const STEPS = [
     { id: "CREATE_ACCOUNT", label: "Registrasi Antrian", icon: ClipboardList },
     { id: "SURVEY_IN_PROGRESS", label: "Check Homepass", icon: Search },
+    { id: "REGISTRATION_PAYMENT", label: "Pembayaran Registrasi", icon: CreditCard },
     { id: "APPOINTMENT_PENDING", label: "Booking Waktu Pemasangan", icon: Calendar },
     { id: "OM_SUBMITTED", label: "Menunggu IKR", icon: Truck },
 ];
@@ -73,9 +76,12 @@ const getStepIndex = (status?: string) => {
         case "SURVEY_REJECTED":
         case "CA_PENDING":
             return 1;
+        case "WAITING_REG_PAYMENT":
+        case "REG_PAYMENT_PAID":
+            return 2;
         case "SURVEY_SUCCESS":
         case "APPOINTMENT_PENDING":
-            return 2;
+            return 3;
         case "OM_SUBMITTED":
         case "WO_SCHEDULED":
         case "WO_RESCHEDULED":
@@ -91,9 +97,9 @@ const getStepIndex = (status?: string) => {
         case "WO_RETURN":
         case "WO_FAILED":
         case "WO_CANCELLED":
-            return 3;
-        case "ACTIVE":
             return 4;
+        case "ACTIVE":
+            return 5;
         default:
             return 0;
     }
@@ -285,7 +291,11 @@ export function LinknetPipelineModal({
 
             // Advance step internally based on survey result
             setLocalStatus(
-                surveyResult === "SUCCESS" ? "SURVEY_SUCCESS" : "CA_PENDING"
+                surveyResult === "SUCCESS" 
+                    ? (customer.isFreeRegistration 
+                        ? "APPOINTMENT_PENDING" 
+                        : "WAITING_REG_PAYMENT") 
+                    : "CA_PENDING"
             );
 
             // Auto close modal if registered with Linknet (result === REJECTED)
@@ -497,7 +507,7 @@ export function LinknetPipelineModal({
                     </div>
 
                     <div className="mt-8 border rounded-xl border-slate-100 bg-white p-6 shadow-sm">
-                        {currentStep === 4 ? (
+                        {currentStep === 5 ? (
                             <div className="text-center py-8">
                                 <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <CheckCircle2 size={32} />
@@ -866,8 +876,84 @@ export function LinknetPipelineModal({
                                      </div>
                                  )}
 
-                                {/* --- Content: STEP 3 (APPOINTMENT_PENDING) --- */}
+                                {/* --- Content: STEP 3 (REGISTRATION_PAYMENT) --- */}
                                 {currentStep === 2 && (
+                                    <div className="space-y-6">
+                                        {localStatus === "WAITING_REG_PAYMENT" ? (() => {
+                                            const invoice = customer.invoices?.[0];
+                                            return (
+                                              <div className="p-5 bg-amber-50 border border-amber-200 rounded-xl space-y-4">
+                                                  <div className="flex items-start gap-3">
+                                                      <CreditCard className="mt-0.5 shrink-0 text-amber-500" size={24} />
+                                                      <div>
+                                                          <h4 className="font-bold text-amber-900 text-sm">Menunggu Pembayaran Registrasi</h4>
+                                                          <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                                                              Pelanggan telah dikirimkan Invoice Registrasi. Sistem akan memproses otomatis (via Webhook) begitu pelanggan melakukan pembayaran melalui Xendit Payment Link.
+                                                          </p>
+                                                      </div>
+                                                  </div>
+                                                  
+                                                  {invoice && (
+                                                      <div className="bg-white/60 p-4 rounded-lg border border-amber-200/60 mt-3 text-sm">
+                                                          <div className="flex justify-between items-center mb-2">
+                                                              <span className="text-slate-500">Nomor Invoice</span>
+                                                              <span className="font-bold text-slate-800">{invoice.invoiceNumber}</span>
+                                                          </div>
+                                                          <div className="flex justify-between items-center mb-2">
+                                                              <span className="text-slate-500">Total Tagihan</span>
+                                                              <span className="font-bold text-slate-800">
+                                                                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(invoice.amount)}
+                                                              </span>
+                                                          </div>
+                                                          {invoice.paymentUrl && (
+                                                              <div className="mt-3 pt-3 border-t border-amber-200/60">
+                                                                  <a 
+                                                                      href={invoice.paymentUrl} 
+                                                                      target="_blank" 
+                                                                      rel="noreferrer"
+                                                                      className="text-amber-700 hover:text-amber-800 font-semibold text-xs flex items-center justify-center gap-1"
+                                                                  >
+                                                                      Buka Link Pembayaran Xendit 
+                                                                  </a>
+                                                              </div>
+                                                          )}
+                                                      </div>
+                                                  )}
+
+                                                  <Button
+                                                      variant="outline"
+                                                      className="w-full bg-white border-amber-300 text-amber-700 hover:bg-amber-100 hover:text-amber-800 font-bold"
+                                                      onClick={() => onSuccess()} // onSuccess will refresh the table and customer data
+                                                  >
+                                                      <RefreshCw size={16} className="mr-2" />
+                                                      Cek Status Pembayaran
+                                                  </Button>
+                                              </div>
+                                            );
+                                        })() : localStatus === "REG_PAYMENT_PAID" ? (
+                                            <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-4">
+                                                <div className="flex items-start gap-3">
+                                                    <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-500" size={24} />
+                                                    <div>
+                                                        <h4 className="font-bold text-emerald-900 text-sm">Tagihan Registrasi Lunas</h4>
+                                                        <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
+                                                            Pelanggan telah berhasil membayar tagihan registrasi. Anda sekarang dapat melanjutkan untuk mendaftarkan dan mem-booking jadwal instalasi (Linknet OM).
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                                    onClick={() => setLocalStatus("APPOINTMENT_PENDING")}
+                                                >
+                                                    Lanjut ke Booking Pemasangan <ArrowRight size={16} className="ml-2" />
+                                                </Button>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                )}
+
+                                {/* --- Content: STEP 4 (APPOINTMENT_PENDING) --- */}
+                                {currentStep === 3 && (
                                     <div className="space-y-5">
                                         <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 flex items-start gap-3">
                                             <Calendar className="text-amber-500 mt-1 shrink-0" size={18} />
@@ -988,8 +1074,8 @@ export function LinknetPipelineModal({
                                     </div>
                                 )}
 
-                                {/* --- Content: STEP 4 (WAITING FOR IKR CALLBACK) --- */}
-                                {currentStep === 3 && (
+                                {/* --- Content: STEP 5 (WAITING FOR IKR CALLBACK) --- */}
+                                {currentStep === 4 && (
                                     <div className="text-center py-8 px-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                                         <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-5 relative">
                                             <Loader2 size={24} className="animate-spin" />

@@ -68,6 +68,7 @@ interface CustomerTableProps {
   page?: number;
   totalPages?: number;
   totalItems?: number;
+  hideLinknet?: boolean;
   onPageChange?: (page: number) => void;
   onDetail?: (customer: Customer) => void;
   onEdit?: (customer: Customer) => void;
@@ -91,6 +92,7 @@ export const CustomerTable = ({
   page,
   totalPages,
   totalItems,
+  hideLinknet,
   onPageChange,
   onDetail,
   onEdit,
@@ -337,7 +339,7 @@ export const CustomerTable = ({
         );
       },
     },
-    {
+    ...(hideLinknet ? [] : [{
       header: "LINKNET",
       accessorKey: "linknetStatus",
       cell: (row: Customer) => {
@@ -373,7 +375,7 @@ export const CustomerTable = ({
           </Badge>
         );
       },
-    },
+    }]),
 
     {
       header: "PAKET",
@@ -518,7 +520,7 @@ export const CustomerTable = ({
               )}
 
               {/* SECTION: LAYANAN LINKNET */}
-              {(row.customerId || (!row.lnId && canLinknet)) && (
+              {!hideLinknet && (row.customerId || (!row.lnId && canLinknet)) && (
                 <>
                   <DropdownMenuSeparator className="bg-slate-100 my-1" />
                   <DropdownMenuLabel className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2.5 py-1.5">

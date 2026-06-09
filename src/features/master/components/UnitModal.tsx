@@ -33,12 +33,13 @@ export function UnitModal({
     isLoading,
     initialData,
 }: UnitModalProps) {
-    const [formData, setFormData] = useState<Partial<Unit> & { expenseQuota: number, wilayahIds: string[], areaIds: string[] }>({
+    const [formData, setFormData] = useState<Partial<Unit> & { expenseQuota: number, wilayahIds: string[], areaIds: string[], installationFee?: number }>({
         name: "",
         code: "",
         cabangId: "",
         quota: 0,
         expenseQuota: 0,
+        installationFee: undefined,
         wilayahIds: [] as string[],
         areaIds: [] as string[],
     });
@@ -63,6 +64,7 @@ export function UnitModal({
                     cabangId: initialData.cabangId || "",
                     quota: initialData.quota || 0,
                     expenseQuota: (initialData as any).expenseQuota || 0,
+                    installationFee: initialData.installationFee,
                     wilayahIds,
                     areaIds,
                 });
@@ -73,6 +75,7 @@ export function UnitModal({
                     cabangId: "",
                     quota: 0,
                     expenseQuota: 0,
+                    installationFee: undefined,
                     wilayahIds: [],
                     areaIds: [],
                 });
@@ -214,6 +217,27 @@ export function UnitModal({
                         onChange={(e) => setFormData({ ...formData, quota: parseInt(e.target.value) || 0 })}
                         className="rounded-xl border-slate-200 focus:ring-blue-500/20 focus:border-blue-500 h-11"
                         required
+                        disabled={isLoading}
+                        min={0}
+                    />
+                </div>
+
+                {/* Installation Fee Field */}
+                <div className="space-y-2">
+                    <Label
+                        htmlFor="installationFee"
+                        className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"
+                    >
+                        <Hash size={14} className="text-blue-500" />
+                        Biaya Pemasangan Khusus Unit (Rp)
+                    </Label>
+                    <Input
+                        id="installationFee"
+                        type="number"
+                        placeholder="Kosongkan untuk pakai tarif Cabang"
+                        value={formData.installationFee || ""}
+                        onChange={(e) => setFormData({ ...formData, installationFee: e.target.value ? parseInt(e.target.value) : undefined })}
+                        className="rounded-xl border-slate-200 focus:ring-blue-500/20 focus:border-blue-500 h-11"
                         disabled={isLoading}
                         min={0}
                     />

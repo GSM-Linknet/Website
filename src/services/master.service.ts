@@ -29,6 +29,7 @@ export interface Cabang extends BaseEntity {
   areaIds?: string[];
   cabangWilayah?: { wilayah: Wilayah }[];
   cabangArea?: { area: Area }[];
+  installationFee?: number;
 }
 
 export interface Unit extends BaseEntity {
@@ -43,6 +44,7 @@ export interface Unit extends BaseEntity {
   areaIds?: string[];
   unitWilayah?: { wilayah: Wilayah }[];
   unitArea?: { area: Area }[];
+  installationFee?: number;
 
   // Commission configurations
   salesRegCommType?: 'PERCENTAGE' | 'NOMINAL';

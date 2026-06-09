@@ -97,6 +97,8 @@ export interface Customer {
     customerStatus?: string;
   }>;
 
+  invoices?: any[];
+
   createdAt?: string;
   updatedAt?: string;
 

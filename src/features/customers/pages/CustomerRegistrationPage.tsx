@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck, Download, ClipboardList, Filter, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,7 @@ export default function CustomerRegistrationPage() {
     handleDeleteClick,
     handleConfirmDelete,
     handleViewDetail,
+    handleStartReview,
     handleVerifyAction,
     handleVerify,
     handleLinknetPipeline,
@@ -90,6 +91,16 @@ export default function CustomerRegistrationPage() {
   } = useCustomerRegistration();
 
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Sync linknetCustomer when customers data updates (e.g. after refresh)
+  useEffect(() => {
+    if (linknetCustomer && customers) {
+      const updated = customers.find(c => c.id === linknetCustomer.id);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(linknetCustomer)) {
+        setLinknetCustomer(updated);
+      }
+    }
+  }, [customers, linknetCustomer]);
 
   // Compute active filter count (for badge)
   const activeFilterCount = [
@@ -172,11 +183,14 @@ export default function CustomerRegistrationPage() {
         if (!row.linknetStatus) return <span className="text-slate-400 text-xs font-semibold">Belum Diproses</span>;
 
         const STATUS_MAP: Record<string, { label: string; color: string }> = {
+          ON_REVIEW: { label: "On Review", color: "bg-blue-100 text-blue-700 border-blue-200" },
           PENDING_VERIFICATION: { label: "Menunggu Verif", color: "bg-slate-100 text-slate-600 border-slate-200" },
           CREATE_ACCOUNT: { label: "Antrean Survei", color: "bg-blue-100 text-blue-700 border-blue-200" },
           SURVEY_IN_PROGRESS: { label: "Survei Berjalan", color: "bg-amber-100 text-amber-700 border-amber-200" },
           SURVEY_SUCCESS: { label: "Survei Sukses", color: "bg-teal-100 text-teal-700 border-teal-200" },
           SURVEY_REJECTED: { label: "Survei Ditolak", color: "bg-rose-100 text-rose-700 border-rose-200" },
+          WAITING_REG_PAYMENT: { label: "Menunggu Pembayaran", color: "bg-orange-100 text-orange-700 border-orange-200" },
+          REG_PAYMENT_PAID: { label: "Pembayaran Lunas", color: "bg-green-100 text-green-700 border-green-200" },
           CA_PENDING: { label: "Menunggu CA", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
           APPOINTMENT_PENDING: { label: "Booking Jadwal", color: "bg-orange-100 text-orange-700 border-orange-200" },
           OM_SUBMITTED: { label: "Menunggu IKR", color: "bg-violet-100 text-violet-700 border-violet-200" },
@@ -233,7 +247,16 @@ export default function CustomerRegistrationPage() {
                 <Eye size={14} className="mr-2" />
                 Lihat Detail
               </DropdownMenuItem>
-              {canVerify && !row.siteId && (
+              {canVerify && !row.statusCust && row.linknetStatus !== "ON_REVIEW" && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-sky-600 focus:text-sky-700 bg-sky-50/50 mb-1"
+                  onClick={() => handleStartReview(row)}
+                >
+                  <Eye size={14} className="mr-2" />
+                  Proses Review
+                </DropdownMenuItem>
+              )}
+              {canVerify && !row.siteId && (row.statusCust || (!row.statusCust && row.linknetStatus === "ON_REVIEW")) && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
                   onClick={() => setCustomerToVerify(row)}
@@ -262,15 +285,29 @@ export default function CustomerRegistrationPage() {
                   Edit
                 </DropdownMenuItem>
               )}
-              {canLinknet && row.statusCust && (
-                <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
-                  onClick={() => handleLinknetPipeline(row)}
-                >
-                  <Wifi size={14} />
-                  Kelola Linknet Pipeline
-                </DropdownMenuItem>
-              )}
+              {(() => {
+                let isParallel = false;
+                if (row.attachment) {
+                  try {
+                    const data = JSON.parse(row.attachment);
+                    isParallel = !!data.isParallelRegistration;
+                  } catch (e) {}
+                }
+                const isPaidOrBeyond = row.linknetStatus !== "WAITING_REG_PAYMENT" && !!row.linknetStatus && row.linknetStatus !== "ON_REVIEW" && row.linknetStatus !== "PENDING_VERIFICATION";
+                const showLinknet = canLinknet && row.statusCust === true && (!isParallel || isPaidOrBeyond);
+
+                if (!showLinknet) return null;
+
+                return (
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
+                    onClick={() => handleLinknetPipeline(row)}
+                  >
+                    <Wifi size={14} />
+                    Kelola Linknet Pipeline
+                  </DropdownMenuItem>
+                );
+              })()}
               {canLinknet && row.statusCust && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-teal-600 flex items-center gap-2"

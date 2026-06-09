@@ -92,6 +92,7 @@ export function AddCustomerDialog({
     odpLocation: null as { lat: number; lng: number } | null,
     isFreeAccount: false,
     isFreeRegistration: false,
+    isParallelRegistration: false,
   });
 
   // Automatically set idUpline for SALES and SUPERVISOR
@@ -299,6 +300,7 @@ export function AddCustomerDialog({
       odpLocation: null,
       isFreeAccount: false,
       isFreeRegistration: false,
+      isParallelRegistration: false,
     });
     setKtpFile({ file: null, preview: null });
     setFrontHome({ file: null, preview: null });
@@ -351,6 +353,7 @@ export function AddCustomerDialog({
     formDataPayload.append("statusNet", "false");
     formDataPayload.append("isFreeAccount", String(formData.isFreeAccount));
     formDataPayload.append("isFreeRegistration", String(formData.isFreeRegistration));
+    formDataPayload.append("isParallelRegistration", String(formData.isParallelRegistration));
 
     // Append files if they exist
     if (ktpFile.file) formDataPayload.append("ktpFile", ktpFile.file);
@@ -941,6 +944,23 @@ export function AddCustomerDialog({
                     </div>
                   </div>
                 )}
+
+                <div className="flex flex-col gap-4 p-4 rounded-xl bg-blue-50 border border-blue-100 mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-semibold text-slate-900">Registrasi Paralel (Cabang)</Label>
+                      <p className="text-xs text-slate-500">Tandai jika ini pendaftaran paralel (langsung bayar, lewati survey)</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, isParallelRegistration: !prev.isParallelRegistration }))}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#101D42] focus:ring-offset-2 ${formData.isParallelRegistration ? 'bg-[#101D42]' : 'bg-slate-200'}`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isParallelRegistration ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </TabsContent>
           </div>
