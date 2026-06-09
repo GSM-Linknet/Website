@@ -292,6 +292,11 @@ export default function InvoicePage() {
       header: "Status",
       cell: (invoice: any) => {
         const status = invoice.status;
+        const latestPayment = invoice.payments?.[0];
+        const hasPendingPayment = status !== "paid" && latestPayment?.status === "PENDING";
+        const hasRejectedPayment = status !== "paid" && latestPayment?.status === "REJECTED";
+        const rejectionReason = latestPayment?.rejectionReason;
+
         let color = "bg-gray-100 text-gray-700";
         if (status === "paid")
           color = "bg-emerald-100 text-emerald-700 shadow-sm";
@@ -300,11 +305,30 @@ export default function InvoicePage() {
           color = "bg-amber-100 text-amber-700 shadow-sm";
 
         return (
-          <Badge
-            className={`px-2.5 py-0.5 rounded-full border-none font-medium ${color} hover:${color}`}
-          >
-            {status ? status.toUpperCase() : "UNKNOWN"}
-          </Badge>
+          <div className="flex flex-col gap-1">
+            <Badge
+              className={`px-2.5 py-0.5 rounded-full border-none font-medium ${color} hover:${color}`}
+            >
+              {status ? status.toUpperCase() : "UNKNOWN"}
+            </Badge>
+            {hasPendingPayment && (
+              <Badge className="px-2 py-0.5 rounded-full border-none font-medium text-[10px] bg-orange-100 text-orange-700 hover:bg-orange-100 w-fit">
+                Menunggu Approval
+              </Badge>
+            )}
+            {hasRejectedPayment && (
+              <div className="flex flex-col gap-0.5">
+                <Badge className="px-2 py-0.5 rounded-full border-none font-medium text-[10px] bg-red-100 text-red-700 hover:bg-red-100 w-fit">
+                  Pembayaran Ditolak
+                </Badge>
+                {rejectionReason && (
+                  <span className="text-[10px] text-slate-500 leading-tight max-w-[160px]">
+                    ↳ {rejectionReason}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         );
       },
     },
@@ -336,7 +360,8 @@ export default function InvoicePage() {
             "pay",
           ) &&
             invoice.status !== "paid" &&
-            invoice.status !== "cancelled" && (
+            invoice.status !== "cancelled" &&
+            !(invoice.payments?.[0]?.status === "PENDING") && (
               <Button
                 size="sm"
                 variant="default"

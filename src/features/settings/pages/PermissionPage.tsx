@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Shield, Lock, Check, LayoutDashboard, Database, Users, Wrench, Factory, BarChart3, TrendingUp, Settings, Loader2, DollarSign } from "lucide-react";
+import { Shield, Lock, Check, Loader2 } from "lucide-react";
 import { AuthService, type UserRole, type PermissionResource, type AppAction } from "@/services/auth.service";
 import { SettingsService } from "@/services/settings.service";
 import { useToast } from "@/hooks/useToast";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { MODULE_GROUPS, ACTIONS } from "@/constants/permissions";
+import { TemplatePermissionManager } from "../components/TemplatePermissionManager";
 
 const ROLES: UserRole[] = ["SUPER_ADMIN", "ADMIN_PUSAT", "ADMIN_CABANG", "ADMIN_UNIT", "SUPERVISOR", "SALES", "TECHNICIAN", "USER"];
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -18,137 +20,9 @@ const ROLE_LABELS: Record<UserRole, string> = {
     "USER": "User"
 }
 
-// Mapping of Parent Modules to Sub-Resources
-const MODULE_GROUPS: {
-    id: string;
-    label: string;
-    icon: any;
-    resources: { key: PermissionResource; label: string }[]
-}[] = [
-        {
-            id: "dashboard",
-            label: "Dashboard",
-            icon: LayoutDashboard,
-            resources: [
-                { key: "dashboard", label: "Dashboard Overview" }
-            ]
-        },
-        {
-            id: "master",
-            label: "Master Data",
-            icon: Database,
-            resources: [
-                { key: "master.area", label: "Area" },
-                { key: "master.wilayah", label: "Wilayah & Cabang" },
-                { key: "master.unit", label: "Unit & Sub Unit" },
-                { key: "master.paket", label: "Paket & Harga" },
-                { key: "master.diskon", label: "Diskon" },
-                { key: "master.users", label: "User Management" }
-            ]
-        },
-        {
-            id: "pelanggan",
-            label: "Pelanggan",
-            icon: Users,
-            resources: [
-                { key: "pelanggan.pendaftaran", label: "Pendaftaran Baru" },
-                { key: "pelanggan.kelola", label: "Kelola Pelanggan" },
-                { key: "pelanggan.layanan", label: "Layanan Mandiri" },
-                { key: "pelanggan.suspend-queue", label: "Review Suspend" }
-            ]
-        },
-        {
-            id: "teknisi",
-            label: "Teknisi",
-            icon: Wrench,
-            resources: [
-                { key: "teknisi.database", label: "Database Teknisi" },
-                { key: "teknisi.tools", label: "Tools & Peralatan" },
-                { key: "teknisi.harga", label: "Harga Jasa (Labor)" }
-            ]
-        },
-        {
-            id: "produksi",
-            label: "Produksi",
-            icon: Factory,
-            resources: [
-                { key: "produksi.cakupan", label: "Peta Coverage" },
-                { key: "master.schedule", label: "Schedule Pasang" },
-                { key: "produksi.wo", label: "Work Orders (WO)" },
-            ]
-        },
-        {
-            id: "reporting",
-            label: "Reporting",
-            icon: BarChart3,
-            resources: [
-                { key: "reporting.sales", label: "Performance Sales" },
-                { key: "reporting.sales-target", label: "Sales Target Management" },
-                { key: "reporting.unit", label: "KA Unit Activity" },
-                { key: "reporting.berkala", label: "Laporan Berkala" },
-                { key: "reporting.pelanggan", label: "Laporan Pelanggan" },
-                { key: "reporting.keuangan", label: "Laporan Keuangan" },
-                { key: "reporting.produksi", label: "Laporan Produksi" },
-                { key: "reporting.teknisi", label: "Laporan Teknisi" },
-                { key: "reporting.master", label: "Laporan Master Data" },
-                { key: "reporting.activity", label: "Laporan Aktivitas" },
-                { key: "reporting.kpi", label: "Laporan KPI" }
-            ]
-        },
-        {
-            id: "komisi",
-            label: "Komisi",
-            icon: DollarSign,
-            resources: [
-                { key: "komisi.laporan", label: "Laporan Komisi" },
-                { key: "komisi.unit-balance", label: "Saldo Unit" },
-                { key: "komisi.central-balance", label: "Saldo Holding" },
-                { key: "komisi.setting", label: "Pengaturan Komisi" },
-            ]
-        },
-        {
-            id: "keuangan",
-            label: "Keuangan",
-            icon: TrendingUp,
-            resources: [
-                { key: "keuangan.invoice", label: "Tagihan" },
-                { key: "keuangan.review", label: "Review Tagihan" },
-                { key: "keuangan.history", label: "History Pembayaran" },
-                { key: "keuangan.batch-payment", label: "Pembayaran Batch" },
-                { key: "keuangan.aging", label: "Aging Reports" },
-                { key: "keuangan.saldo", label: "Saldo & Payout" },
-                { key: "keuangan.rab", label: "RAB Anggaran" },
-                { key: "payout", label: "Disbursement" }
-            ]
-        },
-
-        {
-            id: "settings",
-            label: "Settings",
-            icon: Settings,
-            resources: [
-                { key: "settings.permissions", label: "Hak Akses" },
-                { key: "settings.whatsapp", label: "WhatsApp Gateway" },
-                { key: "settings.system", label: "System Settings" }
-            ]
-        },
-    ];
-
-const ACTIONS: { id: AppAction; label: string }[] = [
-    { id: "pay", label: "Pay" },
-    { id: "view", label: "View" },
-    { id: "create", label: "Add" },
-    { id: "edit", label: "Edit" },
-    { id: "delete", label: "Del" },
-    { id: "verify", label: "Ver" },
-    { id: "export", label: "Exp" },
-    { id: "impersonate", label: "Imp" },
-    { id: "suspend", label: "Sus" },
-    { id: "linknet", label: "LNet" },
-];
-
 export default function PermissionPage() {
     const { toast } = useToast();
+    const [activeMainTab, setActiveMainTab] = useState<string>("roles");
     const [permissions, setPermissions] = useState<Record<string, Record<string, string[]>>>({});
     const [activeRole, setActiveRole] = useState<UserRole>("SUPER_ADMIN");
     const [loading, setLoading] = useState(true);
@@ -242,7 +116,7 @@ export default function PermissionPage() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-[600px] space-y-4">
+            <div className="flex flex-col items-center justify-center h-150 space-y-4">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
                 <p className="text-slate-500 font-medium">Memuat konfigurasi hak akses...</p>
             </div>
@@ -273,11 +147,30 @@ export default function PermissionPage() {
                 </div>
             </div>
 
-            {/* Main Content Area */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+            {/* Tabs for Roles vs Templates */}
+            <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
+                <div className="flex items-center justify-center mb-8">
+                    <TabsList className="bg-slate-100/80 p-1 rounded-2xl h-auto border border-slate-200/60 shadow-sm">
+                        <TabsTrigger 
+                            value="roles" 
+                            className="rounded-xl px-8 py-2.5 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-brand-blue data-[state=active]:shadow-md transition-all duration-300"
+                        >
+                            Role Access
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="templates" 
+                            className="rounded-xl px-8 py-2.5 text-sm font-bold data-[state=active]:bg-white data-[state=active]:text-brand-blue data-[state=active]:shadow-md transition-all duration-300"
+                        >
+                            Permission Templates
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
-                {/* Role Sidebar (Tabs) */}
-                <div className="w-full md:w-64 bg-slate-50/50 border-r border-slate-100 p-6 shrink-0">
+                <TabsContent value="roles" className="mt-0">
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden flex flex-col md:flex-row min-h-150">
+
+                        {/* Role Sidebar (Tabs) */}
+                        <div className="w-full md:w-64 bg-slate-50/50 border-r border-slate-100 p-6 shrink-0">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Role Groups</h3>
                     <Tabs value={activeRole} onValueChange={(v) => setActiveRole(v as UserRole)} orientation="vertical" className="w-full flex-col">
                         <TabsList className="bg-transparent flex flex-col h-auto p-0 gap-2 w-full">
@@ -304,7 +197,7 @@ export default function PermissionPage() {
                 </div>
 
                 {/* Permissions Content */}
-                <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto max-h-[800px]">
+                <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto max-h-200">
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h2 className="text-xl font-bold text-brand-blue">{ROLE_LABELS[activeRole]} Permissions</h2>
@@ -340,7 +233,7 @@ export default function PermissionPage() {
 
                                             return (
                                                 <div key={res.key} className="px-5 py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 hover:bg-slate-50/30 transition-colors">
-                                                    <div className="min-w-[200px] flex items-center gap-2">
+                                                    <div className="min-w-50 flex items-center gap-2">
                                                         <div>
                                                             <div className="text-sm font-bold text-brand-blue">{res.label}</div>
                                                             <div className="text-[10px] text-slate-400 font-mono mt-0.5">{res.key}</div>
@@ -394,6 +287,14 @@ export default function PermissionPage() {
                     </div>
                 </div>
             </div>
+        </TabsContent>
+
+            <TabsContent value="templates" className="mt-0">
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+                    <TemplatePermissionManager />
+                </div>
+            </TabsContent>
+            </Tabs>
         </div>
     );
 }

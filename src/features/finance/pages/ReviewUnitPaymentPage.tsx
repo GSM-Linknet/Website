@@ -34,6 +34,7 @@ export default function ReviewUnitPaymentPage() {
     totalPages,
   } = useInvoices({
     where: "isReportedPaid:true",
+    not_: "status:paid",
     search: debouncedSearchQuery ? `customer.name:${debouncedSearchQuery}` : undefined,
   });
 

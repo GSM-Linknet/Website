@@ -1,5 +1,5 @@
-
-import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck, Download, ClipboardList } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, ChevronDown, Edit2, Trash2, CheckCircle, MoreHorizontal, Eye, Wifi, RefreshCw, FileCheck, Download, ClipboardList, Filter, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -81,6 +81,7 @@ export default function CustomerRegistrationPage() {
     handleDeleteClick,
     handleConfirmDelete,
     handleViewDetail,
+    handleStartReview,
     handleVerifyAction,
     handleVerify,
     handleLinknetPipeline,
@@ -88,6 +89,33 @@ export default function CustomerRegistrationPage() {
     handleSetDocumentUploaded,
     handleCheckWOStatus,
   } = useCustomerRegistration();
+
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Sync linknetCustomer when customers data updates (e.g. after refresh)
+  useEffect(() => {
+    if (linknetCustomer && customers) {
+      const updated = customers.find(c => c.id === linknetCustomer.id);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(linknetCustomer)) {
+        setLinknetCustomer(updated);
+      }
+    }
+  }, [customers, linknetCustomer]);
+
+  // Compute active filter count (for badge)
+  const activeFilterCount = [
+    filters.status !== "all",
+    filters.linknetStatus !== "all",
+    filters.unit !== "all",
+    filters.upline !== "all",
+  ].filter(Boolean).length;
+
+  const resetAllFilters = () => {
+    handleFilterChange("status", "all");
+    handleFilterChange("linknetStatus", "all");
+    handleFilterChange("unit", "all");
+    handleFilterChange("upline", "all");
+  };
 
   const columns = [
     {
@@ -112,9 +140,9 @@ export default function CustomerRegistrationPage() {
     {
       header: "ALAMAT",
       accessorKey: "address",
-      className: "text-center max-w-[150px] truncate",
+      className: "text-center max-w-37.5 truncate",
       cell: (row: Customer) => (
-        <span title={row.address} className="text-xs text-slate-600 truncate block max-w-[150px]">{row.address || "-"}</span>
+        <span title={row.address} className="text-xs text-slate-600 truncate block max-w-37.5">{row.address || "-"}</span>
       ),
     },
     {
@@ -155,11 +183,15 @@ export default function CustomerRegistrationPage() {
         if (!row.linknetStatus) return <span className="text-slate-400 text-xs font-semibold">Belum Diproses</span>;
 
         const STATUS_MAP: Record<string, { label: string; color: string }> = {
+          ON_REVIEW: { label: "On Review", color: "bg-blue-100 text-blue-700 border-blue-200" },
           PENDING_VERIFICATION: { label: "Menunggu Verif", color: "bg-slate-100 text-slate-600 border-slate-200" },
           CREATE_ACCOUNT: { label: "Antrean Survei", color: "bg-blue-100 text-blue-700 border-blue-200" },
           SURVEY_IN_PROGRESS: { label: "Survei Berjalan", color: "bg-amber-100 text-amber-700 border-amber-200" },
           SURVEY_SUCCESS: { label: "Survei Sukses", color: "bg-teal-100 text-teal-700 border-teal-200" },
           SURVEY_REJECTED: { label: "Survei Ditolak", color: "bg-rose-100 text-rose-700 border-rose-200" },
+          WAITING_REG_PAYMENT: { label: "Menunggu Pembayaran", color: "bg-orange-100 text-orange-700 border-orange-200" },
+          REG_PAYMENT_PAID: { label: "Pembayaran Lunas", color: "bg-green-100 text-green-700 border-green-200" },
+          CA_PENDING: { label: "Menunggu CA", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
           APPOINTMENT_PENDING: { label: "Booking Jadwal", color: "bg-orange-100 text-orange-700 border-orange-200" },
           OM_SUBMITTED: { label: "Menunggu IKR", color: "bg-violet-100 text-violet-700 border-violet-200" },
           ACTIVE: { label: "Aktif ✓", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
@@ -215,7 +247,16 @@ export default function CustomerRegistrationPage() {
                 <Eye size={14} className="mr-2" />
                 Lihat Detail
               </DropdownMenuItem>
-              {canVerify && !row.siteId && (
+              {canVerify && !row.statusCust && row.linknetStatus !== "ON_REVIEW" && (
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-xs font-semibold text-sky-600 focus:text-sky-700 bg-sky-50/50 mb-1"
+                  onClick={() => handleStartReview(row)}
+                >
+                  <Eye size={14} className="mr-2" />
+                  Proses Review
+                </DropdownMenuItem>
+              )}
+              {canVerify && !row.siteId && (row.statusCust || (!row.statusCust && row.linknetStatus === "ON_REVIEW")) && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
                   onClick={() => setCustomerToVerify(row)}
@@ -244,15 +285,29 @@ export default function CustomerRegistrationPage() {
                   Edit
                 </DropdownMenuItem>
               )}
-              {canLinknet && row.statusCust && (
-                <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
-                  onClick={() => handleLinknetPipeline(row)}
-                >
-                  <Wifi size={14} />
-                  Kelola Linknet Pipeline
-                </DropdownMenuItem>
-              )}
+              {(() => {
+                let isParallel = false;
+                if (row.attachment) {
+                  try {
+                    const data = JSON.parse(row.attachment);
+                    isParallel = !!data.isParallelRegistration;
+                  } catch (e) {}
+                }
+                const isPaidOrBeyond = row.linknetStatus !== "WAITING_REG_PAYMENT" && !!row.linknetStatus && row.linknetStatus !== "ON_REVIEW" && row.linknetStatus !== "PENDING_VERIFICATION";
+                const showLinknet = canLinknet && row.statusCust === true && (!isParallel || isPaidOrBeyond);
+
+                if (!showLinknet) return null;
+
+                return (
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
+                    onClick={() => handleLinknetPipeline(row)}
+                  >
+                    <Wifi size={14} />
+                    Kelola Linknet Pipeline
+                  </DropdownMenuItem>
+                );
+              })()}
               {canLinknet && row.statusCust && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-teal-600 flex items-center gap-2"
@@ -292,7 +347,7 @@ export default function CustomerRegistrationPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1.5">
-          <h1 className="text-2xl font-extrabold text-[#101D42] tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-extrabold text-brand-blue tracking-tight sm:text-3xl">
             Pendaftaran Pelanggan
           </h1>
           <p className="text-sm font-medium text-slate-500 max-w-2xl leading-relaxed">
@@ -335,48 +390,114 @@ export default function CustomerRegistrationPage() {
       </div>
 
       {/* Filters Section */}
-      <div className="flex flex-wrap items-center gap-3">
-        <FilterDropdown
-          label="Semua Status"
-          activeValue={filters.status}
-          options={[
-            { label: "Semua Status", value: "all" },
-            { label: "Terverifikasi", value: "verified" },
-            { label: "Pending", value: "pending" },
-          ]}
-          onSelect={(val) => handleFilterChange("status", val)}
-        />
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 space-y-4 mb-4">
+        {/* Header / Toggle untuk Mobile */}
+        <div className="flex items-center justify-between md:hidden pb-1 border-b border-slate-50">
+          <button
+            onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+            className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
+          >
+            <SlidersHorizontal size={16} className="text-blue-500" />
+            <span className="text-sm font-bold text-brand-blue">Filter Pencarian</span>
+            {activeFilterCount > 0 && (
+              <span className="bg-blue-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-5 h-5 shadow-sm">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          
+          <button
+            onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+          >
+            {isMobileFilterOpen ? "Sembunyikan" : "Tampilkan"}
+          </button>
+        </div>
 
-        <FilterDropdown
-          label="Semua Status Linknet"
-          activeValue={filters.linknetStatus}
-          options={[
-            { label: "Semua Status Linknet", value: "all" },
-            { label: "Menunggu Verif", value: "PENDING_VERIFICATION" },
-            { label: "Antrean Survei", value: "CREATE_ACCOUNT" },
-            { label: "Survei Berjalan", value: "SURVEY_IN_PROGRESS" },
-            { label: "Survei Sukses", value: "SURVEY_SUCCESS" },
-            { label: "Survei Ditolak", value: "SURVEY_REJECTED" },
-            { label: "Booking Jadwal", value: "APPOINTMENT_PENDING" },
-            { label: "Menunggu IKR", value: "OM_SUBMITTED" },
-          ]}
-          onSelect={(val) => handleFilterChange("linknetStatus", val)}
-        />
+        {/* Filter Content Wrapper */}
+        <div className={cn(
+          "space-y-4 md:space-y-4 transition-all duration-300",
+          !isMobileFilterOpen && "hidden md:block"
+        )}>
+          {/* Row 1: Dropdown filters */}
+          <div className="flex flex-col md:flex-row md:items-center gap-3">
+            <div className="hidden md:flex items-center gap-1.5 text-slate-400 mr-1 shrink-0">
+              <Filter size={14} />
+              <span className="text-xs font-semibold uppercase tracking-wider">Filter</span>
+            </div>
+            
+            <div className="flex flex-col md:flex-row md:flex-wrap items-center gap-2.5 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-2.5 w-full">
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status</span>
+                  <FilterDropdown
+                    label="Semua Status"
+                    activeValue={filters.status}
+                    options={[
+                      { label: "Semua Status", value: "all" },
+                      { label: "Terverifikasi", value: "verified" },
+                      { label: "Pending", value: "pending" },
+                    ]}
+                    onSelect={(val) => handleFilterChange("status", val)}
+                  />
+                </div>
 
-        <FilterDropdown
-          label="Semua Unit"
-          activeValue={filters.unit}
-          options={units}
-          onSelect={(val) => handleFilterChange("unit", val)}
-        />
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Status Linknet</span>
+                  <FilterDropdown
+                    label="Semua Status Linknet"
+                    activeValue={filters.linknetStatus}
+                    options={[
+                      { label: "Semua Status Linknet", value: "all" },
+                      { label: "Menunggu Verif", value: "PENDING_VERIFICATION" },
+                      { label: "Antrean Survei", value: "CREATE_ACCOUNT" },
+                      { label: "Survei Berjalan", value: "SURVEY_IN_PROGRESS" },
+                      { label: "Survei Sukses", value: "SURVEY_SUCCESS" },
+                      { label: "Survei Ditolak", value: "SURVEY_REJECTED" },
+                      { label: "Menunggu CA", value: "CA_PENDING" },
+                      { label: "Booking Jadwal", value: "APPOINTMENT_PENDING" },
+                      { label: "Menunggu IKR", value: "OM_SUBMITTED" },
+                    ]}
+                    onSelect={(val) => handleFilterChange("linknetStatus", val)}
+                  />
+                </div>
 
-        <FilterDropdown
-          label="Semua Upline"
-          activeValue={filters.upline}
-          options={uplines}
-          onSelect={(val) => handleFilterChange("upline", val)}
-        />
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Unit</span>
+                  <FilterDropdown
+                    label="Semua Unit"
+                    activeValue={filters.unit}
+                    options={units}
+                    onSelect={(val) => handleFilterChange("unit", val)}
+                  />
+                </div>
 
+                <div className="space-y-1 w-full md:w-auto">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block md:hidden">Upline</span>
+                  <FilterDropdown
+                    label="Semua Upline"
+                    activeValue={filters.upline}
+                    options={uplines}
+                    onSelect={(val) => handleFilterChange("upline", val)}
+                  />
+                </div>
+                
+                {/* Reset button */}
+                {activeFilterCount > 0 && (
+                  <div className="w-full md:w-auto flex items-end pt-1 md:pt-0">
+                    <button
+                      onClick={resetAllFilters}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all cursor-pointer h-9 w-full md:w-auto"
+                    >
+                      <X size={12} />
+                      Reset ({activeFilterCount})
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Table Content */}
@@ -469,7 +590,7 @@ const FilterDropdown = ({ label, options, activeValue, onSelect }: FilterDropdow
         <Button
           variant="outline"
           className={cn(
-            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-[180px] sm:w-auto border shadow-sm",
+            "h-11 rounded-xl border-slate-200 bg-white text-slate-500 font-medium px-4 hover:bg-slate-50 hover:text-slate-700 transition-all justify-between w-full sm:min-w-45 sm:w-auto border shadow-sm",
             activeValue !== "all" && "border-blue-500 text-blue-600 bg-blue-50/50"
           )}
         >
@@ -477,7 +598,7 @@ const FilterDropdown = ({ label, options, activeValue, onSelect }: FilterDropdow
           <ChevronDown size={14} className={cn("text-slate-400", activeValue !== "all" && "text-blue-500")} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[180px] rounded-xl border-slate-100 p-1 shadow-xl bg-white">
+      <DropdownMenuContent className="w-45 rounded-xl border-slate-100 p-1 shadow-xl bg-white">
         {options.map((option) => (
           <DropdownMenuItem
             key={option.value}

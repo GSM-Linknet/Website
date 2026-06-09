@@ -1,9 +1,9 @@
 /**
- * features/customers/pages/CustomerListPage.tsx
- * Tujuan      : Menampilkan halaman utama daftar pelanggan beserta filter, pencarian, ekspor data, dan tabel data.
+ * features/customers/pages/ChildrenCustomerListPage.tsx
+ * Tujuan      : Menampilkan halaman utama daftar pelanggan children beserta filter, pencarian, ekspor data, dan tabel data (tanpa fitur linknet).
  * Dipakai oleh: Router aplikasi / Menu Pelanggan (Website)
  * Dependensi  : lucide-react, CustomerTable, useCustomers, AuthService, CustomerService, MasterService, AddLegacyCustomerDialog, DeleteParentDialog
- * Fungsi Utama: CustomerListPage
+ * Fungsi Utama: ChildrenCustomerListPage
  * Side Effect : Fetch data pelanggan, unit, sub-unit, label, dan ekspor excel via API.
  */
 
@@ -33,7 +33,7 @@ import { DeleteParentDialog } from "../components/DeleteParentDialog";
 
 // ==================== Page Component ====================
 
-export default function CustomerListPage() {
+export default function ChildrenCustomerListPage() {
   const { toast } = useToast();
   // const userProfile = AuthService.getUser();
   // const userRole = userProfile?.role || "USER";
@@ -51,7 +51,7 @@ export default function CustomerListPage() {
     refetch: refresh,
     remove,
     deleting,
-  } = useCustomers({ isnull: "parentCustomerId", linknetPipeline: 'done' });
+  } = useCustomers({ not_: "parentCustomerId:null" });
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -135,8 +135,7 @@ export default function CustomerListPage() {
       labelIds: selectedLabels.length > 0 ? selectedLabels.join(',') : undefined,
       gte: dateFrom ? `createdAt:${dateFrom}` : undefined,
       lte: dateTo ? `createdAt:${dateTo}` : undefined,
-      isnull: "parentCustomerId",
-      linknetPipeline: 'done' as const,
+      not_: "parentCustomerId:null",
     });
   }, [debouncedSearchQuery, filters, legacyFilter, selectedLabels, dateFrom, dateTo, setQuery]);
 
@@ -203,8 +202,7 @@ export default function CustomerListPage() {
         gte: dateFrom ? `createdAt:${dateFrom}` : undefined,
         lte: dateTo ? `createdAt:${dateTo}` : undefined,
         paginate: false as any,
-        isnull: "parentCustomerId",
-        linknetPipeline: 'done',
+        not_: "parentCustomerId:null",
       });
       toast({ title: "Berhasil", description: "File Excel berhasil diunduh" });
     } catch {
@@ -221,10 +219,10 @@ export default function CustomerListPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-extrabold text-brand-blue tracking-tight sm:text-3xl">
-            Kelola Pelanggan
+            Kelola Children
           </h1>
           <p className="text-sm font-medium text-slate-500 leading-relaxed">
-            Kelola pelanggan yang telah selesai pembayaran registrasi
+            Kelola data pelanggan anakan (children)
           </p>
         </div>
 
@@ -491,6 +489,7 @@ export default function CustomerListPage() {
           page={page}
           totalPages={totalPages}
           totalItems={totalItems}
+          hideLinknet={true}
           onPageChange={setPage}
           onDetail={handleDetail}
           onEdit={handleEdit}

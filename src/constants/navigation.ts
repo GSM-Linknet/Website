@@ -1,3 +1,12 @@
+/**
+ * constants/navigation.ts
+ * Tujuan      : Definisikan struktur navigasi / menu sidebar utama aplikasi.
+ * Dipakai oleh: Komponen Sidebar / Layout
+ * Dependensi  : lucide-react icons, NavItem types
+ * Fungsi utama: Menyediakan daftar menu sidebar yang dikelompokkan dengan proteksi resource permission.
+ * Side effects: Tidak ada.
+ */
+
 import {
   LayoutDashboard,
   Users,
@@ -54,6 +63,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         resource: "pelanggan.kelola",
       },
       {
+        title: "Kelola Children",
+        href: "/pelanggan/children",
+        resource: "pelanggan.kelola",
+      },
+      {
         title: "Review Suspend",
         href: "/pelanggan/review-suspend",
         resource: "pelanggan.suspend-queue",
@@ -62,12 +76,6 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         title: "Recycle Bin",
         href: "/pelanggan/trash",
         resource: "pelanggan.trash",
-      },
-
-      {
-        title: "Layanan Link Net",
-        href: "/pelanggan/layanan",
-        resource: "pelanggan.layanan",
       },
     ],
   },
@@ -228,9 +236,19 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         resource: "keuangan.invoice",
       },
       {
+        title: "Persetujuan Pembayaran",
+        href: "/keuangan/pending-payments",
+        resource: "keuangan.history",
+      },
+      {
         title: "History Pembayaran",
         href: "/keuangan/history",
         resource: "keuangan.history",
+      },
+      {
+        title: "Dana Mengendap",
+        href: "/keuangan/unallocated",
+        resource: "keuangan.unallocated",
       },
       {
         title: "Pembayaran Batch",

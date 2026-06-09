@@ -32,5 +32,10 @@ export const PaymentPublicService = {
   generatePaymentLink: async (id: string) => {
     const response = await apiInstance.post(`/keuangan/invoice/public/${id}/pay`);
     return response.data;
+  },
+
+  generateVA: async (id: string, bankCode: string) => {
+    const response = await apiInstance.post(`/keuangan/invoice/public/${id}/generate-va`, { bankCode });
+    return response.data;
   }
 };

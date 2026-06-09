@@ -1,3 +1,12 @@
+/**
+ * @file LinknetPipelineModal.tsx
+ * @description Modal interaktif untuk memandu dan memproses pipeline Linknet pelanggan secara progresif (Registrasi Antrian, Cek Homepass/Survey, Booking Waktu Pemasangan, dan IKR). Membatasi pemilihan berkas maksimal 5 file untuk Create Account/Survey Rejected dengan batas ukuran 4 MB, mendukung pop-up preview gambar fullscreen, serta memungkinkan penandaan sukses/gagal di step CA_PENDING dengan input Site ID untuk melaju langsung ke booking jadwal.
+ * @caller Halaman Layanan Linknet (LinkNetPage.tsx), Tabel Pelanggan (CustomerTable.tsx)
+ * @dependency CustomerService, LinkNetService, lucide-react, UI components, toast (sonner)
+ * @public LinknetPipelineModal
+ * @sideeffects HTTP Calls ke backend untuk membuat antrian, menyimpan hasil survey (bisa multipart/form-data upload file), mencari slot, booking slot, cancel WO. Preview file lokal menggunakan object URL.
+ */
+
 import { useState, useEffect } from "react";
 import {
     CheckCircle2,
@@ -12,6 +21,10 @@ import {
     ArrowRight,
     RotateCcw,
     X,
+    Upload,
+    Eye,
+    CreditCard,
+    RefreshCw,
 } from "lucide-react";
 import {
     Dialog,
@@ -24,10 +37,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CustomerService, type Customer } from "@/services/customer.service";
 import { LinkNetService, type TimeSlot } from "@/services/linknet.service";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ImageCropperModal } from "@/components/shared/ImageCropperModal";
 
 interface LinknetPipelineModalProps {
     open: boolean;
@@ -38,9 +53,19 @@ interface LinknetPipelineModalProps {
 
 const STEPS = [
     { id: "CREATE_ACCOUNT", label: "Registrasi Antrian", icon: ClipboardList },
-    { id: "SURVEY_IN_PROGRESS", label: "Survei Lapangan", icon: Search },
+    { id: "SURVEY_IN_PROGRESS", label: "Check Homepass", icon: Search },
+    { id: "REGISTRATION_PAYMENT", label: "Pembayaran Registrasi", icon: CreditCard },
     { id: "APPOINTMENT_PENDING", label: "Booking Waktu Pemasangan", icon: Calendar },
     { id: "OM_SUBMITTED", label: "Menunggu IKR", icon: Truck },
+];
+
+const FILE_FIELDS = [
+    { key: "ktpFile", label: "Foto KTP" },
+    { key: "frontHome", label: "Foto Depan Rumah" },
+    { key: "sideHome", label: "Foto Samping Rumah" },
+    { key: "ODPImage", label: "Foto ODP" },
+    { key: "CaImage", label: "Foto CA / G-Map" },
+    { key: "attachment", label: "Lampiran Tambahan" },
 ];
 
 const getStepIndex = (status?: string) => {
@@ -49,10 +74,14 @@ const getStepIndex = (status?: string) => {
             return 0;
         case "SURVEY_IN_PROGRESS":
         case "SURVEY_REJECTED":
+        case "CA_PENDING":
             return 1;
+        case "WAITING_REG_PAYMENT":
+        case "REG_PAYMENT_PAID":
+            return 2;
         case "SURVEY_SUCCESS":
         case "APPOINTMENT_PENDING":
-            return 2;
+            return 3;
         case "OM_SUBMITTED":
         case "WO_SCHEDULED":
         case "WO_RESCHEDULED":
@@ -68,9 +97,9 @@ const getStepIndex = (status?: string) => {
         case "WO_RETURN":
         case "WO_FAILED":
         case "WO_CANCELLED":
-            return 3;
-        case "ACTIVE":
             return 4;
+        case "ACTIVE":
+            return 5;
         default:
             return 0;
     }
@@ -94,6 +123,17 @@ export function LinknetPipelineModal({
     const [surveyResult, setSurveyResult] = useState<"SUCCESS" | "REJECTED">("SUCCESS");
     const [siteId, setSiteId] = useState("");
     const [surveyNotes, setSurveyNotes] = useState("");
+    const [selectedFileFields, setSelectedFileFields] = useState<string[]>([]);
+    const [newFiles, setNewFiles] = useState<Record<string, File>>({});
+    const [previewImage, setPreviewImage] = useState<{
+        src: string;
+        label: string;
+    } | null>(null);
+
+    // Image Cropper States
+    const [cropperModalOpen, setCropperModalOpen] = useState(false);
+    const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+    const [activeFileKey, setActiveFileKey] = useState<string | null>(null);
 
     // Step 3: Booking Appointment
     const [startDate, setStartDate] = useState("");
@@ -117,13 +157,61 @@ export function LinknetPipelineModal({
 
     const currentStep = getStepIndex(localStatus);
 
+    const handleCropComplete = (croppedBlob: Blob) => {
+        if (!activeFileKey) return;
+        const filename = `${activeFileKey}-cropped.jpg`;
+        const croppedFile = new File([croppedBlob], filename, { type: "image/jpeg" });
+        
+        setNewFiles((prev) => ({ ...prev, [activeFileKey]: croppedFile }));
+        
+        if (!selectedFileFields.includes(activeFileKey) && selectedFileFields.length < 5) {
+            setSelectedFileFields((prev) => [...prev, activeFileKey]);
+        }
+        setCropperModalOpen(false);
+    };
+
+    // Helper function to check if file/URL is an image
+    const isImageFile = (urlOrFile: string | File) => {
+        if (typeof urlOrFile === "string") {
+            const cleanUrl = urlOrFile.split("?")[0].split("#")[0];
+            const extension = cleanUrl.split(".").pop()?.toLowerCase();
+            return ["jpg", "jpeg", "png", "webp", "gif"].includes(extension || "");
+        }
+        if (urlOrFile instanceof File) {
+            return urlOrFile.type.startsWith("image/");
+        }
+        return false;
+    };
+
+    // Helper to handle preview of file
+    const handlePreviewFile = (fieldKey: string, fieldLabel: string) => {
+        const newFile = newFiles[fieldKey];
+        const existingUrl = (customer as any)[fieldKey];
+
+        if (newFile) {
+            if (isImageFile(newFile)) {
+                const objectUrl = URL.createObjectURL(newFile);
+                setPreviewImage({ src: objectUrl, label: `Baru: ${fieldLabel}` });
+            } else {
+                const objectUrl = URL.createObjectURL(newFile);
+                window.open(objectUrl, "_blank");
+            }
+        } else if (existingUrl) {
+            if (isImageFile(existingUrl)) {
+                setPreviewImage({ src: existingUrl, label: fieldLabel });
+            } else {
+                window.open(existingUrl, "_blank");
+            }
+        }
+    };
+
     // Reset local state when opened with a new customer
     useEffect(() => {
         if (open) {
             setLocalStatus(customer?.linknetStatus);
             setCreateNotes("");
             setSurveyResult("SUCCESS");
-            setSiteId("");
+            setSiteId(customer?.siteId || "");
             setSurveyNotes("");
             setStartDate("");
             setEndDate("");
@@ -137,6 +225,23 @@ export function LinknetPipelineModal({
             setShowChangeForm(false);
             setChangePlan("");
             setChangeNotes("");
+
+            // Initialize selectedFileFields with existing files (max 5 files)
+            const existingFiles: string[] = [];
+            if (customer) {
+                const fileKeys = ["ktpFile", "frontHome", "sideHome", "ODPImage", "CaImage", "attachment"];
+                fileKeys.forEach((key) => {
+                    if ((customer as any)[key]) {
+                        existingFiles.push(key);
+                    }
+                });
+            }
+            if (existingFiles.length > 5) {
+                toast.warning("Terdapat lebih dari 5 berkas yang tersedia. Hanya 5 berkas pertama yang tercentang secara default.");
+            }
+            setSelectedFileFields(existingFiles.slice(0, 5));
+            setNewFiles({});
+            setPreviewImage(null);
         }
     }, [open, customer]);
 
@@ -168,21 +273,36 @@ export function LinknetPipelineModal({
 
         setLoading(true);
         try {
-            await CustomerService.updateSurveyResult(
+            const res: any = await CustomerService.updateSurveyResult(
                 customer.id,
                 surveyResult,
                 surveyResult === "SUCCESS" ? { siteId } : undefined,
-                surveyNotes
+                surveyNotes,
+                surveyResult === "REJECTED" ? selectedFileFields : undefined,
+                surveyResult === "REJECTED" ? newFiles : undefined
             );
-            toast.success(
+            
+            const successMsg = res?.data?.message || res?.message || (
                 surveyResult === "SUCCESS"
                     ? "Hasil survei SUKSES berhasil disimpan"
                     : "Hasil survei GAGAL berhasil disimpan"
             );
+            toast.success(successMsg);
+
             // Advance step internally based on survey result
             setLocalStatus(
-                surveyResult === "SUCCESS" ? "SURVEY_SUCCESS" : "SURVEY_REJECTED"
+                surveyResult === "SUCCESS" 
+                    ? (customer.isFreeRegistration 
+                        ? "APPOINTMENT_PENDING" 
+                        : "WAITING_REG_PAYMENT") 
+                    : "CA_PENDING"
             );
+
+            // Auto close modal if registered with Linknet (result === REJECTED)
+            if (surveyResult === "REJECTED") {
+                onOpenChange(false);
+            }
+
             onSuccess(); // refresh tabel di background
         } catch (err: any) {
             toast.error(err?.message || "Gagal menyimpan hasil survei");
@@ -205,7 +325,7 @@ export function LinknetPipelineModal({
     };
 
     const handleSearchSlots = async () => {
-        const searchId = customer.siteId;
+        const searchId = siteId;
         if (!searchId || !startDate || !endDate) {
             toast.error("Format Data & Tanggal belum lengkap");
             return;
@@ -289,7 +409,7 @@ export function LinknetPipelineModal({
         setChanging(true);
         try {
             const characteristics = [
-                { name: "homepass_id", value: customer.siteId || "" },
+                { name: "homepass_id", value: siteId || "" },
                 { name: "product_plan", value: changePlan },
                 { name: "notes", value: changeNotes },
                 { name: "must_do", value: "no" },
@@ -326,7 +446,8 @@ export function LinknetPipelineModal({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="w-[95vw] md:max-w-2xl max-h-[95vh] overflow-y-auto bg-white p-0 rounded-2xl border-none shadow-2xl custom-scrollbar">
                 <div className="bg-slate-50 px-6 py-5 border-b border-slate-100">
                     <DialogHeader>
@@ -345,9 +466,9 @@ export function LinknetPipelineModal({
                 <div className="p-6">
                     {/* Stepper Progress Bar */}
                     <div className="flex items-center justify-between mb-8 relative">
-                        <div className="absolute top-1/2 left-0 w-full h-[2px] bg-slate-100 -z-10 -translate-y-1/2"></div>
+                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -z-10 -translate-y-1/2"></div>
                         <div
-                            className="absolute top-1/2 left-0 h-[2px] bg-indigo-500 -z-10 -translate-y-1/2 transition-all duration-500"
+                            className="absolute top-1/2 left-0 h-0.5 bg-indigo-500 -z-10 -translate-y-1/2 transition-all duration-500"
                             style={{
                                 width: `${(Math.min(currentStep, 3) / 3) * 100}%`,
                             }}
@@ -386,7 +507,7 @@ export function LinknetPipelineModal({
                     </div>
 
                     <div className="mt-8 border rounded-xl border-slate-100 bg-white p-6 shadow-sm">
-                        {currentStep === 4 ? (
+                        {currentStep === 5 ? (
                             <div className="text-center py-8">
                                 <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <CheckCircle2 size={32} />
@@ -398,9 +519,9 @@ export function LinknetPipelineModal({
 
                                 <div className="mt-8 flex flex-col gap-4">
                                     <div className="flex items-center gap-2 text-slate-400">
-                                        <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                        <div className="h-px flex-1 bg-slate-100"></div>
                                         <span className="text-[10px] font-bold uppercase tracking-widest">Aksi Lanjutan</span>
-                                        <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                        <div className="h-px flex-1 bg-slate-100"></div>
                                     </div>
 
                                     {!showChangeForm ? (
@@ -486,129 +607,359 @@ export function LinknetPipelineModal({
                                     </div>
                                 )}
 
-                                {/* --- Content: STEP 2 (SURVEY_IN_PROGRESS / REJECTED) --- */}
-                                {currentStep === 1 && (
+                                 {/* --- Content: STEP 2 (SURVEY_IN_PROGRESS / REJECTED / CA_PENDING) --- */}
+                                 {currentStep === 1 && (
+                                     <div className="space-y-6">
+                                         {localStatus === "CA_PENDING" ? (
+                                             <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-800 space-y-3">
+                                                 <div className="flex gap-3">
+                                                     <Loader2 className="mt-0.5 shrink-0 animate-spin text-indigo-600" size={20} />
+                                                     <div>
+                                                         <span className="font-bold block text-sm">Menunggu CA / Survei Linknet</span>
+                                                         <span className="text-xs block mt-1 leading-relaxed">
+                                                             Akun berhasil didaftarkan di Linknet. Menunggu proses survei lapangan dan penerbitan Site ID oleh pihak Linknet.
+                                                         </span>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         ) : localStatus === "SURVEY_REJECTED" ? (
+                                             <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-800 space-y-3">
+                                                 <div className="flex gap-3">
+                                                     <XCircle className="mt-0.5 shrink-0" size={20} />
+                                                     <div>
+                                                         <span className="font-bold block text-sm">Survei Sebelumnya Ditolak</span>
+                                                         <span className="text-xs block mt-1">Silakan ajukan ulang atau beri note tambahan jika ingin dicoba kembali.</span>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         ) : (
+                                             <p className="text-sm text-slate-600">
+                                                 Pilih hasil survei dari lapangan untuk menentukan pelolosan pelanggan ini ke tahap booking.
+                                             </p>
+                                         )}                                         <>
+                                             <div className="space-y-3">
+                                                 <Label className="text-slate-800 font-semibold mb-2 block">Hasil Checking</Label>
+                                                 <div className="flex flex-col gap-3">
+                                                     <div
+                                                         className={cn(
+                                                             "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
+                                                             surveyResult === "SUCCESS"
+                                                                 ? "bg-emerald-50 border-emerald-500"
+                                                                 : "border-slate-200 hover:bg-slate-50"
+                                                         )}
+                                                         onClick={() => setSurveyResult("SUCCESS")}
+                                                     >
+                                                         <div className={cn(
+                                                             "w-4 h-4 rounded-full border flex items-center justify-center",
+                                                             surveyResult === "SUCCESS" ? "border-emerald-500 bg-emerald-500" : "border-slate-300"
+                                                         )}>
+                                                             {surveyResult === "SUCCESS" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                         </div>
+                                                         <span className="flex-1 cursor-pointer font-semibold text-emerald-800">
+                                                             {localStatus === "CA_PENDING" ? "CA Berhasil / Site ID Terbit" : "Site Id / Home Pass Tersedia"}
+                                                         </span>
+                                                     </div>
+                                                     <div
+                                                         className={cn(
+                                                             "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
+                                                             surveyResult === "REJECTED"
+                                                                 ? "bg-rose-50 border-rose-500"
+                                                                 : "border-slate-200 hover:bg-slate-50"
+                                                         )}
+                                                         onClick={() => setSurveyResult("REJECTED")}
+                                                     >
+                                                         <div className={cn(
+                                                             "w-4 h-4 rounded-full border flex items-center justify-center",
+                                                             surveyResult === "REJECTED" ? "border-rose-500 bg-rose-500" : "border-slate-300"
+                                                         )}>
+                                                             {surveyResult === "REJECTED" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                         </div>
+                                                         <span className="flex-1 cursor-pointer font-semibold text-rose-800">
+                                                             {localStatus === "CA_PENDING" ? "CA Gagal / Survei Ditolak" : "Create Account / Site Id Tidak Tersedia"}
+                                                         </span>
+                                                     </div>
+                                                 </div>
+                                             </div>
+
+                                                 {surveyResult === "SUCCESS" && (
+                                                     <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                                                         <Label className="text-sm font-semibold text-slate-700">
+                                                             Masukkan Site ID <span className="text-rose-500">*</span>
+                                                         </Label>
+                                                         <Input
+                                                             placeholder="Nomor Site ID hasil survei ODP Linknet"
+                                                             value={siteId}
+                                                             onChange={(e) => setSiteId(e.target.value)}
+                                                             className="h-11 bg-slate-50 focus:bg-white"
+                                                         />
+                                                     </div>
+                                                 )}
+
+                                                 {surveyResult === "REJECTED" && (
+                                                     <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+                                                         <Label className="text-sm font-bold text-slate-800 block">
+                                                             Pilih Dokumen & Foto untuk Dikirim ke Linknet
+                                                         </Label>
+                                                         <span className="text-xs text-slate-500 block leading-relaxed mb-2">
+                                                             Pilih file yang akan dilampirkan untuk proses pembuatan akun Linknet. Anda juga dapat menambahkan/mengganti file di bawah ini.
+                                                         </span>
+
+                                                         <div className="divide-y divide-slate-100 bg-white rounded-lg border border-slate-150 overflow-hidden">
+                                                             {FILE_FIELDS.map((field) => {
+                                                                 const hasNew = !!newFiles[field.key];
+                                                                 const hasExisting = !!(customer as any)[field.key];
+                                                                 const isSelected = selectedFileFields.includes(field.key);
+
+                                                                 return (
+                                                                     <div key={field.key} className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition-all gap-4">
+                                                                         <div className="flex items-center gap-2">
+                                                                             <Checkbox
+                                                                                 id={`file-chk-${field.key}`}
+                                                                                 checked={isSelected}
+                                                                                 disabled={!hasNew && !hasExisting}
+                                                                                 onCheckedChange={(checked) => {
+                                                                                     if (checked) {
+                                                                                         if (selectedFileFields.length >= 5) {
+                                                                                             toast.error("Maksimal hanya 5 berkas yang dapat dipilih untuk dikirim ke Linknet");
+                                                                                             return;
+                                                                                         }
+                                                                                         setSelectedFileFields((prev) => [...prev, field.key]);
+                                                                                     } else {
+                                                                                         setSelectedFileFields((prev) => prev.filter((f) => f !== field.key));
+                                                                                     }
+                                                                                 }}
+                                                                             />
+                                                                             <Label
+                                                                                 htmlFor={`file-chk-${field.key}`}
+                                                                                 className="text-xs font-semibold text-slate-700 cursor-pointer select-none"
+                                                                             >
+                                                                                 {field.label}
+                                                                             </Label>
+                                                                         </div>
+
+                                                                         <div className="flex items-center gap-2 shrink-0">
+                                                                             {hasNew ? (
+                                                                                 <div className="flex items-center gap-1">
+                                                                                     <span className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-150 rounded-md max-w-30 truncate" title={newFiles[field.key].name}>
+                                                                                         Baru: {newFiles[field.key].name}
+                                                                                     </span>
+                                                                                     <Button
+                                                                                         type="button"
+                                                                                         variant="ghost"
+                                                                                         size="icon"
+                                                                                         className="h-6 w-6 text-slate-400 hover:text-slate-600 rounded-full"
+                                                                                         onClick={() => handlePreviewFile(field.key, field.label)}
+                                                                                     >
+                                                                                         <Eye size={12} />
+                                                                                     </Button>
+                                                                                 </div>
+                                                                             ) : hasExisting ? (
+                                                                                 <div className="flex items-center gap-1">
+                                                                                     <span className="text-[10px] font-medium px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-150 rounded-md">
+                                                                                         Tersedia
+                                                                                     </span>
+                                                                                     <Button
+                                                                                         type="button"
+                                                                                         variant="ghost"
+                                                                                         size="icon"
+                                                                                         className="h-6 w-6 text-slate-400 hover:text-slate-600 rounded-full"
+                                                                                         onClick={() => handlePreviewFile(field.key, field.label)}
+                                                                                     >
+                                                                                         <Eye size={12} />
+                                                                                     </Button>
+                                                                                 </div>
+                                                                             ) : (
+                                                                                 <span className="text-[10px] font-medium px-2 py-0.5 bg-slate-100 text-slate-500 border border-slate-200 rounded-md">
+                                                                                     Belum Ada
+                                                                                 </span>
+                                                                             )}
+
+                                                                             <div>
+                                                                                 <input
+                                                                                     type="file"
+                                                                                     id={`file-input-${field.key}`}
+                                                                                     className="hidden"
+                                                                                     accept="image/*,application/pdf"
+                                                                                     onChange={(e) => {
+                                                                                         const file = e.target.files?.[0];
+                                                                                         if (file) {
+                                                                                             // 1. Validate file size (max 4 MB)
+                                                                                             const maxSizeBytes = 4 * 1024 * 1024;
+                                                                                             if (file.size > maxSizeBytes) {
+                                                                                                 toast.error(`Ukuran file "${file.name}" melebihi batas maksimal 4 MB`);
+                                                                                                 return;
+                                                                                             }
+                                                                                             // 2. Validate max selected files limit
+                                                                                             if (!selectedFileFields.includes(field.key) && selectedFileFields.length >= 5) {
+                                                                                                 toast.error("Maksimal hanya 5 berkas yang dapat dipilih. Hapus centang pada berkas lain terlebih dahulu.");
+                                                                                                 return;
+                                                                                             }
+                                                                                             
+                                                                                             if (file.type.startsWith("image/")) {
+                                                                                                 setRawImageSrc(URL.createObjectURL(file));
+                                                                                                 setActiveFileKey(field.key);
+                                                                                                 setCropperModalOpen(true);
+                                                                                             } else {
+                                                                                                 setNewFiles((prev) => ({ ...prev, [field.key]: file }));
+                                                                                                 if (!selectedFileFields.includes(field.key)) {
+                                                                                                     setSelectedFileFields((prev) => [...prev, field.key]);
+                                                                                                 }
+                                                                                             }
+                                                                                         }
+                                                                                     }}
+                                                                                 />
+                                                                                 <Button
+                                                                                     type="button"
+                                                                                     variant="outline"
+                                                                                     size="sm"
+                                                                                     className="h-7 px-2 text-[10px] border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 font-medium"
+                                                                                     onClick={() => document.getElementById(`file-input-${field.key}`)?.click()}
+                                                                                 >
+                                                                                     <Upload size={10} className="mr-1" />
+                                                                                     {hasNew || hasExisting ? "Ganti" : "Pilih"}
+                                                                                 </Button>
+                                                                             </div>
+                                                                         </div>
+                                                                     </div>
+                                                                 );
+                                                             })}
+                                                         </div>
+                                                     </div>
+                                                 )}
+
+                                                 <div className="space-y-2">
+                                                     <Label className="text-sm font-semibold text-slate-700">
+                                                         {surveyResult === "SUCCESS" ? "Catatan Tambahan (Opsional)" : "Note Create Account (Wajib)"}
+                                                     </Label>
+                                                     <Textarea
+                                                         placeholder={surveyResult === "SUCCESS" ? "Opsional..." : "Site Id tidak tersedia?"}
+                                                         value={surveyNotes}
+                                                         onChange={(e) => setSurveyNotes(e.target.value)}
+                                                         className="bg-slate-50 focus:bg-white min-h-20"
+                                                     />
+                                                 </div>
+
+                                                 <div className="flex gap-3">
+                                                     <Button
+                                                         className={cn(
+                                                             "w-full text-white shadow-sm h-11",
+                                                             surveyResult === "SUCCESS" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
+                                                         )}
+                                                         onClick={handleUpdateSurvey}
+                                                         disabled={loading}
+                                                     >
+                                                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                         Simpan
+                                                     </Button>
+                                                     {localStatus === "SURVEY_REJECTED" && (
+                                                         <Button
+                                                             variant="outline"
+                                                             className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 h-11"
+                                                             onClick={handleRetrySurvey}
+                                                             disabled={loading}
+                                                         >
+                                                             Ajukan Survei Ulang
+                                                         </Button>
+                                                     )}
+                                                     {localStatus === "CA_PENDING" && (
+                                                         <Button
+                                                             variant="outline"
+                                                             className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 h-11"
+                                                             onClick={() => onOpenChange(false)}
+                                                             disabled={loading}
+                                                         >
+                                                             Tutup
+                                                         </Button>
+                                                     )}
+                                                 </div>
+                                             </>
+                                     </div>
+                                 )}
+
+                                {/* --- Content: STEP 3 (REGISTRATION_PAYMENT) --- */}
+                                {currentStep === 2 && (
                                     <div className="space-y-6">
-                                        {customer.linknetStatus === "SURVEY_REJECTED" ? (
-                                            <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-800 space-y-3">
-                                                <div className="flex gap-3">
-                                                    <XCircle className="mt-0.5 shrink-0" size={20} />
+                                        {localStatus === "WAITING_REG_PAYMENT" ? (() => {
+                                            const invoice = customer.invoices?.[0];
+                                            return (
+                                              <div className="p-5 bg-amber-50 border border-amber-200 rounded-xl space-y-4">
+                                                  <div className="flex items-start gap-3">
+                                                      <CreditCard className="mt-0.5 shrink-0 text-amber-500" size={24} />
+                                                      <div>
+                                                          <h4 className="font-bold text-amber-900 text-sm">Menunggu Pembayaran Registrasi</h4>
+                                                          <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                                                              Pelanggan telah dikirimkan Invoice Registrasi. Sistem akan memproses otomatis (via Webhook) begitu pelanggan melakukan pembayaran melalui Xendit Payment Link.
+                                                          </p>
+                                                      </div>
+                                                  </div>
+                                                  
+                                                  {invoice && (
+                                                      <div className="bg-white/60 p-4 rounded-lg border border-amber-200/60 mt-3 text-sm">
+                                                          <div className="flex justify-between items-center mb-2">
+                                                              <span className="text-slate-500">Nomor Invoice</span>
+                                                              <span className="font-bold text-slate-800">{invoice.invoiceNumber}</span>
+                                                          </div>
+                                                          <div className="flex justify-between items-center mb-2">
+                                                              <span className="text-slate-500">Total Tagihan</span>
+                                                              <span className="font-bold text-slate-800">
+                                                                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(invoice.amount)}
+                                                              </span>
+                                                          </div>
+                                                          {invoice.paymentUrl && (
+                                                              <div className="mt-3 pt-3 border-t border-amber-200/60">
+                                                                  <a 
+                                                                      href={invoice.paymentUrl} 
+                                                                      target="_blank" 
+                                                                      rel="noreferrer"
+                                                                      className="text-amber-700 hover:text-amber-800 font-semibold text-xs flex items-center justify-center gap-1"
+                                                                  >
+                                                                      Buka Link Pembayaran Xendit 
+                                                                  </a>
+                                                              </div>
+                                                          )}
+                                                      </div>
+                                                  )}
+
+                                                  <Button
+                                                      variant="outline"
+                                                      className="w-full bg-white border-amber-300 text-amber-700 hover:bg-amber-100 hover:text-amber-800 font-bold"
+                                                      onClick={() => onSuccess()} // onSuccess will refresh the table and customer data
+                                                  >
+                                                      <RefreshCw size={16} className="mr-2" />
+                                                      Cek Status Pembayaran
+                                                  </Button>
+                                              </div>
+                                            );
+                                        })() : localStatus === "REG_PAYMENT_PAID" ? (
+                                            <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-4">
+                                                <div className="flex items-start gap-3">
+                                                    <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-500" size={24} />
                                                     <div>
-                                                        <span className="font-bold block text-sm">Survei Sebelumnya Ditolak</span>
-                                                        <span className="text-xs block mt-1">Silakan ajukan ulang atau beri note tambahan jika ingin dicoba kembali.</span>
+                                                        <h4 className="font-bold text-emerald-900 text-sm">Tagihan Registrasi Lunas</h4>
+                                                        <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
+                                                            Pelanggan telah berhasil membayar tagihan registrasi. Anda sekarang dapat melanjutkan untuk mendaftarkan dan mem-booking jadwal instalasi (Linknet OM).
+                                                        </p>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-slate-600">
-                                                Pilih hasil survei dari lapangan untuk menentukan pelolosan pelanggan ini ke tahap booking.
-                                            </p>
-                                        )}
-
-                                        <div className="space-y-3">
-                                            <Label className="text-slate-800 font-semibold mb-2 block">Hasil Kunjungan Tim</Label>
-                                            <div className="flex flex-col gap-3">
-                                                <div
-                                                    className={cn(
-                                                        "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
-                                                        surveyResult === "SUCCESS"
-                                                            ? "bg-emerald-50 border-emerald-500"
-                                                            : "border-slate-200 hover:bg-slate-50"
-                                                    )}
-                                                    onClick={() => setSurveyResult("SUCCESS")}
-                                                >
-                                                    <div className={cn(
-                                                        "w-4 h-4 rounded-full border flex items-center justify-center",
-                                                        surveyResult === "SUCCESS" ? "border-emerald-500 bg-emerald-500" : "border-slate-300"
-                                                    )}>
-                                                        {surveyResult === "SUCCESS" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                                    </div>
-                                                    <span className="flex-1 cursor-pointer font-semibold text-emerald-800">
-                                                        Sukses / FAT Tersedia
-                                                    </span>
-                                                </div>
-                                                <div
-                                                    className={cn(
-                                                        "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-all",
-                                                        surveyResult === "REJECTED"
-                                                            ? "bg-rose-50 border-rose-500"
-                                                            : "border-slate-200 hover:bg-slate-50"
-                                                    )}
-                                                    onClick={() => setSurveyResult("REJECTED")}
-                                                >
-                                                    <div className={cn(
-                                                        "w-4 h-4 rounded-full border flex items-center justify-center",
-                                                        surveyResult === "REJECTED" ? "border-rose-500 bg-rose-500" : "border-slate-300"
-                                                    )}>
-                                                        {surveyResult === "REJECTED" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                                    </div>
-                                                    <span className="flex-1 cursor-pointer font-semibold text-rose-800">
-                                                        Gagal / FAT Penuh / Tidak Terjangkau
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {surveyResult === "SUCCESS" && (
-                                            <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
-                                                <Label className="text-sm font-semibold text-slate-700">
-                                                    Masukkan Site ID <span className="text-rose-500">*</span>
-                                                </Label>
-                                                <Input
-                                                    placeholder="Nomor Site ID hasil survei ODP Linknet"
-                                                    value={siteId}
-                                                    onChange={(e) => setSiteId(e.target.value)}
-                                                    className="h-11 bg-slate-50 focus:bg-white"
-                                                />
-                                            </div>
-                                        )}
-
-                                        <div className="space-y-2">
-                                            <Label className="text-sm font-semibold text-slate-700">
-                                                {surveyResult === "SUCCESS" ? "Catatan Tambahan (Opsional)" : "Alasan Penolakan / Note (Wajib)"}
-                                            </Label>
-                                            <Textarea
-                                                placeholder={surveyResult === "SUCCESS" ? "Opsional..." : "Kenapa survei tidak sukses?"}
-                                                value={surveyNotes}
-                                                onChange={(e) => setSurveyNotes(e.target.value)}
-                                                className="bg-slate-50 focus:bg-white min-h-[80px]"
-                                            />
-                                        </div>
-
-                                        <div className="flex gap-3">
-                                            <Button
-                                                className={cn(
-                                                    "w-full text-white shadow-sm h-11",
-                                                    surveyResult === "SUCCESS" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
-                                                )}
-                                                onClick={handleUpdateSurvey}
-                                                disabled={loading}
-                                            >
-                                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                Simpan Hasil Survei
-                                            </Button>
-                                            {customer.linknetStatus === "SURVEY_REJECTED" && (
                                                 <Button
-                                                    variant="outline"
-                                                    className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 h-11"
-                                                    onClick={handleRetrySurvey}
-                                                    disabled={loading}
+                                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                                    onClick={() => setLocalStatus("APPOINTMENT_PENDING")}
                                                 >
-                                                    Ajukan Survei Ulang
+                                                    Lanjut ke Booking Pemasangan <ArrowRight size={16} className="ml-2" />
                                                 </Button>
-                                            )}
-                                        </div>
+                                            </div>
+                                        ) : null}
                                     </div>
                                 )}
 
-                                {/* --- Content: STEP 3 (APPOINTMENT_PENDING) --- */}
-                                {currentStep === 2 && (
+                                {/* --- Content: STEP 4 (APPOINTMENT_PENDING) --- */}
+                                {currentStep === 3 && (
                                     <div className="space-y-5">
                                         <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 flex items-start gap-3">
                                             <Calendar className="text-amber-500 mt-1 shrink-0" size={18} />
                                             <div>
                                                 <p className="text-amber-900 font-semibold text-sm">Cari Slot Waktu Pemasangan</p>
-                                                <p className="text-amber-700 text-[11px] mt-1">Gunakan form di bawah ini untuk mencari kalender operasional Linknet terdekat berdasarkan Site ID pelanggan (<span className="block font-bold truncate max-w-[200px] mt-1 px-1.5 py-0.5 bg-amber-200/50 rounded inline-block">{customer.siteId}</span>).</p>
+                                                <p className="text-amber-700 text-[11px] mt-1">Gunakan form di bawah ini untuk mencari kalender operasional Linknet terdekat berdasarkan Site ID pelanggan (<span className="font-bold truncate max-w-50 mt-1 px-1.5 py-0.5 bg-amber-200/50 rounded inline-block">{siteId}</span>).</p>
                                             </div>
                                         </div>
 
@@ -667,7 +1018,7 @@ export function LinknetPipelineModal({
                                                 <Label className="text-sm font-bold text-slate-800 mb-3 block">
                                                     Pilih Slot Waktu Terbaik ({slots.length})
                                                 </Label>
-                                                <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                                <div className="max-h-75 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                                                     {slots.map((slot) => {
                                                         const isFull = slot.relatedParty?.id === "0";
                                                         const quota = isFull ? 0 : Number(slot.relatedParty?.id || 0);
@@ -723,8 +1074,8 @@ export function LinknetPipelineModal({
                                     </div>
                                 )}
 
-                                {/* --- Content: STEP 4 (WAITING FOR IKR CALLBACK) --- */}
-                                {currentStep === 3 && (
+                                {/* --- Content: STEP 5 (WAITING FOR IKR CALLBACK) --- */}
+                                {currentStep === 4 && (
                                     <div className="text-center py-8 px-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                                         <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-5 relative">
                                             <Loader2 size={24} className="animate-spin" />
@@ -741,9 +1092,9 @@ export function LinknetPipelineModal({
 
                                         <div className="mt-8 flex flex-col gap-4">
                                             <div className="flex items-center gap-2 text-slate-400">
-                                                <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                                <div className="h-px flex-1 bg-slate-100"></div>
                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Aksi Bahaya</span>
-                                                <div className="h-[1px] flex-1 bg-slate-100"></div>
+                                                <div className="h-px flex-1 bg-slate-100"></div>
                                             </div>
 
                                             {!showCancelForm ? (
@@ -799,5 +1150,46 @@ export function LinknetPipelineModal({
                 </div>
             </DialogContent>
         </Dialog>
-    );
+
+        {/* Fullscreen Image Preview Dialog */}
+        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+            <DialogContent className="max-w-7xl w-full h-screen border-none bg-black/95 p-0 sm:rounded-none flex flex-col justify-center items-center shadow-none focus:outline-none z-100">
+                <div className="absolute top-4 right-4 z-110">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-white/20 rounded-full h-12 w-12"
+                        onClick={() => setPreviewImage(null)}
+                    >
+                        <X size={24} />
+                    </Button>
+                </div>
+                {previewImage && (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                        <img
+                            src={previewImage.src}
+                            alt={previewImage.label}
+                            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        />
+                        <p className="text-white/80 mt-4 text-lg font-medium">
+                            {previewImage.label}
+                        </p>
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+
+        {/* Cropper Modal for Image Uploads */}
+        {rawImageSrc && (
+            <ImageCropperModal 
+                isOpen={cropperModalOpen} 
+                onClose={() => setCropperModalOpen(false)} 
+                imageSrc={rawImageSrc} 
+                onCropComplete={handleCropComplete} 
+                aspectRatio={activeFileKey === "ktpFile" ? 85.6 / 53.98 : undefined}
+                title={activeFileKey === "ktpFile" ? "Sesuaikan Foto KTP" : "Sesuaikan Foto"}
+            />
+        )}
+    </>
+);
 }

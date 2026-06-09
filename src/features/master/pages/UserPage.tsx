@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { ImpersonateConfirmDialog } from "../components/ImpersonateConfirmDialog";
 import { UserModal } from "../components/UserModal";
+import { AssignTemplateModal } from "../components/AssignTemplateModal";
 import { DeleteConfirmationModal } from "@/components/shared/DeleteConfirmationModal";
 import { useUser } from "../hooks/useUser";
 import { useToast } from "@/hooks/useToast";
@@ -60,6 +61,8 @@ export default function UserPage() {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [userToImpersonate, setUserToImpersonate] = useState<User | null>(null);
+    const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+    const [selectedUserForPermission, setSelectedUserForPermission] = useState<any>(null);
     const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
     const [suspendingId, setSuspendingId] = useState<string | null>(null);
 
@@ -274,6 +277,18 @@ export default function UserPage() {
                                 )}
                             </Button>
                         )}
+                        {userProfile?.role === "SUPER_ADMIN" && (
+                            <button
+                                onClick={() => {
+                                    setSelectedUserForPermission(row);
+                                    setIsPermissionModalOpen(true);
+                                }}
+                                className="p-1.5 text-purple-600 hover:bg-purple-50 hover:text-purple-700 rounded-lg transition-colors"
+                                title="Atur Permission Template"
+                            >
+                                <ShieldCheck size={16} />
+                            </button>
+                        )}
                         {canEdit && (
                             <Button
                                 variant="ghost"
@@ -405,7 +420,6 @@ export default function UserPage() {
                 loading={!!impersonatingId}
             />
 
-            {/* Delete Confirmation Modal */}
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
@@ -413,6 +427,17 @@ export default function UserPage() {
                 itemName={userToDelete?.name}
                 isLoading={deleting}
             />
+
+            {selectedUserForPermission && (
+                <AssignTemplateModal
+                    isOpen={isPermissionModalOpen}
+                    onClose={() => {
+                        setIsPermissionModalOpen(false);
+                        setSelectedUserForPermission(null);
+                    }}
+                    user={selectedUserForPermission}
+                />
+            )}
         </div>
     );
 }

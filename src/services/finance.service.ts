@@ -39,6 +39,7 @@ export interface Payment {
   method: string;
   reference?: string;
   paidAt?: string;
+  createdAt?: string;
   notes?: string;
 
   // New: Billing Parameters
@@ -56,8 +57,27 @@ export interface Payment {
   isAutomatic?: boolean;
   xenditCallbackData?: any;
 
+  status?: "PENDING" | "APPROVED" | "REJECTED";
+  proofOfPayment?: string;
+  rejectionReason?: string;
+
   wilayah?: { id: string; name: string; code: string };
   unit?: { id: string; name: string; code: string };
+}
+
+export interface UnallocatedPayment {
+  id: string;
+  customerId: string;
+  amount: number;
+  bankCode: string;
+  accountNumber: string;
+  referenceId?: string;
+  status: string;
+  notes?: string;
+  allocatedInvoiceId?: string;
+  createdAt: string;
+  customer?: { name: string; phone: string };
+  allocatedInvoice?: { invoiceNumber: string };
 }
 
 export interface CommissionLedger {
@@ -186,11 +206,33 @@ export const FinanceService = {
       { params: query },
     );
   },
-  createPayment: async (data: Partial<Payment>) => {
-    return apiClient.post<Payment>(`${ENDPOINTS.PAYMENT}/create`, data);
+  createPayment: async (data: Partial<Payment> | FormData) => {
+    // We send FormData if there's a file, but apiClient should handle it via axios
+    // It's recommended to set the header for FormData, but apiClient might handle it automatically.
+    return apiClient.post<Payment>(`${ENDPOINTS.PAYMENT}/create`, data, {
+      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined
+    });
+  },
+  approvePayment: async (id: string) => {
+    return apiClient.post(`${ENDPOINTS.PAYMENT}/${id}/approve`);
+  },
+  rejectPayment: async (id: string, reason: string) => {
+    return apiClient.post(`${ENDPOINTS.PAYMENT}/${id}/reject`, { reason });
   },
   deletePayment: async (id: string): Promise<void> => {
     await apiClient.delete(`${ENDPOINTS.PAYMENT}/delete/${id}`);
+  },
+  getUnallocatedPayments: async (query: BaseQuery = {}) => {
+    return apiClient.get<PaginatedResponse<UnallocatedPayment>>(
+      `${ENDPOINTS.PAYMENT}/unallocated`,
+      { params: query },
+    );
+  },
+  allocateUnallocatedPayment: async (id: string, invoiceId: string) => {
+    return apiClient.post<{ status: boolean; message: string; data: any }>(
+      `${ENDPOINTS.PAYMENT}/unallocated/${id}/allocate`,
+      { invoiceId }
+    );
   },
 
   // Commissions

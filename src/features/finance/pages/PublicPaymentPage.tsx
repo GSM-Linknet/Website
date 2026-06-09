@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, Clock, CreditCard, Receipt, User, Package } from "lucide-react";
+import { CheckCircle2, AlertCircle, Clock, Receipt, User, Package, Copy, Building2, ChevronRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import moment from "moment";
 
@@ -15,6 +15,16 @@ const PublicPaymentPage: React.FC = () => {
     const [invoice, setInvoice] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [paying, setPaying] = useState(false);
+    const [vaData, setVaData] = useState<any>(null);
+    const [generatingVA, setGeneratingVA] = useState(false);
+
+    const BANKS = [
+        { code: 'BCA', name: 'BCA Virtual Account', color: 'bg-blue-600' },
+        { code: 'MANDIRI', name: 'Mandiri Virtual Account', color: 'bg-yellow-500' },
+        { code: 'BNI', name: 'BNI Virtual Account', color: 'bg-orange-600' },
+        { code: 'BRI', name: 'BRI Virtual Account', color: 'bg-blue-700' },
+        { code: 'PERMATA', name: 'Permata Virtual Account', color: 'bg-emerald-600' }
+    ];
 
     useEffect(() => {
         if (id) {
@@ -91,6 +101,28 @@ const PublicPaymentPage: React.FC = () => {
         } finally {
             setPaying(false);
         }
+    };
+
+    const handleGenerateVA = async (bankCode: string) => {
+        if (!id) return;
+        try {
+            setGeneratingVA(true);
+            const res = await PaymentPublicService.generateVA(id, bankCode);
+            if (res && res.data) {
+                setVaData(res.data);
+            } else if (res && typeof res === 'object') {
+                setVaData(res);
+            }
+        } catch (err: any) {
+            toast.error(err.message || "Gagal membuat Virtual Account");
+        } finally {
+            setGeneratingVA(false);
+        }
+    };
+
+    const handleCopy = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success("Nomor VA berhasil disalin");
     };
 
     if (loading) {
@@ -204,30 +236,106 @@ const PublicPaymentPage: React.FC = () => {
                     )}
                 </CardContent>
 
-                <CardFooter className="p-6 bg-white border-t border-slate-50">
-                    {!isPaid && !isCancelled && (
-                        <Button
-                            onClick={handlePay}
-                            disabled={paying}
-                            className="w-full bg-[#111827] hover:bg-[#1f2937] text-white py-6 rounded-xl font-bold text-base transition-all active:scale-[0.98] shadow-lg shadow-gray-200"
-                        >
-                            {paying ? (
-                                <>
-                                    <Skeleton className="w-4 h-4 rounded-full animate-spin border-2 border-white border-t-transparent mr-2 bg-transparent" />
-                                    Memproses...
-                                </>
-                            ) : (
-                                <>
-                                    <CreditCard className="w-5 h-5 mr-2" />
-                                    Bayar Sekarang
-                                </>
-                            )}
-                        </Button>
-                    )}
-                    {isPaid && (
+                <CardFooter className="p-6 bg-white border-t border-slate-50 flex flex-col space-y-4">
+                    {isPaid ? (
                         <div className="w-full flex items-center justify-center p-4 bg-green-50 rounded-xl text-green-700 font-bold border border-green-100">
                             <CheckCircle2 className="w-5 h-5 mr-2" />
                             Pembayaran Berhasil
+                        </div>
+                    ) : isCancelled ? (
+                        <div className="w-full flex items-center justify-center p-4 bg-slate-50 rounded-xl text-slate-500 font-bold border border-slate-200">
+                            Tagihan Dibatalkan
+                        </div>
+                    ) : (
+                        <div className="w-full space-y-4">
+                            {!vaData ? (
+                                <>
+                                    <h3 className="text-sm font-bold text-slate-700 mb-3">Pilih Bank Transfer (Virtual Account)</h3>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {BANKS.map((bank) => (
+                                            <button
+                                                key={bank.code}
+                                                onClick={() => handleGenerateVA(bank.code)}
+                                                disabled={generatingVA}
+                                                className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-colors group disabled:opacity-50"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${bank.color}`}>
+                                                        <Building2 className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    <span className="font-semibold text-slate-700">{bank.name}</span>
+                                                </div>
+                                                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                                            </button>
+                                        ))}
+                                    </div>
+                                    
+                                    <div className="relative py-4">
+                                        <div className="absolute inset-0 flex items-center">
+                                            <div className="w-full border-t border-slate-200"></div>
+                                        </div>
+                                        <div className="relative flex justify-center text-xs">
+                                            <span className="bg-white px-2 text-slate-400">Atau gunakan</span>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        onClick={handlePay}
+                                        disabled={paying || generatingVA}
+                                        variant="outline"
+                                        className="w-full py-6 rounded-xl font-bold text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-all"
+                                    >
+                                        {paying ? (
+                                            <>
+                                                <Skeleton className="w-4 h-4 rounded-full animate-spin border-2 border-slate-700 border-t-transparent mr-2 bg-transparent" />
+                                                Memproses...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Metode Lainnya (QRIS / E-Wallet)
+                                            </>
+                                        )}
+                                    </Button>
+                                </>
+                            ) : (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
+                                        <p className="text-sm font-medium text-blue-600 mb-1">Transfer ke {vaData.bankCode} Virtual Account</p>
+                                        <h3 className="text-2xl font-black text-blue-900 tracking-wider my-2">{vaData.accountNumber}</h3>
+                                        <p className="text-xs font-bold text-blue-700">A.N. {vaData.name}</p>
+                                        
+                                        <Button
+                                            onClick={() => handleCopy(vaData.accountNumber)}
+                                            variant="secondary"
+                                            size="sm"
+                                            className="mt-4 bg-white text-blue-700 hover:bg-blue-100 w-full font-bold"
+                                        >
+                                            <Copy className="w-4 h-4 mr-2" />
+                                            Salin Nomor VA
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={() => setVaData(null)}
+                                            variant="outline"
+                                            className="flex-1"
+                                        >
+                                            Ubah Metode
+                                        </Button>
+                                        <Button
+                                            onClick={fetchInvoice}
+                                            className="flex-1 bg-slate-900 hover:bg-slate-800 text-white"
+                                        >
+                                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                                            Cek Status
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-center text-slate-500">
+                                        Setelah melakukan transfer, silakan klik tombol Cek Status Pembayaran.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardFooter>

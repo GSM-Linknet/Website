@@ -1,3 +1,12 @@
+/**
+ * routes/config.tsx
+ * Tujuan      : Konfigurasi routing aplikasi React menggunakan React Router.
+ * Dipakai oleh: src/index.tsx atau App.tsx
+ * Dependensi  : react-router-dom, lazy-loaded page components
+ * Fungsi utama: Menyusun hirarki route, autentikasi middleware, role check, dan layout wrap.
+ * Side effects: Navigasi URL klien, lazy loading bundle.
+ */
+
 import { lazy, Suspense } from "react";
 import type { RouteObject } from "react-router-dom";
 import { Navigate, Outlet } from "react-router-dom";
@@ -11,6 +20,9 @@ const DashboardPage = lazy(
 );
 const CustomerListPage = lazy(
   () => import("@/features/customers/pages/CustomerListPage"),
+);
+const ChildrenCustomerListPage = lazy(
+  () => import("@/features/customers/pages/ChildrenCustomerListPage"),
 );
 const CustomerRegistrationPage = lazy(
   () => import("@/features/customers/pages/CustomerRegistrationPage"),
@@ -48,6 +60,12 @@ const InvoicePage = lazy(() => import("@/features/finance/pages/InvoicePage"));
 const DeleteRequestsPage = lazy(() => import("@/features/finance/pages/DeleteRequestsPage"));
 const PaymentHistoryPage = lazy(
   () => import("@/features/finance/pages/PaymentHistoryPage"),
+);
+const PendingPaymentsPage = lazy(
+  () => import("@/features/finance/pages/PendingPaymentsPage"),
+);
+const UnallocatedPaymentPage = lazy(
+  () => import("@/features/finance/pages/UnallocatedPaymentPage"),
 );
 const AgingReportsPage = lazy(
   () => import("@/features/finance/pages/AgingReportsPage"),
@@ -251,6 +269,14 @@ export const routes: RouteObject[] = [
             ),
           },
           {
+            path: "children",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ChildrenCustomerListPage />
+              </Suspense>
+            ),
+          },
+          {
             path: "layanan",
             element: (
               <Suspense fallback={<PageLoader />}>
@@ -258,6 +284,7 @@ export const routes: RouteObject[] = [
               </Suspense>
             ),
           },
+
           {
             path: "review-suspend",
             element: (
@@ -581,6 +608,22 @@ export const routes: RouteObject[] = [
             element: (
               <Suspense fallback={<PageLoader />}>
                 <PaymentHistoryPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "pending-payments",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <PendingPaymentsPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: "unallocated",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <UnallocatedPaymentPage />
               </Suspense>
             ),
           },

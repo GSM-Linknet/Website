@@ -1,3 +1,18 @@
+/**
+ * @file Sidebar.tsx
+ * @description Sidebar navigation component displaying the logo, user role details, current commission balance widget, and menu navigation links.
+ * @used_by Layout.tsx (global layout wrapper)
+ * @dependencies
+ * - commissionService (API: /commissions/summary)
+ * - AuthService (Auth permission checks and user profile retrieval)
+ * - useSidebar (Sidebar collapse state)
+ * @public_functions
+ * - Sidebar (React Functional Component)
+ * @side_effects
+ * - Fetches user commission summary on mount or when user ID changes (HTTP GET)
+ * - Saves/loads balance visibility preference to/from localStorage
+ */
+
 import { Wallet, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react";
 import { NavLink, Link } from "react-router-dom";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -23,18 +38,19 @@ export const Sidebar = () => {
   });
   const [balance, setBalance] = useState<number | null>(null);
   const user = AuthService.getUser();
+  const userId = user?.id;
 
   useEffect(() => {
     localStorage.setItem("sidebar_show_saldo", showSaldo.toString());
   }, [showSaldo]);
 
   useEffect(() => {
-    if (user) {
+    if (userId) {
       commissionService.getSummary({ personal: true })
         .then(data => setBalance(data.totalCommission))
         .catch(err => console.error("Failed to fetch commission summary", err));
     }
-  }, [user]);
+  }, [userId]);
 
   const toggleExpand = (title: string) => {
     if (isCollapsed) {

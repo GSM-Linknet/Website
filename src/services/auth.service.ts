@@ -52,11 +52,12 @@ export type PermissionResource =
   | "reporting.master"
   | "reporting.activity"
   | "reporting.kpi"
-  // Keuangan
   | "keuangan.history"
+  | "keuangan.unallocated"
   | "keuangan.aging"
   | "keuangan.saldo"
   | "keuangan.invoice"
+  | "keuangan.payment"
   | "keuangan.batch-payment"
   | "keuangan.revenue-share"
   | "keuangan.unit-expense"
@@ -87,6 +88,7 @@ export type AppAction =
   | "impersonate"
   | "suspend"
   | "pay"
+  | "approve"
   | "linknet";
 
 export interface User {
@@ -99,6 +101,7 @@ export interface User {
   cabangId?: string;
   unitId?: string;
   subUnitId?: string;
+  userPermissions?: string[] | null;
 }
 
 interface LoginResponse {
@@ -159,9 +162,11 @@ export const PERMISSIONS: PermissionMatrix = {
     "reporting.unit": ["view", "export"],
     "reporting.berkala": ["view", "export"],
     "keuangan.history": ["view", "export"],
+    "keuangan.unallocated": ["view", "edit", "create", "delete", "export"],
     "keuangan.aging": ["view", "export"],
     "keuangan.saldo": ["view", "export"],
     "keuangan.invoice": ["view", "create", "edit", "delete", "export", "pay"],
+    "keuangan.payment": ["view", "approve"],
     "settings.permissions": ["view", "create", "edit", "delete"],
     "settings.whatsapp": ["view", "edit"],
     "settings.system": ["view", "edit"],
@@ -190,6 +195,7 @@ export const PERMISSIONS: PermissionMatrix = {
     "reporting.unit": ["view", "export"],
     "reporting.berkala": ["view", "export"],
     "keuangan.history": ["view"],
+    "keuangan.unallocated": ["view", "edit"],
     "keuangan.aging": ["view"],
     "keuangan.saldo": ["view"],
     "settings.permissions": ["view"],
@@ -409,6 +415,15 @@ export const AuthService = {
   ): boolean {
     // Super Admin has all permissions
     if (role === "SUPER_ADMIN") return true;
+
+    // Strict Override: If user has explicit templates assigned, ignore Role permissions
+    const user = this.getUser();
+    if (user && user.userPermissions && user.userPermissions.length > 0) {
+      return (
+        user.userPermissions.includes(`${resource}:${action}`) ||
+        user.userPermissions.includes(`${resource}:*`)
+      );
+    }
 
     const permissionsStr = localStorage.getItem("app_permissions");
     let rolePermissions: any = null;

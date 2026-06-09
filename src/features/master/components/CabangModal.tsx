@@ -28,6 +28,7 @@ export function CabangModal({
     code: "",
     wilayahIds: [] as string[],
     areaIds: [] as string[],
+    installationFee: 100000,
   });
 
   const { data: wilayahs, loading: loadingWilayah } = useWilayah({ limit: 100 });
@@ -46,6 +47,7 @@ export function CabangModal({
           code: initialData.code || "",
           wilayahIds,
           areaIds,
+          installationFee: initialData.installationFee ?? 100000,
         });
       } else {
         setFormData({
@@ -53,6 +55,7 @@ export function CabangModal({
           code: "",
           wilayahIds: [],
           areaIds: [],
+          installationFee: 100000,
         });
       }
     }
@@ -136,6 +139,26 @@ export function CabangModal({
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             className="rounded-xl border-slate-200 focus:ring-blue-500/20 focus:border-blue-500 h-11"
             required
+            disabled={isLoading}
+          />
+        </div>
+
+        {/* Installation Fee Field */}
+        <div className="space-y-2">
+          <Label
+            htmlFor="installationFee"
+            className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"
+          >
+            <Hash size={14} className="text-blue-500" />
+            Biaya Pemasangan (Rp)
+          </Label>
+          <Input
+            id="installationFee"
+            type="number"
+            placeholder="Default: 100000"
+            value={formData.installationFee}
+            onChange={(e) => setFormData({ ...formData, installationFee: Number(e.target.value) })}
+            className="rounded-xl border-slate-200 focus:ring-blue-500/20 focus:border-blue-500 h-11"
             disabled={isLoading}
           />
         </div>

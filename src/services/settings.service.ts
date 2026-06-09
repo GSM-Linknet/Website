@@ -10,7 +10,8 @@ export interface RolePermission {
 }
 
 const ENDPOINTS = {
-    PERMISSIONS: "/settings/permissions"
+    PERMISSIONS: "/settings/permissions",
+    TEMPLATES: "/settings/permission-templates"
 };
 
 export const SettingsService = {
@@ -28,5 +29,30 @@ export const SettingsService = {
   },
   syncPermissions: async (data: { role: string; resource: string; actions: string[] }) => {
     return apiClient.post(`${ENDPOINTS.PERMISSIONS}/sync`, data);
+  },
+  
+  // Templates
+  getTemplates: async () => {
+    return apiClient.get(`${ENDPOINTS.TEMPLATES}`);
+  },
+  createTemplate: async (data: { name: string; description?: string }) => {
+    return apiClient.post(`${ENDPOINTS.TEMPLATES}`, data);
+  },
+  deleteTemplate: async (id: string) => {
+    return apiClient.delete(`${ENDPOINTS.TEMPLATES}/${id}`);
+  },
+  getTemplatePermissions: async (templateId: string) => {
+    return apiClient.get(`${ENDPOINTS.TEMPLATES}/${templateId}/permissions`);
+  },
+  syncTemplatePermissions: async (data: { templateId: string; resource: string; actions: string[] }) => {
+    return apiClient.post(`${ENDPOINTS.TEMPLATES}/sync-permissions`, data);
+  },
+
+  // User Template Assignment
+  getUserTemplates: async (userId: string) => {
+    return apiClient.get(`${ENDPOINTS.TEMPLATES}/user/${userId}`);
+  },
+  assignTemplatesToUser: async (data: { userId: string; templateIds: string[] }) => {
+    return apiClient.post(`${ENDPOINTS.TEMPLATES}/user/assign`, data);
   }
 };

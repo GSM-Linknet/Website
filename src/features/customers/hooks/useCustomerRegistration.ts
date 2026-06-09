@@ -205,6 +205,23 @@ export function useCustomerRegistration() {
     setIsDetailModalOpen(true);
   };
 
+  const handleStartReview = async (row: Customer) => {
+    try {
+      await CustomerService.updateCustomer(row.id, { linknetStatus: "ON_REVIEW" });
+      toast({
+        title: "Status Diperbarui",
+        description: "Status pelanggan sekarang On Review",
+      });
+      refresh();
+    } catch (error) {
+      toast({
+        title: "Gagal",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleVerify = useCallback(async (idOrCustomer: string | Customer, isVerify: boolean = true, siteId?: string) => {
     const id = typeof idOrCustomer === 'string' ? idOrCustomer : idOrCustomer.id;
 
@@ -354,6 +371,7 @@ export function useCustomerRegistration() {
     handleDeleteClick,
     handleConfirmDelete,
     handleViewDetail,
+    handleStartReview,
     handleVerifyAction,
     handleVerify,
     handleLinknetPipeline,
