@@ -208,7 +208,6 @@ export default function CustomerRegistrationPage() {
               "rounded-md text-[10px] font-bold px-2 py-0.5 border cursor-pointer hover:opacity-80 transition-opacity",
               config.color
             )}
-            onClick={() => handleLinknetPipeline(row)}
           >
             {config.label}
           </Badge>
@@ -256,7 +255,7 @@ export default function CustomerRegistrationPage() {
                   Proses Review
                 </DropdownMenuItem>
               )}
-              {canVerify && !row.siteId && (row.statusCust || (!row.statusCust && row.linknetStatus === "ON_REVIEW")) && (
+              {canVerify && (row.statusCust || (!row.statusCust && row.linknetStatus === "ON_REVIEW")) && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 focus:text-blue-700 bg-blue-50/50 mb-1"
                   onClick={() => setCustomerToVerify(row)}
@@ -294,38 +293,40 @@ export default function CustomerRegistrationPage() {
                   } catch (e) {}
                 }
                 const isPaidOrBeyond = row.linknetStatus !== "WAITING_REG_PAYMENT" && !!row.linknetStatus && row.linknetStatus !== "ON_REVIEW" && row.linknetStatus !== "PENDING_VERIFICATION";
-                const showLinknet = canLinknet && row.statusCust === true && (!isParallel || isPaidOrBeyond);
+                const showLinknet = Boolean(canLinknet && row.statusCust === true && (!isParallel || isPaidOrBeyond) && row.linknetStatus && row.linknetStatus.trim() !== "");
 
                 if (!showLinknet) return null;
 
                 return (
-                  <DropdownMenuItem
-                    className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
-                    onClick={() => handleLinknetPipeline(row)}
-                  >
-                    <Wifi size={14} />
-                    Kelola Linknet Pipeline
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem
+                      className="cursor-pointer rounded-lg text-xs font-semibold text-indigo-600 flex items-center gap-2"
+                      onClick={() => handleLinknetPipeline(row)}
+                    >
+                      <Wifi size={14} />
+                      Kelola Linknet Pipeline
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      className="cursor-pointer rounded-lg text-xs font-semibold text-teal-600 flex items-center gap-2"
+                      onClick={() => handleSetDocumentUploaded(row)}
+                    >
+                      <FileCheck size={14} />
+                      Set Active
+                    </DropdownMenuItem>
+
+                    {row.lnId && (
+                      <DropdownMenuItem
+                        className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 flex items-center gap-2"
+                        onClick={() => handleCheckWOStatus(row)}
+                      >
+                        <ClipboardList size={14} />
+                        Cek Status WO Linknet
+                      </DropdownMenuItem>
+                    )}
+                  </>
                 );
               })()}
-              {canLinknet && row.statusCust && (
-                <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-teal-600 flex items-center gap-2"
-                  onClick={() => handleSetDocumentUploaded(row)}
-                >
-                  <FileCheck size={14} />
-                  Set Active
-                </DropdownMenuItem>
-              )}
-              {canLinknet && row.statusCust && row.lnId && (
-                <DropdownMenuItem
-                  className="cursor-pointer rounded-lg text-xs font-semibold text-blue-600 flex items-center gap-2"
-                  onClick={() => handleCheckWOStatus(row)}
-                >
-                  <ClipboardList size={14} />
-                  Cek Status WO Linknet
-                </DropdownMenuItem>
-              )}
               {canDelete && (
                 <DropdownMenuItem
                   className="cursor-pointer rounded-lg text-xs font-semibold text-rose-600"

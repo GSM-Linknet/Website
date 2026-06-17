@@ -538,7 +538,7 @@ export const CustomerTable = ({
                     </DropdownMenuItem>
                   )}
 
-                  {row.customerId && (
+                  {row.customerId && canLinknet && (
                     <>
                       <DropdownMenuItem
                         className="cursor-pointer rounded-lg text-xs font-semibold flex items-center gap-2.5 px-2.5 py-2 text-emerald-600 hover:bg-emerald-50/50 focus:bg-emerald-50/50 transition-colors"

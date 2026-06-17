@@ -1,7 +1,7 @@
 import { apiClient } from "./api-client";
 
 export interface WhatsAppStatus {
-  status: "connected" | "disconnected" | "qr";
+  status: "connected" | "gateway_error";
 }
 
 export interface WhatsAppStats {
@@ -52,7 +52,6 @@ export interface PaginatedResponse<T> {
 
 export const WhatsAppService = {
   getStatus: () => apiClient.get<{ data: WhatsAppStatus }>("/whatsapp/status"),
-  logout: () => apiClient.post("/whatsapp/logout"),
   sendTest: (phoneNumber: string, message: string) =>
     apiClient.post("/whatsapp/send-test", { phoneNumber, message }),
 

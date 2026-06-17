@@ -13,6 +13,7 @@ import {
   Download,
   Filter,
   X,
+  MessageSquare,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -485,6 +486,39 @@ export default function InvoicePage() {
                     Laporkan Sudah Bayar
                   </DropdownMenuItem>
                 )}
+              {invoice.status !== "paid" &&
+                invoice.status !== "cancelled" &&
+                AuthService.hasPermission(
+                  user?.role || "USER",
+                  "keuangan.invoice",
+                  "view",
+                ) && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setAlertConfig({
+                      title: "Kirim Notifikasi WA",
+                      description: `Apakah Anda yakin ingin mengirim pesan tagihan invoice ${invoice.invoiceNumber} via WhatsApp sekarang?`,
+                      variant: "default",
+                      onConfirm: async () => {
+                        try {
+                          await FinanceService.sendWhatsAppNotification(invoice.id);
+                          toast.success(
+                            "Notifikasi WhatsApp berhasil dikirim ke antrean pengiriman",
+                          );
+                        } catch (error) {
+                          console.error(error);
+                          toast.error("Gagal mengirim notifikasi WhatsApp");
+                        }
+                      },
+                    });
+                    setAlertOpen(true);
+                  }}
+                  className="cursor-pointer text-emerald-600 focus:text-emerald-600"
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Kirim Notifikasi WA
+                </DropdownMenuItem>
+              )}
               {invoice.status !== "paid" && AuthService.hasPermission(
                 user?.role || "USER",
                 "keuangan.invoice",

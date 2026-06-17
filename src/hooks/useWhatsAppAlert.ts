@@ -47,11 +47,8 @@ export const useWhatsAppAlert = () => {
       const statusResponse = await WhatsAppService.getStatus();
       const whatsappStatus = statusResponse.data;
 
-      // Show alert if WhatsApp is enabled but not connected (disconnected or qr)
-      if (
-        whatsappStatus.status === "disconnected" ||
-        whatsappStatus.status === "qr"
-      ) {
+      // Show alert if WhatsApp is enabled but not connected (gateway_error)
+      if (whatsappStatus.status === "gateway_error") {
         setIsOpen(true);
       } 
     } catch (error) {

@@ -71,7 +71,7 @@ export const SuspendQueueService = {
   },
   approveAllPending: async () => {
     return apiClient.post<ApiResponse<any>>(
-      `/pelanggan/suspend-queue/approve-all`
+      `/pelanggan/suspend-queue/approve-all`,
     );
   },
   exportExcel: async (query: BaseQuery = {}) => {

@@ -284,6 +284,9 @@ export const FinanceService = {
   reportPaid: async (id: string) => {
     return apiClient.patch(`${ENDPOINTS.INVOICE}/report-paid/${id}`);
   },
+  sendWhatsAppNotification: async (id: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/send-wa/${id}`);
+  },
 
   // Central Balance Multi-Bucket
   topUpAllocation: async (amount: number, notes?: string) => {
