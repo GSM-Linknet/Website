@@ -9,7 +9,7 @@ export interface Invoice {
   id: string;
   customerId: string;
   customer?: any;
-  type: "REGISTRATION" | "MONTHLY";
+  type: "REGISTRATION" | "MONTHLY" | "ADMINISTRASI";
   period?: string;
   invoiceNumber: string;
   amount: number;
@@ -116,6 +116,20 @@ export const FinanceService = {
       { params: query },
     );
   },
+  exportExcel: async (query: BaseQuery = {}) => {
+    const response = await apiClient.get<Blob>(
+      `${ENDPOINTS.INVOICE}/export/excel`,
+      { params: query, responseType: "blob" }
+    );
+    const url = window.URL.createObjectURL(response);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Tagihan_${new Date().getTime()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
   createInvoice: async (data: Partial<Invoice>) => {
     return apiClient.post<Invoice>(`${ENDPOINTS.INVOICE}/create`, data);
   },
@@ -156,6 +170,15 @@ export const FinanceService = {
       },
       { timeout: 120_000 },
     );
+  },
+
+  createAdministrasiInvoice: async (customerId: string, amount: number, keterangan: string, notes?: string) => {
+    return apiClient.post(`${ENDPOINTS.INVOICE}/create/administrasi`, {
+      customerId,
+      amount,
+      keterangan,
+      notes,
+    });
   },
 
   generateBulk: async (period: Date, unitId?: string) => {

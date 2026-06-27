@@ -195,7 +195,28 @@ const PublicPaymentPage: React.FC = () => {
                         </h2>
                     </div>
 
-                    <div className="space-y-4">
+                    {invoice.invoices && invoice.invoices.length > 0 && (
+                        <div className="pt-2">
+                            <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-wider mb-3">Rincian Pembayaran</p>
+                            <div className="space-y-2">
+                                {invoice.invoices.map((inv: any) => (
+                                    <div key={inv.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                        <div>
+                                            <p className="text-sm font-semibold text-[#374151]">
+                                                {inv.type === 'MONTHLY' ? 'Tagihan Bulanan' : inv.type === 'REGISTRATION' ? 'Biaya Registrasi' : 'Administrasi'}
+                                            </p>
+                                            <p className="text-xs text-[#6B7280]">
+                                                {inv.period ? moment(inv.period).format('MMMM YYYY') : inv.invoiceNumber}
+                                            </p>
+                                        </div>
+                                        <p className="text-sm font-bold text-[#111827]">Rp {inv.amount.toLocaleString('id-ID')}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-4 pt-2">
                         <div className="flex items-start gap-4">
                             <div className="p-2 bg-blue-50 rounded-lg">
                                 <User className="w-4 h-4 text-blue-600" />
@@ -342,7 +363,7 @@ const PublicPaymentPage: React.FC = () => {
             </Card>
 
             <p className="mt-8 text-sm text-[#9CA3AF] font-medium">
-                © {new Date().getFullYear()} Living Network. All rights reserved.
+                © {new Date().getFullYear()} Rantai Desa Nusantara. All rights reserved.
             </p>
         </div>
     );

@@ -9,6 +9,7 @@ import {
   Wallet2,
   Clock,
   User,
+  Download,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import moment from "moment";
 import { useDebounce } from "@/hooks/useDebounce";
 import { CreateBatchPaymentModal } from "../components/CreateBatchPaymentModal";
 import { useBatchPayments } from "../hooks/useBatchPayments";
+import { FinanceService } from "@/services/finance.service";
 
 export default function ReviewUnitPaymentPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -186,6 +188,21 @@ export default function ReviewUnitPaymentPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <Button
+            onClick={() => {
+              const query = {
+                where: "isReportedPaid:true",
+                not_: "status:paid",
+                search: debouncedSearchQuery ? `customer.name:${debouncedSearchQuery}` : undefined,
+              };
+              FinanceService.exportExcel(query);
+            }}
+            variant="outline"
+            className="border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm transition-all w-full sm:w-auto"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Excel
+          </Button>
           <Button
             onClick={() => setIsBatchModalOpen(true)}
             disabled={selectedInvoiceIds.length === 0}

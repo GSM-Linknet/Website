@@ -16,6 +16,7 @@ import {
   Smartphone,
   Wallet,
   RefreshCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CreatePayoutModal } from "../components/CreatePayoutModal";
@@ -27,6 +28,7 @@ import { FinanceService } from "@/services/finance.service";
 import { useToast } from "@/hooks/useToast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { commissionService } from "@/services/commission.service";
+import { SystemSettingService } from "@/services/system-setting.service";
 
 export default function PayoutPage() {
   const {
@@ -56,8 +58,10 @@ export default function PayoutPage() {
   const [totalCommission, setTotalCommission] = useState(0);
   const [totalPending, setTotalPending] = useState(0);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
 
   const isFirstRender = useRef(true);
+  
   // Apply date filters to the backend query when they change
   useEffect(() => {
     // Only skip on actual first mount to avoid redundant initial call
@@ -74,10 +78,24 @@ export default function PayoutPage() {
 
   useEffect(() => {
     fetchSummary();
+    fetchMaintenanceStatus();
     if (activeTab === "statement") {
       fetchStatement();
     }
   }, [activeTab, dateFrom, dateTo]);
+
+  const fetchMaintenanceStatus = async () => {
+    try {
+      const res = await SystemSettingService.getSetting("PAYOUT_MAINTENANCE_MODE");
+      if (res.data && res.data.value === "true") {
+        setIsMaintenanceMode(true);
+      } else {
+        setIsMaintenanceMode(false);
+      }
+    } catch (error) {
+      console.error("Failed to fetch maintenance status:", error);
+    }
+  };
 
   const fetchSummary = async () => {
     try {
@@ -413,6 +431,7 @@ export default function PayoutPage() {
                   className="h-8 w-8 p-0 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 border-rose-100"
                   onClick={() => handleReject(payout.id)}
                   title="Tolak"
+                  disabled={isMaintenanceMode}
                 >
                   <XCircle size={16} />
                 </Button>
@@ -421,6 +440,7 @@ export default function PayoutPage() {
                   className="h-8 w-8 p-0 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white"
                   onClick={() => handleApprove(payout.id)}
                   title="Setujui"
+                  disabled={isMaintenanceMode}
                 >
                   <CheckCircle2 size={16} />
                 </Button>
@@ -558,13 +578,31 @@ export default function PayoutPage() {
           )}
           <Button
             onClick={() => setIsCreateOpen(true)}
-            className="bg-[#101D42] hover:bg-[#0a1329] text-white rounded-2xl h-12 px-6 font-bold shadow-xl shadow-blue-900/20 active:scale-95 transition-all"
+            disabled={isMaintenanceMode}
+            className="bg-[#101D42] hover:bg-[#0a1329] text-white rounded-2xl h-12 px-6 font-bold shadow-xl shadow-blue-900/20 active:scale-95 transition-all disabled:opacity-50"
           >
             <Plus className="mr-2 h-5 w-5" />
             Ajukan Payout
           </Button>
         </div>
       </div>
+
+      {isMaintenanceMode && (
+        <div className="mx-2 bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-4">
+          <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
+            <AlertTriangle size={20} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-amber-800 font-bold text-sm mb-1">
+              Layanan Xendit Sedang Mengalami Gangguan
+            </h3>
+            <p className="text-amber-700 text-xs font-medium leading-relaxed">
+              Saat ini sistem penyedia layanan pembayaran (Xendit) sedang mengalami gangguan jaringan atau dalam masa pemeliharaan rutin. 
+              Fitur pencairan dana (payout) dinonaktifkan sementara hingga koneksi ke layanan Xendit kembali stabil.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 mx-2">

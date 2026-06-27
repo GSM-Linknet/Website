@@ -1,4 +1,4 @@
-import { LayoutDashboard, Database, Users, Wrench, Factory, BarChart3, TrendingUp, Settings, DollarSign } from "lucide-react";
+import { LayoutDashboard, Database, Users, Wrench, Factory, BarChart3, TrendingUp, Settings, DollarSign, MessageCircle } from "lucide-react";
 import type { PermissionResource, AppAction } from "@/services/auth.service";
 
 // Mapping of Parent Modules to Sub-Resources
@@ -104,6 +104,15 @@ export const MODULE_GROUPS: {
             { key: "keuangan.saldo", label: "Saldo & Payout" },
             { key: "keuangan.rab", label: "RAB Anggaran" },
             { key: "payout", label: "Disbursement" }
+        ]
+    },
+    {
+        id: "customer-support",
+        label: "Customer Support",
+        icon: MessageCircle,
+        resources: [
+            { key: "customer-support", label: "Pesan & Layanan Pelanggan" },
+            { key: "customer-support.shifts", label: "Jadwal CS" }
         ]
     },
     {

@@ -12,6 +12,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { WhatsAppDisconnectionAlert } from "./WhatsAppDisconnectionAlert";
 import { SuspendQueueAlert } from "./SuspendQueueAlert";
 import { AppSocketListener } from "./AppSocketListener";
+import { useGlobalSocket } from "@/hooks/useGlobalSocket";
 
 /**
  * LayoutContent manages the dynamic arrangement of Sidebar, Navbar, and Page Content.
@@ -88,6 +89,9 @@ const LayoutContent = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
+    // Call the global socket hook to maintain presence detection across the app
+    useGlobalSocket();
+
     return (
         <SidebarProvider>
             <LayoutContent>{children}</LayoutContent>

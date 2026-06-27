@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CreateInvoiceModal } from "../components/CreateInvoiceModal";
+import { CreateAdministrasiModal } from "../components/CreateAdministrasiModal";
 import { BulkGenerateModal } from "../components/BulkGenerateModal";
 import { CreatePaymentModal } from "../components/CreatePaymentModal";
 import { DeleteInvoiceModal } from "../components/DeleteInvoiceModal";
@@ -65,6 +66,7 @@ export default function InvoicePage() {
   const user = AuthService.getUser();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateAdministrasiOpen, setIsCreateAdministrasiOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -250,10 +252,16 @@ export default function InvoicePage() {
           className={
             invoice.type === "REGISTRATION"
               ? "bg-purple-100 text-purple-700 hover:bg-purple-100"
+              : invoice.type === "ADMINISTRASI"
+              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
               : "bg-blue-100 text-blue-700 hover:bg-blue-100"
           }
         >
-          {invoice.type === "REGISTRATION" ? "Registrasi" : "Bulanan"}
+          {invoice.type === "REGISTRATION" 
+            ? "Registrasi" 
+            : invoice.type === "ADMINISTRASI" 
+            ? "Administrasi" 
+            : "Bulanan"}
         </Badge>
       ),
     },
@@ -541,6 +549,11 @@ export default function InvoicePage() {
     },
   ];
 
+  const canAdd =AuthService.hasPermission(
+    user?.role || "USER",
+    "keuangan.invoice",
+    "create",
+  );
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
       {/* Header Section */}
@@ -570,6 +583,7 @@ export default function InvoicePage() {
           <Button
             variant="outline"
             onClick={() => setIsBulkOpen(true)}
+            disabled={!canAdd}
             className="rounded-xl font-bold w-full sm:w-auto"
           >
             <Receipt className="mr-2 h-4 w-4" />
@@ -577,10 +591,19 @@ export default function InvoicePage() {
           </Button>
           <Button
             onClick={() => setIsCreateOpen(true)}
+            disabled={!canAdd}
             className="bg-[#101D42] hover:bg-[#1a2b5e] text-white rounded-xl font-bold shadow-lg transition-all hover:scale-[1.02] w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
             Buat Tagihan
+          </Button>
+          <Button
+            onClick={() => setIsCreateAdministrasiOpen(true)}
+            disabled={!canAdd}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg transition-all hover:scale-[1.02] w-full sm:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Tagihan Administrasi
           </Button>
         </div>
       </div>
@@ -766,6 +789,12 @@ export default function InvoicePage() {
       <CreateInvoiceModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
+        onSuccess={refetch}
+      />
+
+      <CreateAdministrasiModal
+        isOpen={isCreateAdministrasiOpen}
+        onClose={() => setIsCreateAdministrasiOpen(false)}
         onSuccess={refetch}
       />
 

@@ -7,7 +7,7 @@ export interface Invoice {
   amount: number;
   dueDate: string;
   status: "pending" | "paid" | "overdue" | "cancelled";
-  type: "REGISTRATION" | "MONTHLY";
+  type: "REGISTRATION" | "MONTHLY" | "ADMINISTRASI";
   period?: string;
   notes?: string;
   paymentUrl?: string;

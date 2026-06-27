@@ -18,6 +18,7 @@ import {
   Settings,
   DollarSignIcon,
   Wrench,
+  MessageCircle,
 } from "lucide-react";
 import type { NavItem } from "@/types";
 
@@ -27,6 +28,23 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     icon: LayoutDashboard,
     href: "/dashboard",
     resource: "dashboard",
+  },
+   {
+    title: "Customer Support",
+    icon: MessageCircle,
+    resource: "customer-support",
+    items: [
+      {
+        title: "Live Chat",
+        href: "/customer-support",
+        resource: "customer-support",
+      },
+      {
+        title: "Jadwal CS",
+        href: "/customer-support/shifts",
+        resource: "customer-support.shifts",
+      }
+    ]
   },
   {
     title: "Master",
@@ -284,6 +302,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       { title: "Disbursement", href: "/keuangan/payout", resource: "payout" },
     ],
   },
+ 
   {
     title: "Settings",
     icon: Settings,
@@ -313,6 +332,11 @@ export const NAVIGATION_ITEMS: NavItem[] = [
       {
         title: "Pengaturan Notifikasi",
         href: "/settings/notifications",
+        resource: "settings.system",
+      },
+      {
+        title: "Pengaturan Sistem",
+        href: "/settings/system",
         resource: "settings.system",
       },
     ],

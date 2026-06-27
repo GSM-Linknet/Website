@@ -245,6 +245,7 @@ export const Sidebar = () => {
                   <TooltipTrigger asChild>
                     <NavLink
                       to={item.href || "#"}
+                      end
                       className={({ isActive }) =>
                         cn(
                           "w-full flex items-center px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group relative",
@@ -282,6 +283,7 @@ export const Sidebar = () => {
                     <NavLink
                       key={subItem.title}
                       to={subItem.href}
+                      end
                       className={({ isActive }) =>
                         cn(
                           "block pl-6 pr-3 py-2 text-[12px] transition-all relative",

@@ -70,6 +70,8 @@ export type PermissionResource =
   | "settings.system"
   // Other
   | "customer"
+  | "customer-support"
+  | "customer-support.shifts"
   | "payout"
   | "keuangan.review"
   // Komisi
@@ -171,6 +173,7 @@ export const PERMISSIONS: PermissionMatrix = {
     "settings.whatsapp": ["view", "edit"],
     "settings.system": ["view", "edit"],
     "master.users": ["impersonate"],
+    "customer-support": ["view", "create", "edit", "delete"],
   },
   ADMIN_PUSAT: {
     dashboard: ["view"],

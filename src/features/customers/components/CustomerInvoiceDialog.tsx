@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import InvoiceService, { type Invoice } from "@/services/invoice.service";
 import { CreatePaymentModal } from "@/features/finance/components/CreatePaymentModal";
 import { CreateInvoiceModal } from "@/features/finance/components/CreateInvoiceModal";
+import { CreateAdministrasiModal } from "@/features/finance/components/CreateAdministrasiModal";
 import { cn } from "@/lib/utils";
 import { AuthService } from "@/services/auth.service";
 import { useToast } from "@/hooks/useToast";
@@ -40,6 +41,7 @@ export function CustomerInvoiceDialog({
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
+  const [isCreateAdministrasiOpen, setIsCreateAdministrasiOpen] = useState(false);
   const [isMethodSelectOpen, setIsMethodSelectOpen] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const { toast } = useToast();
@@ -172,6 +174,11 @@ export function CustomerInvoiceDialog({
     "keuangan.invoice",
     "pay",
   );
+  const canAdd = AuthService.hasPermission(
+    user?.role || "USER",
+    "keuangan.invoice",
+    "create",
+  );
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -192,9 +199,20 @@ export function CustomerInvoiceDialog({
                 size="sm"
                 onClick={() => setIsCreateInvoiceOpen(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3 text-xs font-semibold"
+                disabled={!canAdd}
               >
                 <Plus size={14} className="mr-1" />
                 Buat Tagihan
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsCreateAdministrasiOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 px-3 text-xs font-semibold hidden sm:flex"
+                disabled={!canAdd}
+              >
+                <Plus size={14} className="mr-1" />
+                Tagihan Administrasi
               </Button>
               <Button
                 variant="ghost"
@@ -238,6 +256,8 @@ export function CustomerInvoiceDialog({
                         >
                           {invoice.type === "REGISTRATION"
                             ? "Registrasi"
+                            : invoice.type === "ADMINISTRASI"
+                            ? "Administrasi"
                             : "Bulanan"}
                         </Badge>
                       </div>
@@ -370,6 +390,16 @@ export function CustomerInvoiceDialog({
         onSuccess={() => {
           fetchInvoices();
           setIsCreateInvoiceOpen(false);
+        }}
+        initialCustomerId={customer?.id}
+      />
+
+      <CreateAdministrasiModal
+        isOpen={isCreateAdministrasiOpen}
+        onClose={() => setIsCreateAdministrasiOpen(false)}
+        onSuccess={() => {
+          fetchInvoices();
+          setIsCreateAdministrasiOpen(false);
         }}
         initialCustomerId={customer?.id}
       />

@@ -116,11 +116,15 @@ const LinkNetLogPage = lazy(
 const NotificationSettingsPage = lazy(
   () => import("@/features/settings/pages/NotificationSettingsPage"),
 );
+const SystemSettingsPage = lazy(
+  () => import("@/features/settings/pages/SystemSettingsPage"),
+);
 const PeriodicReportPage = lazy(
   () => import("@/features/reporting/pages/PeriodicReportPage"),
 );
 const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFound"));
+const PrivacyPolicyPage = lazy(() => import("@/pages/PrivacyPolicyPage"));
 const LogPage = lazy(() => import("@/features/log/LogPage"));
 const SalesTargetPage = lazy(() => import("@/features/reporting/pages/SalesTargetPage"));
 const CustomerReportPage = lazy(() => import("@/features/reporting/pages/CustomerReportPage"));
@@ -143,7 +147,8 @@ const CentralBalancePage = lazy(() => import("@/features/finance/pages/CentralBa
 const CustomersWithoutInvoicePage = lazy(() => import("@/features/finance/pages/CustomersWithoutInvoicePage"));
 const RABPage = lazy(() => import("@/features/finance/pages/RABPage"));
 const ReviewUnitPaymentPage = lazy(() => import("@/features/finance/pages/ReviewUnitPaymentPage"));
-
+const CustomerSupportPage = lazy(() => import("@/features/customer-support/pages/CustomerSupportPage"));
+const CsShiftPage = lazy(() => import("@/features/customer-support/pages/CsShiftPage"));
 
 /**
  * Loading component for Suspense fallback.
@@ -196,6 +201,16 @@ export const routes: RouteObject[] = [
     ),
   },
 
+  // 0.2 Privacy Policy Route
+  {
+    path: "/kebijakan-privasi",
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <PrivacyPolicyPage />
+      </Suspense>
+    ),
+  },
+
   // 1. Auth Routes (No Sidebar/Navbar)
   {
     index: true,
@@ -208,6 +223,16 @@ export const routes: RouteObject[] = [
         }
       >
         <LoginPage />
+      </Suspense>
+    ),
+  },
+
+  // 1.5 Fullscreen Customer Support Route
+  {
+    path: "/customer-support/fullscreen",
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <CustomerSupportPage />
       </Suspense>
     ),
   },
@@ -780,6 +805,14 @@ export const routes: RouteObject[] = [
                 <NotificationSettingsPage />
               </Suspense>
             )
+          },
+          {
+            path: "system",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <SystemSettingsPage />
+              </Suspense>
+            )
           }
         ]
       },
@@ -796,6 +829,22 @@ export const routes: RouteObject[] = [
         element: (
           <Suspense fallback={<PageLoader />}>
             <LogPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "customer-support",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CustomerSupportPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "customer-support/shifts",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CsShiftPage />
           </Suspense>
         ),
       },
