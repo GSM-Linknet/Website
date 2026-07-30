@@ -8,6 +8,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { CustomerSupportService } from "@/services/customer-support.service";
+import { toast } from "sonner";
 
 interface ChatHeaderProps {
   activeSession: any;
@@ -26,8 +43,40 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   setIsDetailOpen,
   setIsInvoiceOpen,
 }) => {
+  const [isCloseModalOpen, setIsCloseModalOpen] = React.useState(false);
+  const [selectedCategory, setSelectedCategory] = React.useState("");
+  const [customCategory, setCustomCategory] = React.useState("");
+  const [resolution, setResolution] = React.useState("");
+  const [isClosing, setIsClosing] = React.useState(false);
+
+  const handleCloseSession = async () => {
+    const finalCategory = selectedCategory === "Lainnya" ? customCategory : selectedCategory;
+    if (!finalCategory.trim() || !resolution.trim()) {
+      toast.error("Kategori masalah dan tindakan harus diisi");
+      return;
+    }
+    
+    if (!activeSessionId) return;
+
+    setIsClosing(true);
+    try {
+      await CustomerSupportService.closeSession(activeSessionId, {
+        problemCategory: finalCategory,
+        resolution
+      });
+      toast.success("Sesi berhasil ditutup");
+      setIsCloseModalOpen(false);
+      selectSession(null); // Return to empty state
+    } catch (err: any) {
+      toast.error("Gagal menutup sesi", { description: err.message });
+    } finally {
+      setIsClosing(false);
+    }
+  };
+
   return (
-    <div className="h-[72px] border-b border-slate-200 flex items-center justify-between px-3 md:px-6 bg-white shadow-sm z-10 gap-2">
+    <>
+      <div className="h-[72px] border-b border-slate-200 flex items-center justify-between px-3 md:px-6 bg-white shadow-sm z-10 gap-2">
       <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
         <Button 
           variant="ghost" 
@@ -96,6 +145,15 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <FileText className="w-4 h-4 mr-1.5" />
             Tagihan
           </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white"
+            onClick={() => setIsCloseModalOpen(true)}
+            title="Selesaikan Percakapan"
+          >
+            Tutup Sesi
+          </Button>
         </div>
 
         {/* Mobile Actions */}
@@ -123,10 +181,68 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 <FileText className="w-4 h-4 mr-2 text-slate-500" />
                 Informasi Tagihan
               </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setIsCloseModalOpen(true)}
+                className="cursor-pointer text-red-600"
+              >
+                Tutup Sesi
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-    </div>
+      </div>
+
+      <Dialog open={isCloseModalOpen} onOpenChange={setIsCloseModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tutup Sesi Pelanggan</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Kategori Masalah / Kendala</label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih kategori masalah..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Jaringan Mati / Gangguan">Jaringan Mati / Gangguan</SelectItem>
+                  <SelectItem value="Info Tagihan / Pembayaran">Info Tagihan / Pembayaran</SelectItem>
+                  <SelectItem value="Pasang Baru / Registrasi">Pasang Baru / Registrasi</SelectItem>
+                  <SelectItem value="Perubahan Paket">Perubahan Paket</SelectItem>
+                  <SelectItem value="Lainnya">Lainnya...</SelectItem>
+                </SelectContent>
+              </Select>
+              {selectedCategory === "Lainnya" && (
+                <div className="pt-2">
+                  <Input 
+                    placeholder="Tuliskan kategori masalah..." 
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tindakan / Resolusi</label>
+              <Textarea 
+                placeholder="Jelaskan tindakan yang telah diambil..."
+                value={resolution}
+                onChange={(e) => setResolution(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsCloseModalOpen(false)} disabled={isClosing}>
+              Batal
+            </Button>
+            <Button className="bg-red-600 hover:bg-red-700" onClick={handleCloseSession} disabled={isClosing}>
+              {isClosing ? "Memproses..." : "Tutup Sesi"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

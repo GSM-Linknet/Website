@@ -1,3 +1,14 @@
+/**
+ * @file useFetch.ts
+ * @description Hook generic untuk mengambil data terpaginasi (paginated data) dari API.
+ * @caller Hooks lain (useInvoices, dll.), Komponen UI
+ * @dependencies React (useState, useEffect, useCallback, useRef)
+ * @publicFunctions useFetch
+ * @sideEffects
+ *   - Memanggil fungsi fetchFn (HTTP request) secara asinkron
+ *   - Mengelola state loading, error, data, dan pagination
+ *   - Mencegah race condition menggunakan request tracking ref
+ */
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { PaginatedResponse, BaseQuery, ApiResponse } from "@/services/master.service";
 
@@ -51,11 +62,18 @@ export function useFetch<T>(
   const fetchFnRef = useRef(fetchFn);
   fetchFnRef.current = fetchFn;
 
+  const requestCountRef = useRef(0);
+
   const fetchData = useCallback(async () => {
+    const currentRequestId = ++requestCountRef.current;
     setLoading(true);
     setError(null);
     try {
       const response = await fetchFnRef.current({ ...query, page });
+
+      if (currentRequestId !== requestCountRef.current) {
+        return;
+      }
       
       // Handle wrapped response: { status, message, data: { items, ... } }
       // or direct response: { items, ... }

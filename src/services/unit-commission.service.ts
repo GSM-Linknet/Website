@@ -76,5 +76,9 @@ export const UnitCommissionService = {
 
   saveConfig: async (unitId: string, data: Partial<UnitCommissionConfig>) => {
     return apiClient.post<ApiResponse<UnitCommissionConfig>>(`${ENDPOINT}/${unitId}`, data);
+  },
+
+  syncPackageToAllUnits: async (packageId: string, data: Partial<UnitPackageCommission>) => {
+    return apiClient.post<ApiResponse<void>>(`${ENDPOINT}/sync-package/${packageId}`, data);
   }
 };

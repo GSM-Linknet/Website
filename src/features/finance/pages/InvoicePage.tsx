@@ -1,3 +1,22 @@
+/**
+ * @file InvoicePage.tsx
+ * @description Halaman utama untuk manajemen tagihan keuangan pelanggan (Registrasi, Administrasi, & Bulanan).
+ * @caller Sidebar/Router Aplikasi Keuangan
+ * @dependencies
+ *   - useInvoices (hooks/useInvoices)
+ *   - FinanceService (services/finance.service)
+ *   - MasterService (services/master.service)
+ *   - CustomerService (services/customer.service)
+ *   - AuthService (services/auth.service)
+ * @functions
+ *   - InvoicePage (React Component)
+ * @sideEffects
+ *   - Membaca data tagihan dari API server (refetch)
+ *   - Mendownload PDF invoice
+ *   - Menghasilkan ulang link pembayaran (HTTP POST/PUT)
+ *   - Melakukan rollback invoice (HTTP POST/PUT)
+ *   - Mengirim notifikasi WhatsApp (HTTP POST/PUT)
+ */
 import { useState, useEffect } from "react";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Button } from "@/components/ui/button";
@@ -53,6 +72,13 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { AuthService } from "@/services/auth.service";
 
 export default function InvoicePage() {
+  const defaultStartDate = moment()
+    .startOf("month")
+    .format("YYYY-MM-DD");
+  const defaultEndDate = moment()
+    .endOf("month")
+    .format("YYYY-MM-DD");
+
   const {
     data: invoices,
     loading: isLoading,
@@ -62,7 +88,11 @@ export default function InvoicePage() {
     page,
     totalPages,
     setQuery,
-  } = useInvoices();
+  } = useInvoices({
+    in_: "status:pending,overdue",
+    gte: `createdAt:${defaultStartDate}`,
+    lte: `createdAt:${defaultEndDate}`,
+  });
   const user = AuthService.getUser();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -84,14 +114,8 @@ export default function InvoicePage() {
   }>({ title: "", description: "", onConfirm: () => { } });
 
   // Filters state
-  const defaultStartDate = moment()
-    .subtract(1, "month")
-    .startOf("month")
-    .format("YYYY-MM-DD");
-  const defaultEndDate = moment().format("YYYY-MM-DD"); // Up to today
-
   const [filters, setFilters] = useState({
-    status: "all",
+    status: "pending,overdue",
     unit: "all",
     subUnit: "all",
     upline: "all",
@@ -170,10 +194,17 @@ export default function InvoicePage() {
   // Update query when search or filters change
   useEffect(() => {
     const whereParts: string[] = [];
+    const inParts: string[] = [];
     const gteParts: string[] = [];
     const lteParts: string[] = [];
 
-    if (filters.status !== "all") whereParts.push(`status:${filters.status}`);
+    if (filters.status !== "all") {
+      if (filters.status.includes(",")) {
+        inParts.push(`status:${filters.status}`);
+      } else {
+        whereParts.push(`status:${filters.status}`);
+      }
+    }
     if (filters.unit !== "all")
       whereParts.push(`customer.unitId:${filters.unit}`);
     if (filters.subUnit !== "all")
@@ -212,6 +243,7 @@ export default function InvoicePage() {
     const queryParams: any = {
       search: debouncedSearchQuery || undefined,
       where: whereParts.length > 0 ? whereParts.join("+") : undefined,
+      in_: inParts.length > 0 ? inParts.join("+") : undefined,
       gte: gteParts.length > 0 ? gteParts.join("+") : undefined,
       lte: lteParts.length > 0 ? lteParts.join("+") : undefined,
     };
@@ -648,6 +680,7 @@ export default function InvoicePage() {
             label="Semua Status"
             activeValue={filters.status}
             options={[
+              { label: "Pending & Overdue", value: "pending,overdue" },
               { label: "Semua Status", value: "all" },
               { label: "Pending", value: "pending" },
               { label: "Paid", value: "paid" },

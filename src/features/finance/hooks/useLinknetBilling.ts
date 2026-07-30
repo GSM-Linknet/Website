@@ -18,6 +18,26 @@ export function useLinknetBilling(initialQuery: LinknetPeriodFilter) {
     { query: initialQuery, autoFetch: true }
   );
 
+  const unpaidFetch = useFetch<LinknetDetailItem>(
+    (query: any) => LinknetBillingApiService.getDetail({ ...(query as LinknetPeriodFilter), isPaidToLinknet: false }),
+    { query: initialQuery, autoFetch: true }
+  );
+  
+  const shortfallFetch = useFetch<LinknetDetailItem>(
+    (query: any) => LinknetBillingApiService.getDetail({ ...(query as LinknetPeriodFilter), isKurangBayar: 'true' } as any),
+    { query: initialQuery, autoFetch: true }
+  );
+
+  const historyFetch = useFetch<LinknetDetailItem>(
+    (query: any) => LinknetBillingApiService.getDetail({ ...(query as LinknetPeriodFilter), isPaidToLinknet: true }),
+    { query: initialQuery, autoFetch: true }
+  );
+
+  const shortfallHistoryFetch = useFetch<LinknetDetailItem>(
+    (query: any) => LinknetBillingApiService.getDetail({ ...(query as LinknetPeriodFilter), isKurangBayarPaid: 'true' } as any),
+    { query: initialQuery, autoFetch: true }
+  );
+
   const fetchRecap = useCallback(async (query: LinknetPeriodFilter) => {
     setLoadingRecap(true);
     try {
@@ -33,30 +53,49 @@ export function useLinknetBilling(initialQuery: LinknetPeriodFilter) {
     }
   }, []);
 
-
-
-  // We can drive the fetches based on a single source of truth for the active query.
-  // Since we pass initialQuery to detailFetch, we can export a refetch function if needed.
-
   useEffect(() => {
-    // Initial fetch for the summary parts
     fetchRecap(initialQuery);
-  }, []); // Run once on mount. Further updates handled manually via applyQuery or a dedicated state
+  }, []);
 
   return {
     recapData,
     loadingRecap,
     errorRecap,
-    // Provide a unified setQuery that updates everything
     setQuery: (updatedQuery: LinknetPeriodFilter) => {
       detailFetch.setQuery(updatedQuery);
       packagesFetch.setQuery(updatedQuery);
+      unpaidFetch.setQuery(updatedQuery);
+      historyFetch.setQuery(updatedQuery);
+      shortfallFetch.setQuery(updatedQuery);
+      shortfallHistoryFetch.setQuery(updatedQuery);
       fetchRecap(updatedQuery);
+    },
+    refresh: (currentQuery?: LinknetPeriodFilter) => {
+      detailFetch.refetch();
+      packagesFetch.refetch();
+      unpaidFetch.refetch();
+      historyFetch.refetch();
+      shortfallFetch.refetch();
+      shortfallHistoryFetch.refetch();
+      fetchRecap(currentQuery || initialQuery);
     },
     packages: packagesFetch,
     detail: detailFetch,
-    exportExcel: async (query: LinknetPeriodFilter, token?: string) => {
-      await LinknetBillingApiService.downloadExcel(query, token);
+    unpaid: unpaidFetch,
+    shortfall: shortfallFetch,
+    history: historyFetch,
+    shortfallHistory: shortfallHistoryFetch,
+    exportExcel: async (query: LinknetPeriodFilter) => {
+      await LinknetBillingApiService.downloadExcel(query);
+    },
+    recalculateCommissions: async (month: number, year: number) => {
+      return await LinknetBillingApiService.recalculateCommissions(month, year);
+    },
+    payToLinknet: async (invoiceIds: string[]) => {
+      return await LinknetBillingApiService.payToLinknet(invoiceIds);
+    },
+    payKurangBayar: async (invoiceIds: string[]) => {
+      return await LinknetBillingApiService.payKurangBayar(invoiceIds);
     }
   };
 }

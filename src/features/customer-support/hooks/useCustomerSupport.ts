@@ -120,6 +120,10 @@ export const useCustomerSupport = () => {
 
     socket.on("session_updated", (session: ChatSession) => {
       setSessions((prev) => {
+        if (session.status === 'CLOSED') {
+          return prev.filter((s) => s.id !== session.id);
+        }
+
         const exists = prev.find((s) => s.id === session.id);
         if (exists) {
           // If this session is currently active, reset its unread count automatically

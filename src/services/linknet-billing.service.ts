@@ -18,19 +18,21 @@ export interface LinknetBillingRecap {
   summary: {
     totalPelanggan: number;
     totalPelangganWajibBayar: number;
-    estimasiHppLinknet: number;
-    totalHargaJual: number;
+    estimasiPendapatan: number;
+    totalHargaPaket: number;
+    totalKomisi: number;
     totalHppLinknet: number;
     totalNilaiDiterima: number;
-    selisih: number;
+    totalUnpaidKurangBayar: number;
+    profit: number;
     status: 'SURPLUS' | 'DEFICIT' | 'BALANCE';
+    linknetShareRatio: number;
+    totalSettledLinknet?: number;
   };
   distribution: {
-    hppLinknet: number;
-    totalKomisi: number;
+    bayarLinknet: number;
+    opsHolding: number;
     xenditFee: number;
-    marginHolding: number;
-    kurangBayar: number;
   };
 }
 
@@ -41,14 +43,21 @@ export interface LinknetPackageRecap {
   hppPerCustomer: number;
   totalCustomers: number;
   totalHpp: number;
-  totalJual: number;
-  margin: number;
-  marginPercent: number;
+  totalHargaPaket: number;
+  nilaiDiterima: number;
+  profit: number;
+  kurangBayar1: number;
+  kurangBayar2: number;
+  totalKurangBayar: number;
+  bayarLinknet: number;
+  isCapped?: boolean;
+  opsHolding: number;
   totalWajibBayar: number;
-  estimasiHpp: number;
+  estimasiPendapatan: number;
 }
 
 export interface LinknetDetailItem {
+  id: string;
   no: number;
   nama: string;
   customerId: string;
@@ -56,12 +65,23 @@ export interface LinknetDetailItem {
   paket: string;
   hargaJual: number;
   hpp: number;
+  komisi: number;
   nilaiDiterima: number;
   xenditFee: number;
-  komisi: number;
-  selisih: number;
+  profit: number;
+  kurangBayar1: number;
+  kurangBayar2: number;
+  totalKurangBayar: number;
+  bayarLinknet: number;
+  isCapped?: boolean;
+  opsHolding: number;
   status: 'LUNAS' | 'KURANG_BAYAR' | 'SURPLUS';
   invoiceNumber: string;
+  paidDate: string | null;
+  isPaidToLinknet: boolean;
+  paidToLinknetAt: string | null;
+  isKurangBayarPaid: boolean;
+  kurangBayarPaidAt: string | null;
 }
 
 const ENDPOINTS = {
@@ -69,6 +89,9 @@ const ENDPOINTS = {
   PACKAGE: "/keuangan/linknet-billing/by-package",
   DETAIL: "/keuangan/linknet-billing/detail",
   EXPORT: "/keuangan/linknet-billing/export",
+  RECALCULATE: "/keuangan/linknet-billing/recalculate-commissions",
+  PAY: "/keuangan/linknet-billing/pay",
+  PAY_KURANG_BAYAR: "/keuangan/linknet-billing/pay-kurang-bayar",
 };
 
 // ─── Service ────────────────────────────────────────────────────────────
@@ -82,7 +105,7 @@ export const LinknetBillingApiService = {
     return apiClient.get<ApiResponse<PaginatedResponse<LinknetPackageRecap>>>(ENDPOINTS.PACKAGE, { params: query });
   },
 
-  getDetail: async (query: LinknetPeriodFilter) => {
+  getDetail: async (query: LinknetPeriodFilter & { isPaidToLinknet?: boolean }) => {
     return apiClient.get<ApiResponse<PaginatedResponse<LinknetDetailItem>>>(ENDPOINTS.DETAIL, { params: query });
   },
 
@@ -99,10 +122,7 @@ export const LinknetBillingApiService = {
     return `${import.meta.env.VITE_API_BASE_URL || ''}${ENDPOINTS.EXPORT}?${params.toString()}`;
   },
 
-  downloadExcel: async (query: LinknetPeriodFilter, token?: string) => {
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
+  downloadExcel: async (query: LinknetPeriodFilter) => {
     const response = await apiClient.get(ENDPOINTS.EXPORT, {
       params: query,
       responseType: 'blob',
@@ -117,5 +137,17 @@ export const LinknetBillingApiService = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-  }
+  },
+
+  recalculateCommissions: async (month: number, year: number) => {
+    return apiClient.post<ApiResponse<{ processed: number }>>(ENDPOINTS.RECALCULATE, { month, year });
+  },
+
+  payToLinknet: async (invoiceIds: string[]) => {
+    return apiClient.post<ApiResponse<{ count: number }>>(ENDPOINTS.PAY, { invoiceIds });
+  },
+
+  payKurangBayar: async (invoiceIds: string[]) => {
+    return apiClient.post<ApiResponse<{ count: number }>>(ENDPOINTS.PAY_KURANG_BAYAR, { invoiceIds });
+  },
 };

@@ -15,6 +15,10 @@ export const XenditService = {
         return await apiClient.post<any>("/xendit/payout/propose", data);
     },
 
+    validateAccount: async (bankCode: string, accountNumber: string) => {
+        return await apiClient.post<any>("/xendit/payout/validate-account", { bankCode, accountNumber });
+    },
+
     approvePayout: async (id: string) => {
         return await apiClient.post<any>(`/xendit/payout/${id}/approve`);
     },

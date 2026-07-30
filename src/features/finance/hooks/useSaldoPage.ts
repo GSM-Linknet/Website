@@ -8,6 +8,7 @@ export interface BalanceData {
     revenueBalance: number;
     allocationBalance: number;
     holdingCommissionBalance: number;
+    holdingBalance: number;
     totalVirtual: number;
     currency?: string;
     accountType?: string;

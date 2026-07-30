@@ -197,8 +197,8 @@ export function CreatePaymentModal({
                                     <SelectItem value="CASH_SALES">Cash via Sales</SelectItem>
                                 ) : (
                                     <>
-                                        {/* <SelectItem value="CASH_UNIT">Cash di Unit</SelectItem>
-                                        <SelectItem value="CASH_SALES">Cash via Sales</SelectItem> */}
+                                        <SelectItem value="CASH_UNIT">Cash di Unit</SelectItem>
+                                        <SelectItem value="CASH_SALES">Cash via Sales</SelectItem> 
                                         <SelectItem value="BANK_TRANSFER_PT">Transfer Bank PT</SelectItem>
                                         <SelectItem value="VIRTUAL_ACCOUNT">Virtual Account (VA LAMA)</SelectItem>
                                     </>

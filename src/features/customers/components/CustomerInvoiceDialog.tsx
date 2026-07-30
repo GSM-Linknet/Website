@@ -169,6 +169,16 @@ export function CustomerInvoiceDialog({
     });
   };
 
+  const formatDateTime = (date: string) => {
+    return new Date(date).toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const canPay = AuthService.hasPermission(
     user?.role || "USER",
     "keuangan.invoice",
@@ -288,7 +298,7 @@ export function CustomerInvoiceDialog({
                   </div>
 
                   {invoice.status === "paid" && (invoice as any).payments?.[0] && (
-                    <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-4">
+                    <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-3 gap-4">
                       <div className="flex flex-col gap-1">
                         <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                           Metode
@@ -312,6 +322,14 @@ export function CustomerInvoiceDialog({
                             </Badge>
                           )}
                         </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          Tanggal Bayar
+                        </span>
+                        <span className="text-xs font-bold text-slate-700">
+                          {(invoice as any).payments[0].paidAt ? formatDateTime((invoice as any).payments[0].paidAt) : "-"}
+                        </span>
                       </div>
                     </div>
                   )}

@@ -44,6 +44,7 @@ export default function UnitCommissionConfigPage() {
         updateField,
         updatePackageCommission,
         resetPackageCommission,
+        syncPackageToAllUnits,
         goBack
     } = useUnitCommissionConfig();
 
@@ -185,8 +186,38 @@ export default function UnitCommissionConfigPage() {
                 icon={BadgeDollarSign}
                 size="xl"
                 showFooter={true}
-                primaryActionLabel="Selesai Kustomisasi"
-                primaryActionOnClick={() => setEditingPackageId(null)}
+                footer={
+                    <>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setEditingPackageId(null)}
+                            disabled={saving}
+                            className="rounded-xl font-semibold text-slate-500 hover:bg-slate-50"
+                        >
+                            Tutup
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                if (editingPackage) {
+                                    syncPackageToAllUnits(editingPackage.id, editingPackage.config || {});
+                                }
+                            }}
+                            disabled={saving}
+                            className="rounded-xl font-bold border-blue-200 text-blue-600 hover:bg-blue-50 shadow-sm"
+                        >
+                            <Building2 className="mr-2" size={16} />
+                            Terapkan ke Semua Unit
+                        </Button>
+                        <Button
+                            onClick={() => setEditingPackageId(null)}
+                            disabled={saving}
+                            className="rounded-xl font-bold px-6 bg-[#101D42] text-white shadow-blue-900/20 hover:bg-[#1a2b5a]"
+                        >
+                            Selesai Kustomisasi
+                        </Button>
+                    </>
+                }
             >
                 {editingPackage ? (
                     <div className="space-y-6 pb-4">

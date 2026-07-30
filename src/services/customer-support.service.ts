@@ -38,7 +38,11 @@ export interface CsDailyReport {
   id: string;
   userId: string;
   date: string;
-  activity: string;
+  activity: string | null;
+  handledCustomersCount: number;
+  resolvedIssuesCount: number;
+  details: any[] | null;
+  regionSummary: any | null;
   createdAt: string;
   user?: { id: string; name: string };
 }
@@ -57,6 +61,10 @@ export const CustomerSupportService = {
 
   updateContactName: (sessionId: string, newName: string) => 
     apiClient.put(`/customer-support/sessions/${sessionId}/contact-name`, { contactName: newName }),
+
+  closeSession: (sessionId: string, payload: { problemCategory: string; resolution: string; labelId?: string }) =>
+    apiClient.post<{ data: ChatSession }>(`/customer-support/sessions/${sessionId}/close`, payload),
+
   uploadFile: async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);

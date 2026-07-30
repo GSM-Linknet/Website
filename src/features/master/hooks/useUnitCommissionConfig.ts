@@ -209,6 +209,27 @@ export function useUnitCommissionConfig() {
     }, [packages, config.packageCommissions, searchTerm]);
 
 
+    const syncPackageToAllUnits = async (packageId: string, payload: Partial<any>) => {
+        setSaving(true);
+        try {
+            await UnitCommissionService.syncPackageToAllUnits(packageId, payload);
+            toast({
+                title: "Berhasil disinkronkan",
+                description: "Konfigurasi komisi paket ini telah diterapkan ke semua unit.",
+            });
+            fetchData();
+        } catch (error) {
+            console.error("Failed to sync package commission:", error);
+            toast({
+                title: "Gagal mensinkronkan",
+                description: "Terjadi kesalahan saat menerapkan pengaturan ke semua unit.",
+                variant: "destructive"
+            });
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const goBack = () => navigate(-1);
 
     return {
@@ -225,6 +246,7 @@ export function useUnitCommissionConfig() {
         updateField,
         updatePackageCommission,
         resetPackageCommission,
+        syncPackageToAllUnits,
         goBack
     };
 }

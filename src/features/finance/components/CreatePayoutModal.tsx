@@ -34,6 +34,9 @@ interface CreatePayoutModalProps {
     onSuccess: () => void;
     defaultCategory?: string;
     defaultAmount?: string;
+    hideSourceBucket?: boolean;
+    defaultSourceBucket?: "REVENUE" | "ALLOCATION" | "HOLDING";
+    hideBalanceInfo?: boolean;
 }
 
 const BANKS = [
@@ -52,7 +55,16 @@ const E_WALLETS = [
     { label: "LINKAJA", value: "ID_LINKAJA" },
 ];
 
-export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory, defaultAmount }: CreatePayoutModalProps) {
+export function CreatePayoutModal({ 
+    isOpen, 
+    onClose, 
+    onSuccess, 
+    defaultCategory, 
+    defaultAmount,
+    hideSourceBucket = false,
+    defaultSourceBucket = "ALLOCATION",
+    hideBalanceInfo = false
+}: CreatePayoutModalProps) {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const currentUser = AuthService.getUser();
@@ -64,6 +76,16 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
 
     const [balance, setBalance] = useState<number | null>(null);
     const [balanceLabel, setBalanceLabel] = useState("Saldo Tersedia");
+    const [showLinknet, setShowLinknet] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('enable_linknet') === 'true') {
+                setShowLinknet(true);
+            }
+        }
+    }, []);
     const [formData, setFormData] = useState({
         amount: defaultAmount || "",
         bankCode: "ID_BNI",
@@ -71,7 +93,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
         accountNumber: "",
         description: "",
         category: defaultCategory || derivedCategory,
-        sourceBucket: "ALLOCATION",
+        sourceBucket: defaultSourceBucket,
     });
 
     useEffect(() => {
@@ -99,9 +121,15 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
             }).catch(err => console.error("RAB Budget fetch error:", err));
         } else if (isSuperAdmin) {
             // Fetch aggregated balances for super admin
-            setBalanceLabel(formData.sourceBucket === 'REVENUE' ? "Saldo Pendapatan Pelanggan" : "Saldo Alokasi Unit");
+            setBalanceLabel(
+                formData.sourceBucket === 'REVENUE' ? "Saldo Linknet" : 
+                formData.sourceBucket === 'HOLDING' ? "Saldo Holding" : 
+                "Saldo Alokasi Unit"
+            );
             XenditService.getBalance().then(res => {
-                const bal = formData.sourceBucket === 'REVENUE' ? res.revenueBalance : res.allocationBalance;
+                const bal = formData.sourceBucket === 'REVENUE' ? res.revenueBalance : 
+                            formData.sourceBucket === 'HOLDING' ? res.holdingBalance : 
+                            res.allocationBalance;
                 setBalance(bal);
             }).catch(err => console.error("Xendit balance fetch error:", err));
         } else {
@@ -114,6 +142,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
 
     const isEWallet = E_WALLETS.some(ew => ew.value === formData.bankCode);
     const selectedLabel = [...BANKS, ...E_WALLETS].find(b => b.value === formData.bankCode)?.label || "Pilih Metode";
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -193,22 +222,23 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6 bg-white rounded-t-[2.5rem] -mt-6 relative shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
                     <div className="space-y-5">
-                        {['SUPER_ADMIN', 'ADMIN_PUSAT'].includes(userRole || '') && (
+                        {['SUPER_ADMIN', 'ADMIN_PUSAT'].includes(userRole || '') && !hideSourceBucket && (
                             <div className="space-y-2">
                                 <Label htmlFor="sourceBucket" className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
                                     <Database className="h-4 w-4" /> Sumber Dana
                                 </Label>
                                 <Select
                                     value={formData.sourceBucket}
-                                    onValueChange={(val) => setFormData({ ...formData, sourceBucket: val })}
+                                    onValueChange={(val) => setFormData({ ...formData, sourceBucket: val as "REVENUE" | "ALLOCATION" | "HOLDING" })}
                                 >
                                     <SelectTrigger className="h-12 bg-blue-50/50 border-blue-100 focus:ring-blue-500/20 text-base px-4 rounded-xl">
                                         <span className="font-semibold text-blue-700">
-                                            {formData.sourceBucket === 'REVENUE' ? 'Pendapatan Pelanggan' : 'Alokasi Unit Operasional'}
+                                            {formData.sourceBucket === 'REVENUE' ? 'Saldo Linknet' : formData.sourceBucket === 'HOLDING' ? 'Saldo Holding' : 'Alokasi Unit Operasional'}
                                         </span>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="REVENUE">Pendapatan Pelanggan</SelectItem>
+                                        {showLinknet && <SelectItem value="REVENUE">Saldo Linknet</SelectItem>}
+                                        <SelectItem value="HOLDING">Saldo Holding</SelectItem>
                                         <SelectItem value="ALLOCATION">Alokasi Unit Operasional</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -221,7 +251,9 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
                             </Label>
                             <Select
                                 value={formData.bankCode}
-                                onValueChange={(val) => setFormData({ ...formData, bankCode: val, accountNumber: "" })}
+                                onValueChange={(val) => {
+                                    setFormData({ ...formData, bankCode: val, accountNumber: "", accountHolderName: "" });
+                                }}
                             >
                                 <SelectTrigger className="h-14 bg-slate-50 border-slate-200 focus:ring-[#101D42] focus:ring-offset-0 transition-all text-base px-4 rounded-xl">
                                     <div className="flex items-center gap-3">
@@ -284,14 +316,18 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
                                 {isEWallet ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                                 {isEWallet ? "Nomor HP / ID Akun" : "Nomor Rekening"}
                             </Label>
-                            <Input
-                                id="accountNumber"
-                                value={formData.accountNumber}
-                                onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                                placeholder={isEWallet ? "Contoh: 0812XXXXXXXX" : "Masukkan nomor rekening"}
-                                className="h-12 bg-slate-50 border-slate-200 focus:ring-[#101D42] focus:ring-offset-0 text-base"
-                                required
-                            />
+                            <div className="flex gap-2">
+                                <Input
+                                    id="accountNumber"
+                                    value={formData.accountNumber}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, accountNumber: e.target.value, accountHolderName: "" });
+                                    }}
+                                    placeholder={isEWallet ? "Contoh: 0812XXXXXXXX" : "Masukkan nomor rekening"}
+                                    className="h-12 bg-slate-50 border-slate-200 focus:ring-[#101D42] focus:ring-offset-0 text-base"
+                                    required
+                                />
+                            </div>
                             {isEWallet && (
                                 <p className="text-[10px] text-amber-600 font-medium flex items-center gap-1.5 px-1 uppercase tracking-tighter">
                                     <Smartphone className="h-3 w-3" /> Pastikan nomor terdaftar di aplikasi e-wallet
@@ -330,7 +366,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
                                     required
                                 />
                             </div>
-                            {balance !== null && (
+                            {balance !== null && !hideBalanceInfo && (
                                 <p className="text-[11px] text-[#101D42] font-bold flex items-center gap-1.5 px-1 bg-blue-50 py-2 rounded-lg border border-blue-100 mt-2">
                                     <Info className="h-3.5 w-3.5 text-blue-600" /> 
                                     {balanceLabel}: <span className="text-blue-600">{formatCurrency(balance)}</span>
@@ -367,7 +403,7 @@ export function CreatePayoutModal({ isOpen, onClose, onSuccess, defaultCategory,
                             disabled={loading}
                             className="flex-1 h-12 bg-[#101D42] hover:bg-[#0a1329] text-white font-bold shadow-lg shadow-blue-900/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] text-base"
                         >
-                            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Ajukan Payout Sekarang"}
+                            {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses...</> : "Konfirmasi Payout"}
                         </Button>
                     </DialogFooter>
                 </form>

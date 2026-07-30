@@ -139,7 +139,48 @@ export function CsDailyReportModal({ isOpen, onClose }: CsDailyReportModalProps)
                           year: 'numeric'
                         })}
                       </TableCell>
-                      <TableCell className="whitespace-pre-wrap">{report.activity}</TableCell>
+                      <TableCell>
+                        <div className="space-y-2">
+                          <div className="flex gap-4 text-sm mb-2">
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md font-medium">
+                              Pelanggan Ditangani: {report.handledCustomersCount || 0}
+                            </span>
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-md font-medium">
+                              Masalah Selesai: {report.resolvedIssuesCount || 0}
+                            </span>
+                          </div>
+                          
+                          {report.regionSummary && Object.keys(report.regionSummary).length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Rekapitulasi per Wilayah</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {Object.entries(report.regionSummary).map(([region, issues]: [string, any]) => (
+                                  <div key={region} className="bg-slate-50 border rounded-md p-2">
+                                    <div className="font-medium text-slate-700 text-sm mb-1">{region}</div>
+                                    <ul className="text-xs text-slate-600 space-y-1">
+                                      {Object.entries(issues).map(([issueName, count]) => (
+                                        <li key={issueName} className="flex justify-between border-b border-slate-200 border-dashed pb-1 last:border-0 last:pb-0">
+                                          <span>{issueName}</span>
+                                          <span className="font-semibold">{count as number}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {report.activity && (
+                            <div className="mt-3">
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Catatan Tambahan</p>
+                              <p className="whitespace-pre-wrap text-sm text-slate-700 bg-slate-50 p-3 rounded-md border">
+                                {report.activity}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
