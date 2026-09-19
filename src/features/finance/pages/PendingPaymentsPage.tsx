@@ -1,12 +1,14 @@
 /**
- * PendingPaymentsPage.tsx
- * Tujuan      : Halaman untuk menampilkan dan mengelola pembayaran yang menunggu persetujuan.
- * Dipakai oleh: Router (/keuangan/pending-payments)
- * Dependensi  : usePendingPayments, FinanceService, BaseTable, AlertDialog, Dialog
- * Fungsi utama: approvePayment, rejectPayment, viewProofOfPayment
- * Side effects: POST /payment/:id/approve, POST /payment/:id/reject (via usePendingPayments)
+ * @file PendingPaymentsPage.tsx
+ * @description Halaman untuk menampilkan, mencari, dan mengelola persetujuan pembayaran tertunda (pending payments).
+ * @caller App Router (/keuangan/pending-payments)
+ * @dependencies usePendingPayments, useDebounce, BaseTable, BaseModal, lucide-react
+ * @publicFunctions PendingPaymentsPage
+ * @sideEffects 
+ *   - GET /payment/find-all (filter status:PENDING & search invoice/customer)
+ *   - POST /payment/:id/approve, POST /payment/:id/reject
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { BaseTable } from "@/components/shared/BaseTable";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { usePendingPayments } from "../hooks/usePendingPayments";
-import { Check, X, FileImage, ShieldCheck, ShieldX } from "lucide-react";
+import { useDebounce } from "@/hooks/useDebounce";
+import { Check, X, FileImage, ShieldCheck, ShieldX, Search } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import type { Payment } from "@/services/finance.service";
 import { AuthService } from "@/services/auth.service";
@@ -45,9 +48,27 @@ export default function PendingPaymentsPage() {
     page,
     totalPages,
     setPage,
+    setQuery,
+    limit,
+    setLimit,
   } = usePendingPayments({ limit: 50, page: 1 });
 
   const { toast } = useToast();
+
+  // State untuk pencarian invoice / pelanggan
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
+
+  useEffect(() => {
+    const trimmed = debouncedSearchQuery.trim();
+    if (!trimmed) {
+      setQuery({ search: undefined });
+    } else {
+      setQuery({
+        search: `invoice.invoiceNumber:${trimmed}|customerName:${trimmed}|invoice.customer.name:${trimmed}`,
+      });
+    }
+  }, [debouncedSearchQuery, setQuery]);
 
   // State untuk dialog reject
   const [rejectingId, setRejectingId] = useState<string | null>(null);
@@ -114,7 +135,8 @@ export default function PendingPaymentsPage() {
       {
         header: "Pelanggan",
         accessorKey: "customerName",
-        cell: (row: Payment) => row.customerName || "-",
+        cell: (row: Payment) =>
+          row.customerName || (row.invoice as any)?.customer?.name || "-",
       },
       {
         header: "Sistem Bayar",
@@ -191,16 +213,39 @@ export default function PendingPaymentsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight text-[#101D42]">
             Persetujuan Pembayaran
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Daftar pembayaran yang menunggu persetujuan
           </p>
         </div>
+
+        <div className="relative group w-full sm:w-80">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
+            size={18}
+          />
+          <Input
+            placeholder="Cari invoice atau pelanggan..."
+            className="pl-10 pr-9 w-full rounded-xl bg-white border-slate-200 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Hapus pencarian"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="bg-white p-3 rounded-lg overflow-hidden">
+      <div className="bg-white p-3 rounded-lg overflow-hidden shadow-sm border border-slate-100">
         <BaseTable
           tableId="finance-pending-payments"
           data={data}
@@ -212,6 +257,8 @@ export default function PendingPaymentsPage() {
           totalPages={totalPages}
           totalItems={totalItems}
           onPageChange={setPage}
+          limit={limit}
+          onLimitChange={setLimit}
         />
       </div>
 

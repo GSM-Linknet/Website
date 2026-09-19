@@ -1,6 +1,10 @@
 /**
- * Frontend Report Types
- * Matching backend report data structures
+ * Module: report.types
+ * Tujuan: Definisi tipe data dan antarmuka laporan frontend
+ * Dipakai oleh: reporting.service.ts, FinancialReportPage.tsx, dan modul reporting lainnya
+ * Dependensi Utama: Tidak ada (TypeScript definitions)
+ * Fungsi/Tipe Utama: ReportFilters, CustomerReportData, InvoiceReportData, PaymentReportData, RevenueReportData, dll.
+ * Side Effect: Tidak ada
  */
 
 export interface ReportFilters {
@@ -10,6 +14,7 @@ export interface ReportFilters {
   subUnitId?: string;
   status?: string;
   type?: string;
+  invoiceType?: string;
   isLegacy?: "all" | "new" | "legacy";
   hierarchy?: "all" | "parent_only" | "child_only";
   page?: number;

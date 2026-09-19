@@ -1,3 +1,11 @@
+/**
+ * @file LinknetBillingTabs.tsx
+ * @description Komponen tab navigasi billing Linknet (Rekap Paket, Semua Lunas, Antrean Setoran, Riwayat Setoran, Rekap Kurang Bayar, Riwayat Pelunasan KB).
+ * @caller LinknetBillingPage
+ * @dependencies @/components/ui/tabs, @/components/shared/BaseTable, @/components/ui/button, LinknetBillingColumns, CreatePayoutModal
+ * @publicFunctions LinknetBillingTabs
+ * @sideEffects Mengubah tab aktif, seleksi tagihan, membuka payout modal, trigger aksi bayar ke Linknet / Kurang Bayar
+ */
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BaseTable } from "@/components/shared/BaseTable";
@@ -94,6 +102,8 @@ export function LinknetBillingTabs({
                         totalPages={packages.totalPages}
                         totalItems={packages.totalItems}
                         onPageChange={packages.setPage}
+                        limit={packages.limit}
+                        onLimitChange={packages.setLimit}
                     />
                 </div>
             </TabsContent>
@@ -117,6 +127,8 @@ export function LinknetBillingTabs({
                         totalPages={detail.totalPages}
                         totalItems={detail.totalItems}
                         onPageChange={detail.setPage}
+                        limit={detail.limit}
+                        onLimitChange={detail.setLimit}
                     />
                 </div>
             </TabsContent>
@@ -169,6 +181,8 @@ export function LinknetBillingTabs({
                         totalPages={unpaid.totalPages}
                         totalItems={unpaid.totalItems}
                         onPageChange={unpaid.setPage}
+                        limit={unpaid.limit}
+                        onLimitChange={unpaid.setLimit}
                     />
                 </div>
             </TabsContent>
@@ -202,6 +216,8 @@ export function LinknetBillingTabs({
                         totalPages={history.totalPages}
                         totalItems={history.totalItems}
                         onPageChange={history.setPage}
+                        limit={history.limit}
+                        onLimitChange={history.setLimit}
                     />
                 </div>
             </TabsContent>
@@ -249,6 +265,8 @@ export function LinknetBillingTabs({
                         totalPages={shortfall.totalPages}
                         totalItems={shortfall.totalItems}
                         onPageChange={shortfall.setPage}
+                        limit={shortfall.limit}
+                        onLimitChange={shortfall.setLimit}
                     />
                 </div>
             </TabsContent>
@@ -275,6 +293,8 @@ export function LinknetBillingTabs({
                         totalPages={shortfallHistory.totalPages}
                         totalItems={shortfallHistory.totalItems}
                         onPageChange={shortfallHistory.setPage}
+                        limit={shortfallHistory.limit}
+                        onLimitChange={shortfallHistory.setLimit}
                     />
                 </div>
             </TabsContent>

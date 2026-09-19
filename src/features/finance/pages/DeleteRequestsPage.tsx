@@ -1,4 +1,17 @@
-import { useState } from "react";
+/**
+ * @file DeleteRequestsPage.tsx
+ * @description Halaman persetujuan penghapusan invoice oleh finance / supervisor dengan pembatasan hak akses.
+ * @caller AppRouter (/finance/delete-requests)
+ * @dependencies
+ *   - useDeleteRequests (../hooks/useDeleteRequests)
+ *   - BaseTable (components/shared/BaseTable)
+ *   - AlertDialog (components/ui/alert-dialog)
+ * @functions
+ *   - DeleteRequestsPage (React Component)
+ * @sideEffects
+ *   - Render data tabel pengajuan hapus invoice
+ *   - Memicu aksi konfirmasi hapus via modal
+ */
 import { BaseTable } from "@/components/shared/BaseTable";
 import { Button } from "@/components/ui/button";
 import { useDeleteRequests } from "../hooks/useDeleteRequests";
@@ -8,8 +21,6 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import moment from "moment";
-import { toast } from "sonner";
-import { FinanceService } from "@/services/finance.service";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,25 +31,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import type { Invoice } from "@/services/finance.service";
 
 export default function DeleteRequestsPage() {
   const {
     data: requests,
     loading: isLoading,
-    refetch,
     setPage,
     totalItems,
     page,
     totalPages,
+    alertOpen,
+    setAlertOpen,
+    alertConfig,
+    handleApprove,
+    handleReject,
+    handleConfirm,
+    canApproveOrReject,
   } = useDeleteRequests();
-
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertConfig, setAlertConfig] = useState<{
-    title: string;
-    description: string;
-    onConfirm: () => void;
-    variant?: "destructive" | "default";
-  }>({ title: "", description: "", onConfirm: () => {} });
 
   const columns: any[] = [
     {
@@ -77,59 +87,33 @@ export default function DeleteRequestsPage() {
     {
       header: "Aksi",
       hideable: true,
-      cell: (invoice: any) => (
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="default"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            onClick={() => {
-              setAlertConfig({
-                title: "Setujui Hapus Invoice",
-                description: `Apakah Anda yakin ingin menyetujui penghapusan invoice ${invoice.invoiceNumber}? Tindakan ini akan menghapus data secara permanen.`,
-                variant: "default",
-                onConfirm: async () => {
-                  try {
-                    await FinanceService.approveDeleteInvoice(invoice.id);
-                    toast.success("Penghapusan invoice disetujui");
-                    refetch();
-                  } catch (err: any) {
-                    toast.error(err?.response?.data?.message || "Gagal menyetujui penghapusan");
-                  }
-                }
-              });
-              setAlertOpen(true);
-            }}
-          >
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Setujui
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => {
-              setAlertConfig({
-                title: "Tolak Hapus Invoice",
-                description: `Apakah Anda yakin ingin menolak penghapusan invoice ${invoice.invoiceNumber}?`,
-                variant: "destructive",
-                onConfirm: async () => {
-                  try {
-                    await FinanceService.rejectDeleteInvoice(invoice.id);
-                    toast.success("Penghapusan invoice ditolak");
-                    refetch();
-                  } catch (err: any) {
-                    toast.error(err?.response?.data?.message || "Gagal menolak penghapusan");
-                  }
-                }
-              });
-              setAlertOpen(true);
-            }}
-          >
-            <XCircle className="mr-2 h-4 w-4" />
-            Tolak
-          </Button>
-        </div>
-      ),
+      cell: (invoice: Invoice) => {
+        if (!canApproveOrReject) {
+          return <span className="text-slate-400 text-xs italic">Hanya lihat</span>;
+        }
+
+        return (
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => handleApprove(invoice)}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Setujui
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => handleReject(invoice)}
+            >
+              <XCircle className="mr-2 h-4 w-4" />
+              Tolak
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -170,10 +154,7 @@ export default function DeleteRequestsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                alertConfig.onConfirm();
-                setAlertOpen(false);
-              }}
+              onClick={handleConfirm}
               className={
                 alertConfig.variant === "destructive"
                   ? "bg-red-600 hover:bg-red-700"

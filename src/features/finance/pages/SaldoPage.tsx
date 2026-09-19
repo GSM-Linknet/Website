@@ -29,7 +29,7 @@ export default function SaldoPage() {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-7xl mx-auto">
+        <div className="space-y-8 animate-in fade-in silide-in-from-bottom-2 duration-500 max-w-7xl mx-auto">
             {/* Header Section */}
             <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="space-y-2">

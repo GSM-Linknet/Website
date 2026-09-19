@@ -1,10 +1,11 @@
 /**
  * @file Sidebar.tsx
  * @description Sidebar navigation component displaying the logo, user role details, current commission balance widget, and menu navigation links.
+ *              Semua item menu divalidasi secara ketat oleh server (useServerPermissions) untuk mencegah manipulasi client-side.
  * @used_by Layout.tsx (global layout wrapper)
  * @dependencies
  * - commissionService (API: /commissions/summary)
- * - AuthService (Auth permission checks and user profile retrieval)
+ * - useServerPermissions (Server-validated permissions in-memory)
  * - useSidebar (Sidebar collapse state)
  * @public_functions
  * - Sidebar (React Functional Component)
@@ -18,10 +19,11 @@ import { NavLink, Link } from "react-router-dom";
 import { cn, formatCurrency } from "@/lib/utils";
 import { NAVIGATION_ITEMS } from "@/constants/navigation";
 import { useSidebar } from "@/providers/sidebar-provider";
-// import { useDisclosure } from "@/hooks/use-disclosure";
+import { useServerPermissions } from "@/providers/permissions-provider";
 import { useState, useEffect } from "react";
-import { AuthService, type PermissionResource } from "@/services/auth.service";
+import { AuthService } from "@/services/auth.service";
 import { commissionService } from "@/services/commission.service";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -81,33 +83,39 @@ export const Sidebar = () => {
     return role.replace(/_/g, " ");
   };
 
-  // Filter items based on permissions
-  const filteredItems = NAVIGATION_ITEMS.map(item => {
-    // If it has sub-items, filter them first
-    if (item.items) {
-      const permittedSubItems = item.items.filter(subItem =>
-        !subItem.resource || AuthService.hasPermission(user?.role || "USER", subItem.resource as PermissionResource, "view")
-      );
+  const { isLoaded, hasPermission: hasServerPermission } = useServerPermissions();
 
-      return {
-        ...item,
-        items: permittedSubItems
-      };
-    }
+  // Filter items based on server-validated permissions
+  const filteredItems = !isLoaded
+    ? []
+    : NAVIGATION_ITEMS.map((item) => {
+        // If it has sub-items, filter them first
+        if (item.items) {
+          const permittedSubItems = item.items.filter(
+            (subItem) =>
+              !subItem.resource || hasServerPermission(subItem.resource, "view")
+          );
 
-    // If it's a direct link, check its permission
-    const isPermitted = !item.resource || AuthService.hasPermission(user?.role || "USER", item.resource as PermissionResource, "view");
-    return isPermitted ? item : null;
-  }).filter((item): item is typeof NAVIGATION_ITEMS[0] => {
-    if (!item) return false;
+          return {
+            ...item,
+            items: permittedSubItems,
+          };
+        }
 
-    // If it has sub-items, only show if at least one sub-item is permitted
-    if (item.items) {
-      return item.items.length > 0;
-    }
+        // If it's a direct link, check its permission
+        const isPermitted =
+          !item.resource || hasServerPermission(item.resource, "view");
+        return isPermitted ? item : null;
+      }).filter((item): item is (typeof NAVIGATION_ITEMS)[0] => {
+        if (!item) return false;
 
-    return true;
-  });
+        // If it has sub-items, only show if at least one sub-item is permitted
+        if (item.items) {
+          return item.items.length > 0;
+        }
+
+        return true;
+      });
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -192,8 +200,18 @@ export const Sidebar = () => {
             </p>
           )}
 
-          {filteredItems.map((item) => (
-            <div key={item.title}>
+          {!isLoaded ? (
+            <div className="space-y-2 px-1 pt-1">
+              {[1, 2, 3, 4, 5, 6].map((idx) => (
+                <div key={idx} className="flex items-center space-x-3 px-3 py-2.5">
+                  <Skeleton className="w-5 h-5 rounded-md bg-white/10 shrink-0" />
+                  {!isCollapsed && <Skeleton className="h-4 w-28 bg-white/10 rounded" />}
+                </div>
+              ))}
+            </div>
+          ) : (
+            filteredItems.map((item) => (
+              <div key={item.title}>
               {item.items ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -299,8 +317,9 @@ export const Sidebar = () => {
                 </div>
               )}
             </div>
-          ))}
-        </div>
+          ))
+        )}
+      </div>
 
         {/* Footer User */}
         <div className="p-3 mt-auto">

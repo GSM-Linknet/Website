@@ -71,9 +71,10 @@ const refreshAccessToken = async (): Promise<string> => {
 
   const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
-  Cookies.set("auth_token", accessToken, { expires: 1 });
+  // Access token berlaku 15 menit (15/1440 hari), refresh token 2 jam (2/24 hari)
+  Cookies.set("auth_token", accessToken, { expires: 15 / (24 * 60) });
   if (newRefreshToken) {
-    Cookies.set("refresh_token", newRefreshToken, { expires: 7 });
+    Cookies.set("refresh_token", newRefreshToken, { expires: 2 / 24 });
   }
 
   return accessToken;

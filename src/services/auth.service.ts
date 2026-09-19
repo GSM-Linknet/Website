@@ -1,5 +1,17 @@
+/**
+ * auth.service.ts
+ * Tujuan      : Service autentikasi dan otorisasi pengguna (login, logout, permission, token management)
+ * Dipakai oleh: Layout, Sidebar, PermissionGuard, PermissionsProvider, LoginPage, dll
+ * Dependensi  : apiClient, js-cookie, permission-integrity.ts
+ * Fungsi utama: login, logout, logoutSilent, reportSecurityViolation, hasPermission, verifyPermissionWithServer, getUser, initPermissions
+ * Side effects: HTTP call login/permissions, pembacaan/penulisan cookie dan localStorage, redirect window
+ */
+
 import { apiClient, type ResponseData } from "./api-client";
 import Cookies from "js-cookie";
+import { signPermissions, getVerifiedPermissions, clearPermissions, getRoleFromToken } from "@/lib/permission-integrity";
+
+
 
 export type UserRole =
   | "SUPER_ADMIN"
@@ -64,10 +76,15 @@ export type PermissionResource =
   | "keuangan.unit-balance"
   | "keuangan.daily-journal"
   | "keuangan.rab"
+  | "keuangan.linknet-billing"
   // Settings
   | "settings.permissions"
   | "settings.whatsapp"
   | "settings.system"
+  | "pengaturan.template"
+  // Logs
+  | "logs.customer"
+  | "logs.linknet"
   // Other
   | "customer"
   | "customer-support"
@@ -78,6 +95,7 @@ export type PermissionResource =
   | "komisi.laporan"
   | "komisi.unit-balance"
   | "komisi.central-balance"
+  | "komisi.saldo"
   | "komisi.setting"
 
 export type AppAction =
@@ -336,8 +354,9 @@ export const AuthService = {
 
       const { user, accessToken, refreshToken } = data;
 
-      Cookies.set("auth_token", accessToken, { expires: 1 }); // 1 day
-      Cookies.set("refresh_token", refreshToken, { expires: 7 }); // 7 days
+      // Access token berlaku 15 menit (15/1440 hari), refresh token 2 jam (2/24 hari)
+      Cookies.set("auth_token", accessToken, { expires: 15 / (24 * 60) });
+      Cookies.set("refresh_token", refreshToken, { expires: 2 / 24 });
 
       // Store user role for permission checks
       const roleValue = user.role as unknown;
@@ -365,11 +384,11 @@ export const AuthService = {
   },
 
   /**
-   * Initializes permissions by fetching from API and storing in localStorage.
+   * Initializes permissions by fetching from API and storing signed in localStorage.
+   * Side effect: write signed "app_permissions_signed" via signPermissions()
    */
   async initPermissions() {
     try {
-      // Use direct apiClient call to avoid circular dependencies
       const response = await apiClient.get<{ data: { items: any[] } }>(
         "/settings/permissions/find-all",
         {
@@ -388,7 +407,9 @@ export const AuthService = {
         }
       });
 
-      localStorage.setItem("app_permissions", JSON.stringify(matrix));
+      // Simpan dengan signature + TTL untuk mencegah tampering via DevTools
+      const user = this.getUser();
+      signPermissions(matrix, user?.id || "unknown");
       return matrix;
     } catch (error) {
       console.error("Failed to fetch permissions", error);
@@ -401,25 +422,49 @@ export const AuthService = {
    */
   async logout() {
     await new Promise((resolve) => setTimeout(resolve, 500));
-    Cookies.remove("auth_token");
-    Cookies.remove("refresh_token");
-    localStorage.removeItem("user_profile");
-    localStorage.removeItem("app_permissions");
+    this.logoutSilent();
     window.location.href = "/";
   },
 
   /**
+   * Logout tanpa redirect langsung (untuk pembersihan state sebelum custom redirect)
+   */
+  logoutSilent() {
+    Cookies.remove("auth_token");
+    Cookies.remove("refresh_token");
+    localStorage.removeItem("user_profile");
+    clearPermissions();
+  },
+
+  /**
+   * Menangani indikasi pelanggaran keamanan (tampering, invalid session)
+   * Membersihkan sesi dan mengarahkan pengguna ke halaman peringatan /security-warning
+   */
+  reportSecurityViolation(reason?: string) {
+    console.warn(`[SECURITY VIOLATION] ${reason || "Indikasi manipulasi sesi terdeteksi."}`);
+    this.logoutSilent();
+    window.location.href = "/security-warning";
+  },
+
+  /**
    * Check if a role has a specific permission for a resource.
+   * Sumber kebenaran: permission yang telah di-signed + TTL-verified dari localStorage.
+   * Role divalidasi dari JWT token (bukan parameter — yang bisa dari localStorage).
+   * DENY-BY-DEFAULT: jika cache kosong/expired/tampered → return false, tidak fallback ke static.
    */
   hasPermission(
-    role: string,
+    _role: string, // parameter tidak dipakai — role selalu diambil dari JWT
     resource: PermissionResource,
     action: AppAction,
   ): boolean {
-    // Super Admin has all permissions
+    // Ambil role dari JWT token — user tidak bisa forge isi JWT
+    const role = getRoleFromToken();
+    if (!role) return false; // tidak ada token = tidak terautentikasi
+
+    // SUPER_ADMIN valid hanya jika JWT mengandung role tersebut
     if (role === "SUPER_ADMIN") return true;
 
-    // Strict Override: If user has explicit templates assigned, ignore Role permissions
+    // Cek userPermissions eksplisit (dari template yang di-assign)
     const user = this.getUser();
     if (user && user.userPermissions && user.userPermissions.length > 0) {
       return (
@@ -428,29 +473,44 @@ export const AuthService = {
       );
     }
 
-    const permissionsStr = localStorage.getItem("app_permissions");
-    let rolePermissions: any = null;
+    // Baca dari signed + verified cache — bukan localStorage mentah
+    const matrix = getVerifiedPermissions(user?.id);
 
-    if (permissionsStr) {
-      try {
-        const matrix = JSON.parse(permissionsStr);
-        rolePermissions = matrix[role];
-      } catch (e) {
-        console.error("Error parsing permissions", e);
-      }
-    }
+    // DENY-BY-DEFAULT: jika cache tidak ada / expired / signature invalid
+    // → TIDAK fallback ke static PERMISSIONS yang ada di JS bundle
+    // → User harus navigasi ulang (Layout akan re-fetch)
+    if (!matrix) return false;
 
-    // Fallback to static PERMISSIONS if not loaded yet or error
-    if (!rolePermissions) {
-      rolePermissions = PERMISSIONS[role as UserRole];
-    }
-
+    const rolePermissions = matrix[role];
     if (!rolePermissions) return false;
 
     const resourcePermissions = rolePermissions[resource];
     if (!resourcePermissions) return false;
 
     return resourcePermissions.includes(action);
+  },
+
+  /**
+   * Verifikasi permission ke server secara async (non-blocking).
+   * Dipanggil oleh PermissionGuard setelah render untuk double-check BE.
+   * Jika server balik denied → trigger logout otomatis.
+   * Side effect: HTTP GET /auth/verify-permission
+   */
+  async verifyPermissionWithServer(
+    resource: PermissionResource,
+    action: AppAction,
+  ): Promise<boolean> {
+    try {
+      const response = await apiClient.get<{ data: { allowed: boolean } }>(
+        `/auth/verify-permission`,
+        { params: { resource, action } },
+      );
+      return response.data.allowed;
+    } catch (error) {
+      // Jika 401/403 dari server → permission definitif tidak ada
+      console.warn("[PermissionGuard] Server permission check failed:", error);
+      return false;
+    }
   },
 
   /**
@@ -461,18 +521,27 @@ export const AuthService = {
   },
 
   /**
-   * Get currently logged in user from local storage
+   * Get currently logged in user from local storage.
+   * Validasi: token cookie wajib ada — jika tidak ada, user dianggap tidak terautentikasi.
+   * PENTING: role di-override dari JWT payload — tidak bisa dimanipulasi via localStorage.
    */
   getUser(): User | null {
+    // Guard: jika token tidak ada di cookie, session tidak valid
+    const token = Cookies.get("auth_token");
+    if (!token) return null;
+
     const userStr = localStorage.getItem("user_profile");
-    if (userStr) {
-      try {
-        return JSON.parse(userStr);
-      } catch {
-        return null;
-      }
+    if (!userStr) return null;
+
+    try {
+      const user = JSON.parse(userStr);
+      // Override role dari JWT — user tidak bisa forge isi JWT token
+      const jwtRole = getRoleFromToken();
+      if (!jwtRole) return null; // token invalid / expired
+      return { ...user, role: jwtRole as UserRole };
+    } catch {
+      return null;
     }
-    return null;
   },
 
   /**
@@ -510,7 +579,7 @@ export const AuthService = {
       Cookies.remove("auth_token");
       Cookies.remove("refresh_token");
       localStorage.removeItem("user_profile");
-      localStorage.removeItem("app_permissions");
+      clearPermissions();
 
       // Set new session
       Cookies.set("auth_token", accessToken, { expires: 1 });
@@ -556,7 +625,7 @@ export const AuthService = {
     Cookies.remove("auth_token");
     Cookies.remove("refresh_token");
     localStorage.removeItem("user_profile");
-    localStorage.removeItem("app_permissions");
+    clearPermissions();
 
     // Restore original session
     Cookies.set("auth_token", originalToken, { expires: 1 });

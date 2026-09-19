@@ -1,3 +1,11 @@
+/**
+ * @file BaseTable.tsx
+ * @description Komponen tabel data terpadu dengan scroll horizontal, pengaturan kolom (toggle visibility), kontrol limit, dan paginasi.
+ * @caller Seluruh fitur (Finance, Reporting, Master, dll.)
+ * @dependencies @/components/ui/table, @/components/ui/dropdown-menu, @/components/shared/BasePagination
+ * @publicFunctions BaseTable
+ * @sideEffects Menyimpan konfigurasi visibilitas kolom ke localStorage (table_hidden_cols_{tableId})
+ */
 import {
   Table,
   TableBody,
@@ -176,43 +184,90 @@ export function BaseTable<T>({
   return (
     <div className={cn("space-y-4", className)}>
       {/* Table Header / Actions */}
-      {showColumnToggle && (
-        <div className="flex justify-end">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 gap-2 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-[#101D42]">
-                <Settings2 className="size-4" />
-                <span className="font-semibold text-xs">Atur Kolom</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-slate-100">
-              <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1.5">
-                Tampilkan Kolom
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-slate-50" />
-              <div className="max-h-64 overflow-y-auto">
-                {columns.map((column) => {
-                  const key = (column.id || column.accessorKey) as string;
-                  const isVisible = visibleColumnKeys.includes(key);
-                  const isHideable = column.hideable !== false;
-                  
-                  if (!isHideable && !isVisible) return null; // Safety check
-
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={key}
-                      checked={isVisible}
-                      onCheckedChange={() => toggleColumn(key)}
-                      disabled={!isHideable}
-                      className="rounded-lg text-sm text-slate-600 focus:bg-slate-50 focus:text-[#101D42] data-[state=checked]:font-semibold"
+      {(showColumnToggle || onLimitChange) && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            {onLimitChange && (() => {
+              const isAll = limit === 0 || limit === -1 || (limit !== undefined && limit >= 10000);
+              return (
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm">
+                  <span className="hidden sm:inline">Tampilkan:</span>
+                  <div className="flex items-center gap-1">
+                    {[10, 25, 50, 100].map((val) => {
+                      const isSelected = limit === val && !isAll;
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => onLimitChange(val)}
+                          className={cn(
+                            "px-2 py-0.5 rounded-lg text-xs font-bold transition-colors",
+                            isSelected
+                              ? "bg-[#101D42] text-white"
+                              : "text-slate-600 hover:bg-slate-100"
+                          )}
+                        >
+                          {val}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => onLimitChange(0)}
+                      className={cn(
+                        "px-2 py-0.5 rounded-lg text-xs font-bold transition-colors",
+                        isAll
+                          ? "bg-[#101D42] text-white"
+                          : "text-slate-600 hover:bg-slate-100"
+                      )}
                     >
-                      {column.headerString || (typeof column.header === 'string' ? column.header : key)}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                      Semua
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {showColumnToggle && (
+            <div className="flex justify-end ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-2 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-[#101D42]">
+                    <Settings2 className="size-4" />
+                    <span className="font-semibold text-xs">Atur Kolom</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-slate-100">
+                  <DropdownMenuLabel className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1.5">
+                    Tampilkan Kolom
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-slate-50" />
+                  <div className="max-h-64 overflow-y-auto">
+                    {columns.map((column) => {
+                      const key = (column.id || column.accessorKey) as string;
+                      const isVisible = visibleColumnKeys.includes(key);
+                      const isHideable = column.hideable !== false;
+                      
+                      if (!isHideable && !isVisible) return null; // Safety check
+
+                      return (
+                        <DropdownMenuCheckboxItem
+                          key={key}
+                          checked={isVisible}
+                          onCheckedChange={() => toggleColumn(key)}
+                          disabled={!isHideable}
+                          className="rounded-lg text-sm text-slate-600 focus:bg-slate-50 focus:text-[#101D42] data-[state=checked]:font-semibold"
+                        >
+                          {column.headerString || (typeof column.header === 'string' ? column.header : key)}
+                        </DropdownMenuCheckboxItem>
+                      );
+                    })}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
       )}
 

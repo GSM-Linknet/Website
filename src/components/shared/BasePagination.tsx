@@ -1,3 +1,11 @@
+/**
+ * @file BasePagination.tsx
+ * @description Komponen reusable untuk kontrol navigasi paginasi dan pilihan limit data per halaman (termasuk opsi 'Semua').
+ * @caller BaseTable, komponen tabel lainnya
+ * @dependencies lucide-react, @/components/ui/button, @/lib/utils
+ * @publicFunctions BasePagination
+ * @sideEffects Tidak ada (state murni dikendalikan via props callback onPageChange & onLimitChange)
+ */
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,7 +29,9 @@ export function BasePagination({
     onLimitChange,
     className,
 }: BasePaginationProps) {
-    if (totalPages <= 1) return null;
+    if (totalPages <= 1 && !onLimitChange) return null;
+
+    const isAll = limit === 0 || limit === -1 || limit >= 10000;
 
     const getPageNumbers = () => {
         const pages = [];
@@ -40,8 +50,8 @@ export function BasePagination({
         return pages;
     };
 
-    const startItem = (currentPage - 1) * limit + 1;
-    const endItem = Math.min(currentPage * limit, totalItems);
+    const startItem = totalItems === 0 ? 0 : isAll ? 1 : (currentPage - 1) * limit + 1;
+    const endItem = isAll ? totalItems : Math.min(currentPage * limit, totalItems);
 
     return (
         <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4", className)}>
@@ -55,83 +65,86 @@ export function BasePagination({
                     <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-0 sm:ml-2">
                         <span>Tampilkan:</span>
                         <select
-                            value={limit}
+                            value={isAll ? 0 : limit}
                             onChange={(e) => onLimitChange(Number(e.target.value))}
                             className="bg-transparent font-bold text-[#101D42] focus:outline-none cursor-pointer"
                         >
                             {[10, 25, 50, 100].map(val => (
                                 <option key={val} value={val}>{val}</option>
                             ))}
+                            <option value={0}>Semua</option>
                         </select>
                     </div>
                 )}
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center gap-1 order-1 sm:order-2">
-                {/* First Page */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onPageChange(1)}
-                    disabled={currentPage === 1}
-                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-[#101D42] hover:bg-slate-100 disabled:opacity-30"
-                >
-                    <ChevronsLeft size={16} />
-                </Button>
+            {totalPages > 1 && (
+                <div className="flex items-center gap-1 order-1 sm:order-2">
+                    {/* First Page */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onPageChange(1)}
+                        disabled={currentPage === 1}
+                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-[#101D42] hover:bg-slate-100 disabled:opacity-30"
+                    >
+                        <ChevronsLeft size={16} />
+                    </Button>
 
-                {/* Prev Page */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-[#101D42] hover:bg-slate-100 disabled:opacity-30"
-                >
-                    <ChevronLeft size={16} />
-                </Button>
+                    {/* Prev Page */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onPageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-[#101D42] hover:bg-slate-100 disabled:opacity-30"
+                    >
+                        <ChevronLeft size={16} />
+                    </Button>
 
-                {/* Page Numbers */}
-                <div className="flex items-center gap-1 px-1">
-                    {getPageNumbers().map((pageNum) => (
-                        <Button
-                            key={pageNum}
-                            variant={currentPage === pageNum ? "default" : "ghost"}
-                            onClick={() => onPageChange(pageNum)}
-                            className={cn(
-                                "h-8 w-8 rounded-lg text-xs font-bold transition-all",
-                                currentPage === pageNum
-                                    ? "bg-[#101D42] text-white shadow-lg shadow-blue-900/20"
-                                    : "text-slate-500 hover:text-[#101D42] hover:bg-slate-100"
-                            )}
-                        >
-                            {pageNum}
-                        </Button>
-                    ))}
+                    {/* Page Numbers */}
+                    <div className="flex items-center gap-1 px-1">
+                        {getPageNumbers().map((pageNum) => (
+                            <Button
+                                key={pageNum}
+                                variant={currentPage === pageNum ? "default" : "ghost"}
+                                onClick={() => onPageChange(pageNum)}
+                                className={cn(
+                                    "h-8 w-8 rounded-lg text-xs font-bold transition-all",
+                                    currentPage === pageNum
+                                        ? "bg-[#101D42] text-white shadow-lg shadow-blue-900/20"
+                                        : "text-slate-500 hover:text-[#101D42] hover:bg-slate-100"
+                                )}
+                            >
+                                {pageNum}
+                            </Button>
+                        ))}
+                    </div>
+
+                    {/* Next Page */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onPageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-[#101D42] hover:bg-slate-100 disabled:opacity-30"
+                    >
+                        <ChevronRight size={16} />
+                    </Button>
+
+                    {/* Last Page */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onPageChange(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-[#101D42] hover:bg-slate-100 disabled:opacity-30"
+                    >
+                        <ChevronsRight size={16} />
+                    </Button>
                 </div>
-
-                {/* Next Page */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-[#101D42] hover:bg-slate-100 disabled:opacity-30"
-                >
-                    <ChevronRight size={16} />
-                </Button>
-
-                {/* Last Page */}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onPageChange(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-[#101D42] hover:bg-slate-100 disabled:opacity-30"
-                >
-                    <ChevronsRight size={16} />
-                </Button>
-            </div>
+            )}
         </div>
     );
 }

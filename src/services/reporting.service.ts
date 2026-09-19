@@ -1,6 +1,10 @@
 /**
- * Report Service
- * API calls for all reporting endpoints
+ * Module: reporting.service
+ * Tujuan: Layanan API klien untuk semua endpoint reporting (Customer, Financial, Technician, Production, Sales, Activity)
+ * Dipakai oleh: Halaman fitur reporting (FinancialReportPage.tsx, CustomerReportPage.tsx, dll.)
+ * Dependensi Utama: apiClient, API_ENDPOINTS, buildQueryParams, downloadBlob, generateExportFilename
+ * Fungsi Utama: getCustomerReport, getInvoiceReport, getPaymentReport, exportFinancialReportExcel, exportFinancialReportPDF, dll.
+ * Side Effect: HTTP GET request ke backend reporting service, download file binary (Excel/PDF)
  */
 
 import { apiClient } from './api-client';
@@ -92,9 +96,14 @@ class ReportingService {
   }
 
   async exportFinancialReportExcel(reportType: string, filters?: ReportFilters): Promise<void> {
-    // `reportType` = activeTab (e.g. "invoice"), hanya untuk nama file.
-    // Filter InvoiceType (MONTHLY/REGISTRATION) sudah ada di `filters.type`.
-    const queryString = filters ? buildQueryParams(filters) : '';
+    const params: Record<string, any> = {
+      ...filters,
+      type: reportType,
+    };
+    if (filters?.type) {
+      params.invoiceType = filters.type;
+    }
+    const queryString = buildQueryParams(params);
     const response = await apiClient.get<Blob>(
       `/reporting/reports/financial/export/excel?${queryString}`,
       { responseType: 'blob' }
@@ -107,9 +116,14 @@ class ReportingService {
   }
 
   async exportFinancialReportPDF(reportType: string, filters?: ReportFilters): Promise<void> {
-    // `reportType` = activeTab (e.g. "invoice"), hanya untuk nama file.
-    // Filter InvoiceType (MONTHLY/REGISTRATION) sudah ada di `filters.type`.
-    const queryString = filters ? buildQueryParams(filters) : '';
+    const params: Record<string, any> = {
+      ...filters,
+      type: reportType,
+    };
+    if (filters?.type) {
+      params.invoiceType = filters.type;
+    }
+    const queryString = buildQueryParams(params);
     const response = await apiClient.get<Blob>(
       `/reporting/reports/financial/export/pdf?${queryString}`,
       { responseType: 'blob' }

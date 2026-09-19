@@ -1,3 +1,12 @@
+/**
+ * Module: FinancialReportPage
+ * Tujuan: Halaman laporan keuangan (Invoice, Pembayaran, Revenue, Aging, Ringkasan, Profit & Loss)
+ * Dipakai oleh: App router / layout navigation (rute laporan keuangan)
+ * Dependensi Utama: reportService, MasterService, ReportDataTable, DateRangeFilter, ExportButtons, ProfitLossReportView
+ * Fungsi Utama: FinancialReportPage, fetchReportData, handleExportExcel, handleExportPDF
+ * Side Effect: Fetching data laporan keuangan dan unit dari API, trigger download export Excel/PDF
+ */
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
     DollarSign,

@@ -1,10 +1,19 @@
-import React from "react";
+/**
+ * Layout.tsx
+ * Tujuan      : Komponen root layout untuk protected pages (Sidebar, Navbar, Alert, Socket, PermissionsProvider, Inactivity Idle Tracker).
+ * Dipakai oleh: routes/config.tsx (sebagai element pembungkus route terlindungi)
+ * Dependensi  : PermissionsProvider, SidebarProvider, Sidebar, Navbar, useGlobalSocket, useIdleTimeout
+ * Fungsi utama: Layout (komponen utama), LayoutContent
+ * Side effects: Inisialisasi WebSocket global, fetch dan sinkronisasi server permissions in-memory, auto-logout saat inaktivitas.
+ */
+
+import React, { useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { SidebarProvider, useSidebar } from "@/providers/sidebar-provider";
+import { PermissionsProvider } from "@/providers/permissions-provider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
 import { AuthService } from "@/services/auth.service";
 import { ImpersonateBanner } from "./ImpersonateBanner";
 import { MaintenanceService } from "@/services/maintenance.service";
@@ -13,14 +22,20 @@ import { WhatsAppDisconnectionAlert } from "./WhatsAppDisconnectionAlert";
 import { SuspendQueueAlert } from "./SuspendQueueAlert";
 import { AppSocketListener } from "./AppSocketListener";
 import { useGlobalSocket } from "@/hooks/useGlobalSocket";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
+import { isPermissionExpired } from "@/lib/permission-integrity";
 
 /**
  * LayoutContent manages the dynamic arrangement of Sidebar, Navbar, and Page Content.
+ * Juga bertugas mengawasi integritas permission cache dan melakukan re-fetch saat TTL expired.
  */
 const LayoutContent = ({ children }: { children: React.ReactNode }) => {
     const { isCollapsed, isMobileOpen, closeMobile } = useSidebar();
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Pantau inaktivitas pengguna dan logout otomatis jika idle
+    useIdleTimeout();
 
     useEffect(() => {
         const checkMaintenance = async () => {
@@ -33,16 +48,35 @@ const LayoutContent = ({ children }: { children: React.ReactNode }) => {
             }
         };
 
-        const checkPermissions = async () => {
-            const hasPermissions = localStorage.getItem("app_permissions");
-            if (!hasPermissions && AuthService.getUser()) {
-                await AuthService.initPermissions();
-            }
-        };
+    const checkPermissions = async () => {
+      const user = AuthService.getUser();
+      if (!user) return;
 
-        checkMaintenance();
-        checkPermissions();
-    }, [location.pathname, navigate]);
+      // Re-fetch jika: (1) belum ada permission, (2) TTL sudah expired (> 1 menit)
+      const shouldRefresh = isPermissionExpired();
+      if (shouldRefresh) {
+        await AuthService.initPermissions();
+      }
+    };
+
+    checkMaintenance();
+    checkPermissions();
+
+    // Deteksi manipulasi localStorage secara real-time dari tab yang sama
+    // (storage event hanya trigger antar tab, tidak dalam tab yang sama)
+    // Untuk mitigation dalam satu tab, TTL + signature di getVerifiedPermissions() sudah cukup
+    const handleStorageTamper = (e: StorageEvent) => {
+      if (
+        (e.key === "app_permissions" || e.key === "app_permissions_signed") &&
+        e.newValue !== null
+      ) {
+        // Ada perubahan dari tab lain → force re-fetch untuk sinkronisasi
+        AuthService.initPermissions();
+      }
+    };
+    window.addEventListener("storage", handleStorageTamper);
+    return () => window.removeEventListener("storage", handleStorageTamper);
+  }, [location.pathname, navigate]);
 
     return (
         <div className="flex h-screen bg-[#F8F9FD] overflow-hidden">
@@ -93,8 +127,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     useGlobalSocket();
 
     return (
-        <SidebarProvider>
-            <LayoutContent>{children}</LayoutContent>
-        </SidebarProvider>
+        <PermissionsProvider>
+            <SidebarProvider>
+                <LayoutContent>{children}</LayoutContent>
+            </SidebarProvider>
+        </PermissionsProvider>
     );
 };

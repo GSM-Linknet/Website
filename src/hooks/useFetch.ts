@@ -1,12 +1,12 @@
 /**
  * @file useFetch.ts
  * @description Hook generic untuk mengambil data terpaginasi (paginated data) dari API.
- * @caller Hooks lain (useInvoices, dll.), Komponen UI
+ * @caller Hooks lain (useInvoices, useLinknetBilling, dll.), Komponen UI
  * @dependencies React (useState, useEffect, useCallback, useRef)
  * @publicFunctions useFetch
  * @sideEffects
  *   - Memanggil fungsi fetchFn (HTTP request) secara asinkron
- *   - Mengelola state loading, error, data, dan pagination
+ *   - Mengelola state loading, error, data, limit, dan pagination
  *   - Mencegah race condition menggunakan request tracking ref
  */
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -28,7 +28,9 @@ interface UseFetchResult<T> {
   totalItems: number;
   page: number;
   totalPages: number;
+  limit: number;
   setPage: (page: number) => void;
+  setLimit: (limit: number) => void;
   setQuery: (query: Partial<BaseQuery>) => void;
   refetch: () => Promise<void>;
 }
@@ -56,6 +58,7 @@ export function useFetch<T>(
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(initialQuery.page || 1);
+  const [limit, setLimitState] = useState<number>(initialQuery.limit || 10);
   const [query, setQueryState] = useState<BaseQuery>(initialQuery);
 
   // Use ref to store fetchFn to avoid recreating fetchData on each render
@@ -69,7 +72,29 @@ export function useFetch<T>(
     setLoading(true);
     setError(null);
     try {
-      const response = await fetchFnRef.current({ ...query, page });
+      const isAll =
+        limit === 0 ||
+        limit === -1 ||
+        limit >= 10000 ||
+        query.paginate === false ||
+        query.paginate === "false" ||
+        query.pagination === false ||
+        query.pagination === "false";
+
+      const reqQuery: BaseQuery = { ...query };
+      if (isAll) {
+        delete reqQuery.limit;
+        delete reqQuery.page;
+        reqQuery.paginate = false;
+        reqQuery.pagination = false;
+      } else {
+        reqQuery.page = page;
+        if (limit > 0) {
+          reqQuery.limit = limit;
+        }
+      }
+
+      const response = await fetchFnRef.current(reqQuery);
 
       if (currentRequestId !== requestCountRef.current) {
         return;
@@ -96,16 +121,32 @@ export function useFetch<T>(
         };
       }
       
-      setData(paginatedData.items || []);
-      setTotalItems(paginatedData.totalItems || 0);
-      setTotalPages(paginatedData.totalPages || 1);
+      const items = Array.isArray(paginatedData.items)
+        ? paginatedData.items
+        : Array.isArray(paginatedData)
+          ? paginatedData
+          : [];
+      setData(items);
+      setTotalItems(
+        paginatedData.totalItems !== undefined
+          ? paginatedData.totalItems
+          : items.length
+      );
+      setTotalPages(
+        paginatedData.totalPages !== undefined
+          ? paginatedData.totalPages
+          : 1
+      );
+      if (paginatedData.limit) {
+        setLimitState(paginatedData.limit);
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to fetch data"));
       console.error("useFetch error:", err);
     } finally {
       setLoading(false);
     }
-  }, [query, page]);
+  }, [query, page, limit]);
 
   const setQuery = useCallback((newQuery: Partial<BaseQuery>) => {
     setQueryState((prev) => {
@@ -139,6 +180,26 @@ export function useFetch<T>(
     }
   }, [JSON.stringify(initialQuery)]);
 
+  const setLimit = useCallback((newLimit: number) => {
+    setLimitState(newLimit);
+    const isAll = newLimit === 0 || newLimit === -1 || newLimit >= 10000;
+    setQueryState((prev) => {
+      const next = { ...prev };
+      if (isAll) {
+        delete next.limit;
+        delete next.page;
+        next.paginate = false;
+        next.pagination = false;
+      } else {
+        next.limit = newLimit;
+        delete next.paginate;
+        delete next.pagination;
+      }
+      return next;
+    });
+    setPage(1);
+  }, []);
+
   return {
     data,
     loading,
@@ -146,7 +207,9 @@ export function useFetch<T>(
     totalItems,
     page,
     totalPages,
+    limit,
     setPage,
+    setLimit,
     setQuery,
     refetch: fetchData,
   };

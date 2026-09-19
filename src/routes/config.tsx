@@ -1,10 +1,10 @@
 /**
  * routes/config.tsx
- * Tujuan      : Konfigurasi routing aplikasi React menggunakan React Router.
- * Dipakai oleh: src/index.tsx atau App.tsx
- * Dependensi  : react-router-dom, lazy-loaded page components
- * Fungsi utama: Menyusun hirarki route, autentikasi middleware, role check, dan layout wrap.
- * Side effects: Navigasi URL klien, lazy loading bundle.
+ * Tujuan      : Konfigurasi routing aplikasi React dengan proteksi permission terpusat dan halaman peringatan keamanan.
+ * Dipakai oleh: routes/index.tsx -> App.tsx
+ * Dependensi  : react-router-dom, lazy-loaded page components, PermissionGuard, SecurityWarningPage
+ * Fungsi utama: Menyusun hirarki route, layout wrap, blocking permission check di setiap halaman, fallback route.
+ * Side effects: Navigasi URL klien, lazy loading bundle, redirect ke /security-warning saat ada pelanggaran keamanan.
  */
 
 import { lazy, Suspense } from "react";
@@ -12,6 +12,8 @@ import type { RouteObject } from "react-router-dom";
 import { Navigate, Outlet } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Layout } from "@/components/shared/Layout";
+import { PermissionGuard } from "@/components/shared/PermissionGuard";
+
 
 // Lazy load pages
 const LoginPage = lazy(() => import("@/features/auth/pages/LoginPage"));
@@ -150,6 +152,8 @@ const ReviewUnitPaymentPage = lazy(() => import("@/features/finance/pages/Review
 const CustomerSupportPage = lazy(() => import("@/features/customer-support/pages/CustomerSupportPage"));
 const CsShiftPage = lazy(() => import("@/features/customer-support/pages/CsShiftPage"));
 
+const SecurityWarningPage = lazy(() => import("@/pages/SecurityWarningPage"));
+
 /**
  * Loading component for Suspense fallback.
  */
@@ -211,6 +215,16 @@ export const routes: RouteObject[] = [
     ),
   },
 
+  // 0.3 Security Warning Route (Standalone Warning Notification)
+  {
+    path: "/security-warning",
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <SecurityWarningPage />
+      </Suspense>
+    ),
+  },
+
   // 1. Auth Routes (No Sidebar/Navbar)
   {
     index: true,
@@ -248,31 +262,12 @@ export const routes: RouteObject[] = [
       {
         path: "/dashboard",
         element: (
-          <Suspense fallback={<PageLoader />}>
-            <DashboardPage />
-          </Suspense>
+          <PermissionGuard resource="dashboard" action="view">
+            <Suspense fallback={<PageLoader />}>
+              <DashboardPage />
+            </Suspense>
+          </PermissionGuard>
         ),
-      },
-      {
-        path: "keuangan",
-        children: [
-          {
-            path: "unit-balance",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <UnitBalancePage />
-              </Suspense>
-            ),
-          },
-          {
-            path: "central-balance",
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <CentralBalancePage />
-              </Suspense>
-            ),
-          },
-        ],
       },
       {
         path: "pelanggan",
@@ -280,53 +275,63 @@ export const routes: RouteObject[] = [
           {
             path: "pendaftaran",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <CustomerRegistrationPage />
-              </Suspense>
+              <PermissionGuard resource="pelanggan.pendaftaran" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <CustomerRegistrationPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "kelola",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <CustomerListPage />
-              </Suspense>
+              <PermissionGuard resource="pelanggan.kelola" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <CustomerListPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "children",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <ChildrenCustomerListPage />
-              </Suspense>
+              <PermissionGuard resource="pelanggan.kelola" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <ChildrenCustomerListPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "layanan",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <LinkNetPage />
-              </Suspense>
+              <PermissionGuard resource="pelanggan.layanan" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <LinkNetPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
-
           {
             path: "review-suspend",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <SuspendReviewPage />
-              </Suspense>
+              <PermissionGuard resource="pelanggan.suspend-queue" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <SuspendReviewPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "trash",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <DeletedCustomersPage />
-              </Suspense>
+              <PermissionGuard resource="pelanggan.trash" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <DeletedCustomersPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
-         
           {
             index: true,
             element: <Navigate to="kelola" replace />,
@@ -339,97 +344,121 @@ export const routes: RouteObject[] = [
           {
             path: "customers",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <CustomerReportPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.pelanggan" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <CustomerReportPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "financial",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <FinancialReportPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.keuangan" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <FinancialReportPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "technician",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <TechnicianReportPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.teknisi" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <TechnicianReportPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "production",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <ProductionReportPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.produksi" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <ProductionReportPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "sales-performance",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <SalesReportPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.master" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <SalesReportPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "activity",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <ActivityReportPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.activity" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <ActivityReportPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "sales",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <SupervisorReportPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.sales" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <SupervisorReportPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "unit",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <UnitActivityPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.unit" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <UnitActivityPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "sales-target",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <SalesTargetPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.sales-target" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <SalesTargetPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "berkala",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <PeriodicReportPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.berkala" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <PeriodicReportPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "expense-usage",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <ExpenseUsagePage />
-              </Suspense>
+              <PermissionGuard resource="reporting.expense" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <ExpenseUsagePage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "kpi",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <KpiReportPage />
-              </Suspense>
+              <PermissionGuard resource="reporting.kpi" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <KpiReportPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
         ],
@@ -440,81 +469,101 @@ export const routes: RouteObject[] = [
           {
             path: "wilayah",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <WilayahPage />
-              </Suspense>
+              <PermissionGuard resource="master.wilayah" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <WilayahPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "area",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <AreaPage />
-              </Suspense>
+              <PermissionGuard resource="master.area" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <AreaPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "cabang",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <CabangPage />
-              </Suspense>
+              <PermissionGuard resource="master.wilayah" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <CabangPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "unit",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <UnitPage />
-              </Suspense>
+              <PermissionGuard resource="master.unit" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <UnitPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "unit/:unitId/commission",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <UnitCommissionConfigPage />
-              </Suspense>
+              <PermissionGuard resource="master.unit" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <UnitCommissionConfigPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "sub-unit",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <SubUnitPage />
-              </Suspense>
+              <PermissionGuard resource="master.unit" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <SubUnitPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "paket",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <PackagePricingPage />
-              </Suspense>
+              <PermissionGuard resource="master.paket" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <PackagePricingPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "diskon",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <DiscountPage />
-              </Suspense>
+              <PermissionGuard resource="master.diskon" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <DiscountPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "users",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <UserPage />
-              </Suspense>
+              <PermissionGuard resource="master.users" action="impersonate">
+                <Suspense fallback={<PageLoader />}>
+                  <UserPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "schedule",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <InstallSchedulePage />
-              </Suspense>
+              <PermissionGuard resource="master.schedule" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <InstallSchedulePage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
         ],
@@ -525,25 +574,31 @@ export const routes: RouteObject[] = [
           {
             path: "database",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <TechnicianPage />
-              </Suspense>
+              <PermissionGuard resource="teknisi.database" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <TechnicianPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "harga-jasa",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <ServicePricingPage />
-              </Suspense>
+              <PermissionGuard resource="teknisi.harga" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <ServicePricingPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "tools",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <TechnicianToolsPage />
-              </Suspense>
+              <PermissionGuard resource="teknisi.tools" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <TechnicianToolsPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
         ],
@@ -554,33 +609,41 @@ export const routes: RouteObject[] = [
           {
             path: "prospek",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <ProspectEntryPage />
-              </Suspense>
+              <PermissionGuard resource="produksi.prospek" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <ProspectEntryPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "verifikasi",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <AdminVerificationPage />
-              </Suspense>
+              <PermissionGuard resource="produksi.verifikasi" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <AdminVerificationPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "wo",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <WorkOrderPage />
-              </Suspense>
+              <PermissionGuard resource="produksi.wo" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <WorkOrderPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "coverage-map",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <CoverageMapPage />
-              </Suspense>
+              <PermissionGuard resource="produksi.cakupan" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <CoverageMapPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
         ],
@@ -591,161 +654,201 @@ export const routes: RouteObject[] = [
           {
             path: "invoice",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <InvoicePage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.invoice" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <InvoicePage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "delete-requests",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <DeleteRequestsPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.history" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <DeleteRequestsPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "review-unit",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <ReviewUnitPaymentPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.review" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <ReviewUnitPaymentPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "customers-without-invoice",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <CustomersWithoutInvoicePage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.invoice" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <CustomersWithoutInvoicePage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "saldo",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <SaldoPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.saldo" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <SaldoPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "history",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <PaymentHistoryPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.history" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <PaymentHistoryPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "pending-payments",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <PendingPaymentsPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.history" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <PendingPaymentsPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "unallocated",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <UnallocatedPaymentPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.unallocated" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <UnallocatedPaymentPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "aging",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <AgingReportsPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.aging" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <AgingReportsPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "payout",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <PayoutPage />
-              </Suspense>
+              <PermissionGuard resource="payout" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <PayoutPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "commission",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <CommissionPage />
-              </Suspense>
+              <PermissionGuard resource="komisi.laporan" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <CommissionPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "commission-management",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <CommissionManagementPage />
-              </Suspense>
+              <PermissionGuard resource="komisi.setting" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <CommissionManagementPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "batch-payment",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <BatchPaymentPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.batch-payment" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <BatchPaymentPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "unit-expense",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <UnitExpensePage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.unit-expense" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <UnitExpensePage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "daily-journal",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <DailyJournalPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.daily-journal" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <DailyJournalPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "linknet-billing",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <LinknetBillingPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.linknet-billing" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <LinknetBillingPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "revenue-share",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <UnitRevenuePage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.revenue-share" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <UnitRevenuePage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "unit-balance",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <UnitBalancePage />
-              </Suspense>
+              <PermissionGuard resource="komisi.unit-balance" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <UnitBalancePage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "central-balance",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <CentralBalancePage />
-              </Suspense>
+              <PermissionGuard resource="komisi.saldo" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <CentralBalancePage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
             path: "rab",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <RABPage />
-              </Suspense>
+              <PermissionGuard resource="keuangan.rab" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <RABPage />
+                </Suspense>
+              </PermissionGuard>
             ),
           },
           {
@@ -760,58 +863,71 @@ export const routes: RouteObject[] = [
           {
             path: "permissions",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <PermissionPage />
-              </Suspense>
+              <PermissionGuard resource="settings.permissions" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <PermissionPage />
+                </Suspense>
+              </PermissionGuard>
             )
           },
           {
             path: "whatsapp",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <WhatsAppSettingsPage />
-              </Suspense>
+              <PermissionGuard resource="settings.whatsapp" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <WhatsAppSettingsPage />
+                </Suspense>
+              </PermissionGuard>
             )
           },
           {
             path: "whatsapp-monitor",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <WhatsAppMonitorPage />
-              </Suspense>
+              <PermissionGuard resource="settings.whatsapp" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <WhatsAppMonitorPage />
+                </Suspense>
+              </PermissionGuard>
             )
           },
-
           {
             path: "templates",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <TemplateManagementPage />
-              </Suspense>
+              <PermissionGuard resource="settings.system" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <TemplateManagementPage />
+                </Suspense>
+              </PermissionGuard>
             )
           },
           {
             path: "linknet-logs",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <LinkNetLogPage />
-              </Suspense>
+              <PermissionGuard resource="settings.system" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <LinkNetLogPage />
+                </Suspense>
+              </PermissionGuard>
             )
           },
           {
             path: "notifications",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <NotificationSettingsPage />
-              </Suspense>
+              <PermissionGuard resource="settings.system" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <NotificationSettingsPage />
+                </Suspense>
+              </PermissionGuard>
             )
           },
           {
             path: "system",
             element: (
-              <Suspense fallback={<PageLoader />}>
-                <SystemSettingsPage />
-              </Suspense>
+              <PermissionGuard resource="settings.system" action="view">
+                <Suspense fallback={<PageLoader />}>
+                  <SystemSettingsPage />
+                </Suspense>
+              </PermissionGuard>
             )
           }
         ]
@@ -827,25 +943,31 @@ export const routes: RouteObject[] = [
       {
         path: "logs",
         element: (
-          <Suspense fallback={<PageLoader />}>
-            <LogPage />
-          </Suspense>
+          <PermissionGuard resource="logs.customer" action="view">
+            <Suspense fallback={<PageLoader />}>
+              <LogPage />
+            </Suspense>
+          </PermissionGuard>
         ),
       },
       {
         path: "customer-support",
         element: (
-          <Suspense fallback={<PageLoader />}>
-            <CustomerSupportPage />
-          </Suspense>
+          <PermissionGuard resource="customer-support" action="view">
+            <Suspense fallback={<PageLoader />}>
+              <CustomerSupportPage />
+            </Suspense>
+          </PermissionGuard>
         ),
       },
       {
         path: "customer-support/shifts",
         element: (
-          <Suspense fallback={<PageLoader />}>
-            <CsShiftPage />
-          </Suspense>
+          <PermissionGuard resource="customer-support.shifts" action="view">
+            <Suspense fallback={<PageLoader />}>
+              <CsShiftPage />
+            </Suspense>
+          </PermissionGuard>
         ),
       },
       {
