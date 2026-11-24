@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface PermissionGuardProps {
   resource: PermissionResource;
   action?: AppAction;
+  excludeRoles?: string[];
   children: ReactNode;
 }
 
@@ -28,6 +29,7 @@ type GuardStatus = "checking" | "allowed" | "denied";
 export const PermissionGuard = ({
   resource,
   action = "view",
+  excludeRoles,
   children,
 }: PermissionGuardProps) => {
   const { isLoaded, hasPermission, reportSecurityViolation } = useServerPermissions();
@@ -45,6 +47,18 @@ export const PermissionGuard = ({
       return;
     }
 
+    // Role exclusion check
+    if (excludeRoles && excludeRoles.includes(user.role)) {
+      console.warn(
+        `[PermissionGuard] Access denied for role: ${user.role} on resource: ${resource}. Mengarahkan ke /security-warning.`
+      );
+      setStatus("denied");
+      reportSecurityViolation(
+        `Role "${user.role}" dilarang mengakses resource "${resource}" oleh user ${user.name}`
+      );
+      return;
+    }
+
     // Validasi hak akses langsung terhadap in-memory state server
     const allowed = hasPermission(resource, action);
     if (!allowed) {
@@ -59,7 +73,7 @@ export const PermissionGuard = ({
     }
 
     setStatus("allowed");
-  }, [isLoaded, resource, action, hasPermission, reportSecurityViolation]);
+  }, [isLoaded, resource, action, excludeRoles, hasPermission, reportSecurityViolation]);
 
   // Jika tidak terautentikasi dan pengecekan selesai
   const user = AuthService.getUser();

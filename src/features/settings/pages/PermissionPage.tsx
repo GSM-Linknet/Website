@@ -1,3 +1,12 @@
+/**
+ * PermissionPage.tsx
+ * Tujuan      : Halaman manajemen hak akses (Role Permissions & Template Permission) untuk seluruh role termasuk ADMIN_LINKNET
+ * Dipakai oleh: App router (/settings/permissions)
+ * Dependensi  : AuthService, SettingsService, MODULE_GROUPS, ACTIONS, TemplatePermissionManager
+ * Fungsi utama: PermissionPage
+ * Side effects: Fetch & update matrix permission ke backend API
+ */
+
 import { useState, useEffect } from "react";
 import { Shield, Lock, Check, Loader2 } from "lucide-react";
 import { AuthService, type UserRole, type PermissionResource, type AppAction } from "@/services/auth.service";
@@ -8,10 +17,11 @@ import { cn } from "@/lib/utils";
 import { MODULE_GROUPS, ACTIONS } from "@/constants/permissions";
 import { TemplatePermissionManager } from "../components/TemplatePermissionManager";
 
-const ROLES: UserRole[] = ["SUPER_ADMIN", "ADMIN_PUSAT", "ADMIN_CABANG", "ADMIN_UNIT", "SUPERVISOR", "SALES", "TECHNICIAN", "USER"];
+const ROLES: UserRole[] = ["SUPER_ADMIN", "ADMIN_PUSAT", "ADMIN_LINKNET", "ADMIN_CABANG", "ADMIN_UNIT", "SUPERVISOR", "SALES", "TECHNICIAN", "USER"];
 const ROLE_LABELS: Record<UserRole, string> = {
     "SUPER_ADMIN": "Super Admin",
     "ADMIN_PUSAT": "Admin Pusat",
+    "ADMIN_LINKNET": "Admin Linknet",
     "ADMIN_CABANG": "Admin Cabang",
     "ADMIN_UNIT": "Admin Unit",
     "SUPERVISOR": "Supervisor Unit",

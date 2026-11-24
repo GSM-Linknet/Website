@@ -664,7 +664,7 @@ export const routes: RouteObject[] = [
           {
             path: "delete-requests",
             element: (
-              <PermissionGuard resource="keuangan.history" action="view">
+              <PermissionGuard resource="keuangan.history" action="view" excludeRoles={["ADMIN_LINKNET"]}>
                 <Suspense fallback={<PageLoader />}>
                   <DeleteRequestsPage />
                 </Suspense>
@@ -674,7 +674,7 @@ export const routes: RouteObject[] = [
           {
             path: "review-unit",
             element: (
-              <PermissionGuard resource="keuangan.review" action="view">
+              <PermissionGuard resource="keuangan.review" action="view" excludeRoles={["ADMIN_LINKNET"]}>
                 <Suspense fallback={<PageLoader />}>
                   <ReviewUnitPaymentPage />
                 </Suspense>
@@ -684,7 +684,7 @@ export const routes: RouteObject[] = [
           {
             path: "customers-without-invoice",
             element: (
-              <PermissionGuard resource="keuangan.invoice" action="view">
+              <PermissionGuard resource="keuangan.invoice" action="view" excludeRoles={["ADMIN_LINKNET"]}>
                 <Suspense fallback={<PageLoader />}>
                   <CustomersWithoutInvoicePage />
                 </Suspense>
@@ -714,7 +714,7 @@ export const routes: RouteObject[] = [
           {
             path: "pending-payments",
             element: (
-              <PermissionGuard resource="keuangan.history" action="view">
+              <PermissionGuard resource="keuangan.history" action="view" excludeRoles={["ADMIN_LINKNET"]}>
                 <Suspense fallback={<PageLoader />}>
                   <PendingPaymentsPage />
                 </Suspense>
@@ -804,7 +804,7 @@ export const routes: RouteObject[] = [
           {
             path: "linknet-billing",
             element: (
-              <PermissionGuard resource="keuangan.linknet-billing" action="view">
+              <PermissionGuard resource="keuangan.linknet-billing" action="view" excludeRoles={["ADMIN_LINKNET"]}>
                 <Suspense fallback={<PageLoader />}>
                   <LinknetBillingPage />
                 </Suspense>

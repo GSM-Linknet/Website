@@ -1,4 +1,14 @@
+/**
+ * @file CustomerReportPage.tsx
+ * @description Halaman laporan pelanggan dengan dukungan filter hierarki (Organik vs Children) dan penguncian otomatis untuk role ADMIN_LINKNET (Non-Children Only).
+ * @caller routes/config.tsx (/reporting/customers)
+ * @dependencies reportService, MasterService, AuthService, ReportCard, ReportDataTable
+ * @publicFunctions CustomerReportPage
+ * @sideEffects HTTP GET data laporan pelanggan dan unit, serta export Excel/PDF
+ */
+
 import { useState, useEffect, useCallback } from "react";
+import { AuthService } from "@/services/auth.service";
 import {
   Users,
   UserCheck,
@@ -44,12 +54,17 @@ import { BaseTable, type Column } from "@/components/shared/BaseTable";
 import { TableRow, TableCell } from "@/components/ui/table";
 
 export default function CustomerReportPage() {
+  const currentUser = AuthService.getUser();
+  const isAdminLinknet = currentUser?.role === "ADMIN_LINKNET";
+
   const [reportData, setReportData] = useState<CustomerReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [legacyFilter, setLegacyFilter] = useState<"all" | "new" | "legacy">(
     "all",
   );
-  const [hierarchyFilter, setHierarchyFilter] = useState<"all" | "parent_only" | "child_only">("all");
+  const [hierarchyFilter, setHierarchyFilter] = useState<"all" | "parent_only" | "child_only">(
+    isAdminLinknet ? "parent_only" : "all"
+  );
   const [activeTab, setActiveTab] = useState<"ringkasan" | "penjelasan">(
     "ringkasan",
   );
@@ -465,21 +480,27 @@ export default function CustomerReportPage() {
             </div>
             <div className="flex items-center gap-3">
               {/* Hierarchy Filter Tabs */}
-              <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
-                {hierarchyTabs.map((tab) => (
-                  <button
-                    key={tab.value}
-                    onClick={() => setHierarchyFilter(tab.value)}
-                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                      hierarchyFilter === tab.value
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
+              {!isAdminLinknet ? (
+                <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+                  {hierarchyTabs.map((tab) => (
+                    <button
+                      key={tab.value}
+                      onClick={() => setHierarchyFilter(tab.value)}
+                      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                        hierarchyFilter === tab.value
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                  Scope: Pelanggan Organik (Non-Children)
+                </div>
+              )}
 
               {/* Legacy Filter Tabs */}
               <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">

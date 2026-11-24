@@ -16,6 +16,7 @@ import { signPermissions, getVerifiedPermissions, clearPermissions, getRoleFromT
 export type UserRole =
   | "SUPER_ADMIN"
   | "ADMIN_PUSAT"
+  | "ADMIN_LINKNET"
   | "ADMIN_CABANG"
   | "ADMIN_UNIT"
   | "SUPERVISOR"
@@ -221,6 +222,13 @@ export const PERMISSIONS: PermissionMatrix = {
     "keuangan.saldo": ["view"],
     "settings.permissions": ["view"],
     "settings.system": ["view", "edit"],
+  },
+  ADMIN_LINKNET: {
+    dashboard: ["view", "export"],
+    "keuangan.invoice": ["view", "export"],
+    "keuangan.history": ["view", "export"],
+    "reporting.keuangan": ["view", "export"],
+    "reporting.pelanggan": ["view", "export"],
   },
   ADMIN_CABANG: {
     dashboard: ["view"],
@@ -561,7 +569,7 @@ export const AuthService = {
         const currentToken = Cookies.get("auth_token");
         const currentRefreshToken = Cookies.get("refresh_token");
         const currentUserProfile = localStorage.getItem("user_profile");
-        const currentPermissions = localStorage.getItem("app_permissions");
+        const currentPermissions = localStorage.getItem("app_permissions_signed");
 
         if (currentToken)
           Cookies.set("original_auth_token", currentToken, { expires: 1 });
@@ -633,13 +641,16 @@ export const AuthService = {
       Cookies.set("refresh_token", originalRefreshToken, { expires: 7 });
     if (originalProfile) localStorage.setItem("user_profile", originalProfile);
     if (originalPermissions)
-      localStorage.setItem("app_permissions", originalPermissions);
+      localStorage.setItem("app_permissions_signed", originalPermissions);
 
     // Clear backup
     Cookies.remove("original_auth_token");
     Cookies.remove("original_refresh_token");
     localStorage.removeItem("original_user_profile");
     localStorage.removeItem("original_app_permissions");
+
+    // Re-sync permissions for restored user
+    await this.initPermissions();
 
     return true;
   },

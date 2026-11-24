@@ -1,4 +1,75 @@
+/**
+ * @file dashboard.service.ts
+ * @description Service API client untuk mengambil statistik Dashboard (Overview, Unit, Sales, Chart, dan Dashboard Khusus Linknet).
+ * @caller SuperAdminDashboard, UnitDashboard, SalesDashboard, LinknetDashboard
+ * @dependencies apiClient
+ * @publicFunctions getOverview, getSalesMetrics, getUnitStats, getUnitCustomers, getLinknetStats, getRevenueTrend, getCustomerGrowth, dll.
+ * @sideEffects HTTP GET ke endpoint /dashboard/*
+ */
+
 import { apiClient } from "@/services/api-client";
+
+export interface LinknetDashboardStats {
+  period: {
+    month: number;
+    year: number;
+    label: string;
+  };
+  customers: {
+    totalOrganic: number;
+    activeOrganic: number;
+    suspendedOrganic: number;
+    newThisMonth: number;
+    wajibBayar: number;
+  };
+  billing: {
+    totalInvoices: number;
+    totalBilledAmount: number;
+    monthlyTotalAmount: number;
+    registrationTotalAmount: number;
+    paidInvoices: number;
+    paidAmount: number;
+    unpaidInvoices: number;
+    unpaidAmount: number;
+    collectionRate: number;
+  };
+  payments: {
+    totalPaymentsCount: number;
+    totalReceived: number;
+    xenditLinknetAmount: number;
+    manualAmount: number;
+    xenditFeeTotal: number;
+    netReceived: number;
+    byMethod: Array<{ method: string; count: number; amount: number }>;
+  };
+  linknetSettlement: {
+    totalHppLinknet: number;
+    settledCount: number;
+    settledAmount: number;
+    unsettledCount: number;
+    unsettledAmount: number;
+  };
+  aging: {
+    current: number;
+    days1to30: number;
+    days31to60: number;
+    daysOver60: number;
+    totalUnpaid: number;
+  };
+  recentPayments: Array<{
+    id: string;
+    invoiceNumber: string;
+    invoiceType: string;
+    customerName: string;
+    customerId: string;
+    unitName: string;
+    amount: number;
+    method: string;
+    paidAt: string;
+    isAutomatic: boolean;
+    xenditProvider: string;
+  }>;
+}
 
 interface DashboardMetrics {
   customers: {
@@ -234,6 +305,24 @@ export const DashboardService = {
         activeCustomers: number;
       };
     }>("/commission/summary", { params });
+    return response.data;
+  },
+
+  async getLinknetStats(params?: {
+    month?: number;
+    year?: number;
+    unitId?: string;
+  }): Promise<LinknetDashboardStats> {
+    const queryParams: Record<string, string | number> = {};
+    if (params?.month) queryParams.month = params.month;
+    if (params?.year) queryParams.year = params.year;
+    if (params?.unitId && params.unitId !== "all") {
+      queryParams.unitId = params.unitId;
+    }
+    const response = await apiClient.get<{ data: LinknetDashboardStats }>(
+      "/dashboard/linknet-stats",
+      { params: queryParams }
+    );
     return response.data;
   },
 };

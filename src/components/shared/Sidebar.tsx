@@ -85,16 +85,23 @@ export const Sidebar = () => {
 
   const { isLoaded, hasPermission: hasServerPermission } = useServerPermissions();
 
-  // Filter items based on server-validated permissions
+  const userRole = user?.role;
+
+  // Filter items based on server-validated permissions & role constraints
   const filteredItems = !isLoaded
     ? []
     : NAVIGATION_ITEMS.map((item) => {
+        // Check item level role restrictions
+        if (item.roles && (!userRole || !item.roles.includes(userRole))) return null;
+        if (item.excludeRoles && userRole && item.excludeRoles.includes(userRole)) return null;
+
         // If it has sub-items, filter them first
         if (item.items) {
-          const permittedSubItems = item.items.filter(
-            (subItem) =>
-              !subItem.resource || hasServerPermission(subItem.resource, "view")
-          );
+          const permittedSubItems = item.items.filter((subItem) => {
+            if (subItem.roles && (!userRole || !subItem.roles.includes(userRole))) return false;
+            if (subItem.excludeRoles && userRole && subItem.excludeRoles.includes(userRole)) return false;
+            return !subItem.resource || hasServerPermission(subItem.resource, "view");
+          });
 
           return {
             ...item,

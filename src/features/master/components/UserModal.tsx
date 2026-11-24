@@ -1,3 +1,12 @@
+/**
+ * UserModal.tsx
+ * Tujuan      : Modal form tambah dan ubah data user beserta role (termasuk ADMIN_LINKNET) dan penempatan organisasi
+ * Dipakai oleh: UserPage.tsx
+ * Dependensi  : BaseModal, SearchableSelect, useUser, useWilayah, useCabang, useUnit, useSubUnit, AuthService
+ * Fungsi utama: UserModal
+ * Side effects: Fetch data master organisasi (wilayah, cabang, unit, subUnit) dan trigger submit callback
+ */
+
 import { useState, useEffect } from "react";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { Input } from "@/components/ui/input";
@@ -42,6 +51,7 @@ interface UserModalProps {
 const ALL_ROLES: { value: UserRole; label: string }[] = [
   { value: "SUPER_ADMIN", label: "Super Admin" },
   { value: "ADMIN_PUSAT", label: "Admin Pusat" },
+  { value: "ADMIN_LINKNET", label: "Admin Linknet" },
   { value: "ADMIN_CABANG", label: "Admin Cabang" },
   { value: "ADMIN_UNIT", label: "Admin Unit" },
   { value: "SUPERVISOR", label: "Supervisor" },
@@ -74,6 +84,7 @@ export function UserModal({
   const ROLE_LEVELS: Record<UserRole, number> = {
     SUPER_ADMIN: 0,
     ADMIN_PUSAT: 1,
+    ADMIN_LINKNET: 1,
     ADMIN_CABANG: 2,
     ADMIN_UNIT: 3,
     SUPERVISOR: 4,

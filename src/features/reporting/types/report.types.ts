@@ -1,7 +1,7 @@
 /**
  * Module: report.types
- * Tujuan: Definisi tipe data dan antarmuka laporan frontend
- * Dipakai oleh: reporting.service.ts, FinancialReportPage.tsx, dan modul reporting lainnya
+ * Tujuan: Definisi tipe data dan antarmuka laporan frontend (termasuk pemisahan Xendit Provider LINKNET vs COMPANY)
+ * Dipakai oleh: reporting.service.ts, FinancialReportPage.tsx, CustomerReportPage.tsx, dan modul reporting lainnya
  * Dependensi Utama: Tidak ada (TypeScript definitions)
  * Fungsi/Tipe Utama: ReportFilters, CustomerReportData, InvoiceReportData, PaymentReportData, RevenueReportData, dll.
  * Side Effect: Tidak ada
@@ -130,6 +130,8 @@ export interface PaymentSummary {
   totalAmount: number;
   manualAmount?: number;
   xenditAmount?: number;
+  xenditLinknetAmount?: number;
+  xenditCompanyAmount?: number;
   byMethod: PaymentMethodBreakdown[];
 }
 
@@ -152,6 +154,7 @@ export interface PaymentDetail {
   subUnit: string;
   paymentSystem?: string;
   isAutomatic?: boolean;
+  xenditProvider?: "LINKNET" | "COMPANY";
 }
 
 export interface PaymentReportData {

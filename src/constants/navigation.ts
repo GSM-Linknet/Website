@@ -167,6 +167,7 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         title: "Billing Linknet",
         href: "/keuangan/linknet-billing",
         resource: "keuangan.linknet-billing",
+        excludeRoles: ["ADMIN_LINKNET"],
       },
       // Using invoice permission for now
       {
@@ -242,21 +243,25 @@ export const NAVIGATION_ITEMS: NavItem[] = [
         title: "Persetujuan Hapus",
         href: "/keuangan/delete-requests",
         resource: "keuangan.history",
+        excludeRoles: ["ADMIN_LINKNET"],
       },
       {
         title: "Review Report Invoice",
         href: "/keuangan/review-unit",
         resource: "keuangan.review",
+        excludeRoles: ["ADMIN_LINKNET"],
       },
       {
         title: "Pelanggan Tanpa Tagihan",
         href: "/keuangan/customers-without-invoice",
         resource: "keuangan.invoice",
+        excludeRoles: ["ADMIN_LINKNET"],
       },
       {
         title: "Persetujuan Pembayaran",
         href: "/keuangan/pending-payments",
         resource: "keuangan.history",
+        excludeRoles: ["ADMIN_LINKNET"],
       },
       {
         title: "History Pembayaran",

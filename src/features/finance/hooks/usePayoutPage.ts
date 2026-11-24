@@ -96,7 +96,11 @@ export function usePayoutPage() {
         paginate: limit !== 0,
       };
 
-      if (activeSearch) params.q = activeSearch;
+      if (activeSearch) {
+        params.search = activeSearch.includes(":")
+          ? activeSearch
+          : `accountName:${activeSearch}`;
+      }
       if (dateFrom) params.gte = `createdAt:${dateFrom}`;
       if (dateTo) params.lte = `createdAt:${dateTo}`;
 
@@ -184,6 +188,14 @@ export function usePayoutPage() {
     setPage(1);
   };
 
+  // Reset otomatis jika teks pencarian dihapus hingga kosong
+  useEffect(() => {
+    if (search === "" && activeSearch !== "") {
+      setActiveSearch("");
+      setPage(1);
+    }
+  }, [search, activeSearch]);
+
   // Date Filter Handlers
   const handleDateFromChange = (val: string) => {
     setDateFrom(val);
@@ -268,17 +280,21 @@ export function usePayoutPage() {
     try {
       setIsExporting(true);
       const response = await XenditService.exportExcel({
-        q: activeSearch || undefined,
+        search: activeSearch
+          ? (activeSearch.includes(":") ? activeSearch : `accountName:${activeSearch}`)
+          : undefined,
         gte: dateFrom ? `createdAt:${dateFrom}` : undefined,
         lte: dateTo ? `createdAt:${dateTo}` : undefined,
       });
 
-      const blob =
-        (response as { data?: unknown })?.data instanceof Blob
-          ? ((response as { data: Blob }).data as Blob)
-          : response instanceof Blob
-            ? response
-            : new Blob([response as BlobPart]);
+      let blob: Blob;
+      if (response instanceof Blob) {
+        blob = response;
+      } else if ((response as any)?.data instanceof Blob) {
+        blob = (response as any).data;
+      } else {
+        blob = new Blob([response as any]);
+      }
 
       // Handle cases where the backend returns JSON error disguised in blob
       if (blob.type?.includes("application/json")) {

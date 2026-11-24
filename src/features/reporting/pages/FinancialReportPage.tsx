@@ -1,13 +1,14 @@
 /**
  * Module: FinancialReportPage
- * Tujuan: Halaman laporan keuangan (Invoice, Pembayaran, Revenue, Aging, Ringkasan, Profit & Loss)
+ * Tujuan: Halaman laporan keuangan (Invoice, Pembayaran, Revenue, Aging, Ringkasan, Profit & Loss) dengan isolasi ADMIN_LINKNET (non-children) & pemisahan Xendit Linknet vs Perusahaan
  * Dipakai oleh: App router / layout navigation (rute laporan keuangan)
- * Dependensi Utama: reportService, MasterService, ReportDataTable, DateRangeFilter, ExportButtons, ProfitLossReportView
+ * Dependensi Utama: reportService, MasterService, AuthService, ReportDataTable, DateRangeFilter, ExportButtons, ProfitLossReportView
  * Fungsi Utama: FinancialReportPage, fetchReportData, handleExportExcel, handleExportPDF
  * Side Effect: Fetching data laporan keuangan dan unit dari API, trigger download export Excel/PDF
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { AuthService } from "@/services/auth.service";
 import {
     DollarSign,
     TrendingUp,
@@ -51,13 +52,18 @@ type TabType = "invoice" | "payment" | "revenue" | "aging" | "summary" | "profit
 type FinancialData = InvoiceReportData | PaymentReportData | RevenueReportData | AgingReportData | any;
 
 export default function FinancialReportPage() {
+    const currentUser = AuthService.getUser();
+    const isAdminLinknet = currentUser?.role === "ADMIN_LINKNET";
+
     const [activeTab, setActiveTab] = useState<TabType>("invoice");
     const [reportData, setReportData] = useState<FinancialData | null>(null);
     const [loading, setLoading] = useState(true);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     // const [legacyFilter, setLegacyFilter] = useState<'all' | 'new' | 'legacy'>('all');
     const [unitFilter, setUnitFilter] = useState<string>('all');
-    const [hierarchyFilter, setHierarchyFilter] = useState<'all' | 'parent_only' | 'child_only'>('all');
+    const [hierarchyFilter, setHierarchyFilter] = useState<'all' | 'parent_only' | 'child_only'>(
+        isAdminLinknet ? 'parent_only' : 'all'
+    );
     const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<'all' | 'MONTHLY' | 'REGISTRATION'>('all');
     const [units, setUnits] = useState<Unit[]>([]);
     
@@ -340,7 +346,18 @@ export default function FinancialReportPage() {
                 <>
                     <ReportCard title="Total Pembayaran" value={s.totalPayments || 0} icon={CreditCard} variant="info" format="number" />
                     <ReportCard title="Total Dana" value={s.totalAmount || 0} icon={DollarSign} variant="success" format="currency" />
-                    <ReportCard title="Sistem Xendit" value={s.xenditAmount || 0} icon={TrendingUp} variant="success" format="currency" />
+                    <ReportCard
+                        title={isAdminLinknet ? "Xendit Linknet" : "Sistem Xendit"}
+                        value={isAdminLinknet ? (s.xenditLinknetAmount ?? s.xenditAmount ?? 0) : (s.xenditAmount || 0)}
+                        icon={TrendingUp}
+                        variant="success"
+                        format="currency"
+                        subtitle={
+                            !isAdminLinknet && (s.xenditLinknetAmount !== undefined || s.xenditCompanyAmount !== undefined)
+                                ? `Linknet: ${formatCurrency(s.xenditLinknetAmount || 0)} | PT: ${formatCurrency(s.xenditCompanyAmount || 0)}`
+                                : undefined
+                        }
+                    />
                     <ReportCard title="Bayar Manual" value={s.manualAmount || 0} icon={DollarSign} variant="info" format="currency" />
                 </>
             );
@@ -463,25 +480,31 @@ export default function FinancialReportPage() {
                                 ))}
                             </select>
                             
-                            {/* Hierarchy Filter Tabs */}
-                            <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
-                                {[
-                                    { value: 'all' as const, label: 'Semua Hierarki' },
-                                    { value: 'parent_only' as const, label: 'Induk (Reguler)' },
-                                    { value: 'child_only' as const, label: 'Khusus Anakan' },
-                                ].map((tab) => (
-                                    <button
-                                        key={tab.value}
-                                        onClick={() => setHierarchyFilter(tab.value)}
-                                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all ${hierarchyFilter === tab.value
-                                            ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
-                                            : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
-                                            }`}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
+                            {/* Hierarchy Filter Tabs (Hidden for ADMIN_LINKNET as they are locked to Non-Children) */}
+                            {!isAdminLinknet ? (
+                                <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">
+                                    {[
+                                        { value: 'all' as const, label: 'Semua Hierarki' },
+                                        { value: 'parent_only' as const, label: 'Induk (Reguler)' },
+                                        { value: 'child_only' as const, label: 'Khusus Anakan' },
+                                    ].map((tab) => (
+                                        <button
+                                            key={tab.value}
+                                            onClick={() => setHierarchyFilter(tab.value)}
+                                            className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all ${hierarchyFilter === tab.value
+                                                ? "bg-white text-green-600 shadow-sm ring-1 ring-gray-200"
+                                                : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                                                }`}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                                    Scope: Pelanggan Organik (Non-Children)
+                                </div>
+                            )}
 
                             {/* Legacy Filter Tabs */}
                             {/* <div className="flex items-center gap-1 p-1 bg-gray-100/80 rounded-xl border border-gray-200">

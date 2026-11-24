@@ -1,3 +1,12 @@
+/**
+ * UserPage.tsx
+ * Tujuan      : Halaman manajemen Master User (daftar user, tambah/edit user, suspend, impersonate, assign template permission)
+ * Dipakai oleh: App router (/master/users)
+ * Dependensi  : useUser, UserModal, AssignTemplateModal, BaseTable, AuthService, UserService
+ * Fungsi utama: UserPage
+ * Side effects: HTTP request CRUD user, suspend/unsuspend, impersonate session
+ */
+
 import { useState, useMemo, useCallback } from "react";
 import { Plus, Users, Edit2, Trash2, ShieldCheck, LogIn, Loader2, Ban, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -192,6 +201,7 @@ export default function UserPage() {
         switch (role) {
             case "SUPER_ADMIN": return "bg-purple-100 text-purple-700 border-purple-200";
             case "ADMIN_PUSAT": return "bg-indigo-100 text-indigo-700 border-indigo-200";
+            case "ADMIN_LINKNET": return "bg-cyan-100 text-cyan-700 border-cyan-200";
             case "ADMIN_CABANG": return "bg-blue-100 text-blue-700 border-blue-200";
             case "ADMIN_UNIT": return "bg-sky-100 text-sky-700 border-sky-200";
             case "SUPERVISOR": return "bg-emerald-100 text-emerald-700 border-emerald-200";
@@ -234,7 +244,7 @@ export default function UserPage() {
             header: "PENEMPATAN",
             accessorKey: "wilayahId",
             cell: (row: User) => {
-                const isCentral = ["SUPER_ADMIN", "ADMIN_PUSAT"].includes(row.role);
+                const isCentral = ["SUPER_ADMIN", "ADMIN_PUSAT", "ADMIN_LINKNET"].includes(row.role);
                 if (isCentral) {
                     return <span className="text-slate-400 italic">Global / Pusat</span>;
                 }

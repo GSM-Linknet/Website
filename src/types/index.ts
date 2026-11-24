@@ -1,3 +1,12 @@
+/**
+ * types/index.ts
+ * Tujuan      : Definisi tipe data global untuk navigasi, statistik, pelanggan, dan komponen bersama
+ * Dipakai oleh: Sidebar.tsx, navigation.ts, Dashboard, Shared components
+ * Dependensi  : lucide-react (LucideIcon)
+ * Fungsi utama: Tipe NavItem, NavSubItem, StatItem, Customer
+ * Side effects: Tidak ada (hanya tipe TypeScript)
+ */
+
 import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
@@ -6,12 +15,16 @@ export interface NavItem {
   icon: LucideIcon;
   items?: NavSubItem[];
   resource?: string;
+  roles?: string[];
+  excludeRoles?: string[];
 }
 
 export interface NavSubItem {
   title: string;
   href: string;
   resource?: string;
+  roles?: string[];
+  excludeRoles?: string[];
 }
 
 export interface StatItem {
